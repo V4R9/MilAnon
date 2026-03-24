@@ -660,13 +660,20 @@ def project() -> None:
 
 @project.command("generate")
 @click.option("--unit", required=True, help='Your unit, e.g. "Inf Kp 56/1".')
+@click.option("--input", "input_path", default=None, type=click.Path(exists=True), help="Path to anonymized documents (from milanon anonymize) to include in knowledge/.")
 @click.option("--output", "-o", required=True, type=click.Path(), help="Output directory for the project folder.")
-def project_generate(unit: str, output: str) -> None:
+@click.option("--include-images", is_flag=True, help="Include PNG images (WAP, maps) as Knowledge files.")
+def project_generate(unit: str, input_path: str | None, output: str, include_images: bool) -> None:
     """Generate a ready-to-import Claude.ai Project folder."""
     from milanon.usecases.generate_project import GenerateProjectUseCase
 
     use_case = GenerateProjectUseCase(_DATA_DIR)
-    result = use_case.execute(unit, Path(output))
+    result = use_case.execute(
+        unit,
+        Path(output),
+        input_path=Path(input_path) if input_path else None,
+        include_images=include_images,
+    )
 
     click.echo(click.style(f"Project generated for: {result.unit}", fg="green", bold=True))
     click.echo(f"Output: {result.output_dir}")

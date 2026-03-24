@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -47,103 +48,39 @@ Der Kdt wird dir sein Bat Dossier (Einsatzbefehl, Beilagen, Karten) als
 anonymisierte Dokumente hochladen. Arbeite damit.
 """
 
-_INSTRUCTIONS_MD = """\
-# MilAnon Command Assistant — Anleitung
+_README_MD = """\
+# MilAnon Command Assistant — Setup-Anleitung
 
-## Was ist dieses Projekt?
+## Schritt 1: Projekt erstellen
+Gehe auf claude.ai → Projects → «Neues Projekt erstellen»
 
-Dieses Claude-Projekt ist dein persönlicher **Stabsassistent auf Stufe Einheit**.
-Es enthält das gesamte doktrinelle Wissen (BFE, TF, FSO, WAT) und führt dich
-durch den 5+2 Aktionsplanungsprozess — von der Problemerfassung bis zum
-druckfertigen 5-Punkte-Befehl.
+## Schritt 2: Projektanweisung einfügen
+Öffne die Datei `SYSTEM_PROMPT.md`, kopiere den GESAMTEN Inhalt (Cmd+A, Cmd+C)
+und füge ihn in das Feld «Custom Instructions» ein.
 
-Alle Daten bleiben anonym: Personen, Orte und Einheiten erscheinen als
-Platzhalter (z.B. [PERSON_001], [ORT_003]). Die Rück-Anonymisierung erfolgt
-lokal mit MilAnon.
+## Schritt 3: Knowledge Files hochladen
+Öffne den Ordner `knowledge/` und ziehe ALLE Dateien per Drag & Drop
+in den Bereich «Project Knowledge».
 
-## Wie richte ich es ein?
+Folgende Dateien sollten hochgeladen werden:
+- Anonymisiertes Bat Dossier (*.md Dateien)
+- bfe_aktionsplanung.md — Doktrin: BFE Aktionsplanung
+- tf_taktik.md — Doktrin: TF Taktische Grundsätze
+- fso_aktionsplanung.md — Doktrin: FSO Aktionsplanung
+- wat_wachtdienst.md — Doktrin: WAT Wachtdienst
+- skeletons.md — Befehlsvorlagen
+- (optional) *.png — Visuelle Seiten (WAP, Karten)
 
-1. **Claude-Projekt erstellen**: Gehe auf claude.ai → Projects → «Create Project»
-2. **System Prompt einfügen**: Öffne `SYSTEM_PROMPT.md`, kopiere den gesamten Inhalt und füge ihn unter «Project Instructions» ein
-3. **Knowledge hochladen**: Lade alle Dateien aus dem Ordner `knowledge/` hoch (Drag & Drop)
-4. **Workflows lesen**: Öffne `WORKFLOWS.md` für die verfügbaren Befehle
+## Schritt 4: Los gehts
+Öffne `CHEAT_SHEET.md` (oder drucke es aus).
+Starte einen neuen Chat und sage: «Analysiere mein Bat Dossier»
 
-## Wie benutze ich es?
-
-1. **Dossier anonymisieren**: `milanon anonymize <dossier-ordner> --output <output> --recursive`
-2. **Dossier hochladen**: Lade die anonymisierten Dateien als Konversations-Anhang hoch
-3. **Workflow starten**: Schreibe z.B. «Analysiere mein Bat Dossier» (siehe WORKFLOWS.md)
-4. **Iterieren**: Claude führt dich Schritt für Schritt durch den 5+2
-5. **Ergebnis de-anonymisieren**: `milanon unpack --clipboard --output <output>`
-6. **DOCX exportieren**: `milanon export <befehl.md> --docx --deanonymize`
-
-## Was muss ICH als Kdt entscheiden?
-
-Überall wo Claude `<!-- KDT ENTSCHEID: ... -->` markiert, musst DU entscheiden.
-Claude kann vorschlagen, aber die folgenden Entscheide sind immer Kommandantensache:
-
-- **Absicht** — «Ich will...» ist DEIN Entschluss
-- **Schwergewichtsbildung** — Wo setzt du den Schwerpunkt?
-- **Reserveeinsatz** — Wann und wie wird die Reserve eingesetzt?
-- **Risikotragbarkeit** — Welche Risiken akzeptierst du?
-- **Aufträge an Unterstellte** — Wer macht was?
-
-Claude liefert die Analyse. Du triffst den Entschluss.
-"""
-
-_WORKFLOWS_MD = """\
-# Verfügbare Workflows
-
-## Dossier-Analyse
-**Befehl:** «Analysiere mein Bat Dossier»
-
-Claude liest dein hochgeladenes Bat Dossier und extrahiert:
-- Alle Aufträge und Auflagen für deine Einheit
-- Zeitplan (extern und intern)
-- Widersprüche und offene Fragen
-- Erste Problemerfassungs-Matrix
-
-Dies ist Schritt 1 des 5+2: Problemerfassung.
-
----
-
-## Beurteilung der Lage (BdL)
-**Befehl:** «Führe mich durch die BdL»
-
-Claude führt dich durch die vernetzte Faktorenanalyse:
-- AUGEZ-Faktoren (Auftrag, Umwelt, Gegner, Eigene, Zeit)
-- AEK-Methode (Aussage → Erkenntnis → Konsequenz)
-- Schlüsselbereiche ROT und BLAU
-- Konsequenzen für eigene Möglichkeiten
-
-Dies ist Schritt 2 des 5+2: Beurteilung der Lage.
-
----
-
-## Einsatzbefehl
-**Befehl:** «Erstelle den Einsatzbefehl»
-
-Claude erstellt einen vollständigen 5-Punkte-Befehl:
-- Orientierung (Lage, Bedrohung, eigene Lage)
-- Absicht (basierend auf deinem Entschluss)
-- Aufträge (Element × Auftrag Tabelle)
-- Durchführung (Phasenplan, Feuerplan)
-- Logistik und Führungsunterstützung
-
-Dies ist Schritt 5 des 5+2: Befehlsgebung.
-
----
-
-## Wachtdienstbefehl
-**Befehl:** «Erstelle den Wachtdienstbefehl»
-
-Claude erstellt einen Wachtdienstbefehl nach WAT 51.301:
-- Wachtpflichten und Befugnisse
-- Postenorganisation und Ablösung
-- ROE/ROB
-- Alarmorganisation
-
-Dies ist ein spezialisierter 5+2-Zyklus mit Fokus Sicherung.
+## Nach Abschluss
+Wenn du den fertigen Befehl hast, kopiere Claude's Output und führe auf deinem Mac aus:
+```
+milanon unpack --clipboard --output vault/Dossier/ --split
+milanon export vault/Dossier/ei_bf.md --docx --deanonymize
+```
 """
 
 
@@ -159,10 +96,11 @@ class GenerateProjectUseCase:
 
     Output structure:
     project/
-      SYSTEM_PROMPT.md     — Layers 1+2+5 combined
+      README.md            — Setup guide (German, 4-step)
+      SYSTEM_PROMPT.md     — Layers 1+2+5 combined (paste into Claude.ai)
+      CHEAT_SHEET.md       — Quick reference (print out)
       knowledge/           — Doctrine extracts merged by topic
-      INSTRUCTIONS.md      — How to use (German)
-      WORKFLOWS.md         — Available commands
+                             + anonymized input documents (if --input given)
     """
 
     def __init__(self, data_dir: Path):
@@ -170,12 +108,20 @@ class GenerateProjectUseCase:
         self._doctrine_dir = data_dir / "doctrine"
         self._templates_dir = data_dir / "templates"
 
-    def execute(self, unit: str, output_dir: Path) -> GenerateProjectResult:
+    def execute(
+        self,
+        unit: str,
+        output_dir: Path,
+        input_path: Path | None = None,
+        include_images: bool = False,
+    ) -> GenerateProjectResult:
         """Generate the project folder.
 
         Args:
             unit: The unit designation, e.g. "Inf Kp 56/1".
             output_dir: Where to create the project folder.
+            input_path: Optional path to anonymized documents to copy into knowledge/.
+            include_images: If True, also copy PNG files from input_path.
 
         Returns:
             Result with list of created files.
@@ -204,13 +150,25 @@ class GenerateProjectUseCase:
             (knowledge_dir / "skeletons.md").write_text(skeletons_content, encoding="utf-8")
             files_created.append("knowledge/skeletons.md")
 
-        # 4. INSTRUCTIONS.md
-        (output_dir / "INSTRUCTIONS.md").write_text(_INSTRUCTIONS_MD, encoding="utf-8")
-        files_created.append("INSTRUCTIONS.md")
+        # 4. Copy anonymized documents into knowledge/
+        if input_path:
+            for f in sorted(input_path.glob("*.md")):
+                shutil.copy2(f, knowledge_dir / f.name)
+                files_created.append(f"knowledge/{f.name}")
+            if include_images:
+                for f in sorted(input_path.glob("*.png")):
+                    shutil.copy2(f, knowledge_dir / f.name)
+                    files_created.append(f"knowledge/{f.name}")
 
-        # 5. WORKFLOWS.md
-        (output_dir / "WORKFLOWS.md").write_text(_WORKFLOWS_MD, encoding="utf-8")
-        files_created.append("WORKFLOWS.md")
+        # 5. README.md — setup guide (replaces INSTRUCTIONS.md)
+        (output_dir / "README.md").write_text(_README_MD, encoding="utf-8")
+        files_created.append("README.md")
+
+        # 6. CHEAT_SHEET.md — copy from templates (replaces WORKFLOWS.md)
+        cheat_sheet_src = self._templates_dir / "CHEAT_SHEET.md"
+        if cheat_sheet_src.exists():
+            shutil.copy2(cheat_sheet_src, output_dir / "CHEAT_SHEET.md")
+            files_created.append("CHEAT_SHEET.md")
 
         logger.info("Project generated at %s with %d files", output_dir, len(files_created))
         return GenerateProjectResult(
