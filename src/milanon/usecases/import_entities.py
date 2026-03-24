@@ -8,6 +8,15 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
+
+def _detect_delimiter(text: str) -> str:
+    """Auto-detect CSV delimiter via Sniffer. Falls back to ';' then ','."""
+    try:
+        dialect = csv.Sniffer().sniff(text[:2048])
+        return dialect.delimiter
+    except csv.Error:
+        return ";" if ";" in text[:2048] else ","
+
 from milanon.domain.entities import EntityType
 from milanon.domain.mapping_service import MappingService
 
@@ -78,7 +87,8 @@ class ImportEntitiesUseCase:
             ImportResult with statistics.
         """
         text = csv_path.read_text(encoding="utf-8-sig")
-        rows = list(csv.reader(io.StringIO(text), delimiter=";"))
+        delimiter = _detect_delimiter(text)
+        rows = list(csv.reader(io.StringIO(text), delimiter=delimiter))
 
         result = ImportResult()
 

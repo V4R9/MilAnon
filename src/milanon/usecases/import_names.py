@@ -7,6 +7,15 @@ import io
 import logging
 from pathlib import Path
 
+
+def _detect_delimiter(text: str) -> str:
+    """Auto-detect CSV delimiter via Sniffer. Falls back to ';' then ','."""
+    try:
+        dialect = csv.Sniffer().sniff(text[:2048])
+        return dialect.delimiter
+    except csv.Error:
+        return ";" if ";" in text[:2048] else ","
+
 from milanon.domain.entities import EntityType
 from milanon.domain.mapping_service import MappingService
 from milanon.usecases.import_entities import ImportResult
@@ -57,7 +66,7 @@ def _split_combined(value: str) -> tuple[str, str]:
 class ImportNamesUseCase:
     """Imports entities from a simple name CSV.
 
-    Supported formats (semicolon-delimited, UTF-8, header row required):
+    Supported formats (UTF-8, header row required, delimiter auto-detected):
 
     Format A — separate columns (existing behaviour):
         Grad;Vorname;Nachname
@@ -85,7 +94,8 @@ class ImportNamesUseCase:
     def execute(self, csv_path: Path, source_document: str = "") -> ImportResult:
         """Import entities from a simple name CSV file."""
         text = csv_path.read_text(encoding="utf-8-sig")
-        reader = csv.DictReader(io.StringIO(text), delimiter=";")
+        delimiter = _detect_delimiter(text)
+        reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
 
         fieldnames: list[str] = list(reader.fieldnames or [])
         combined_col = _detect_combined_col(fieldnames)

@@ -107,3 +107,34 @@ class TestImportNamesCombinedFormat:
         assert repo.get_mapping(EntityType.VORNAME, "Jürg") is not None
         assert repo.get_mapping(EntityType.PERSON, "Jürg VON GUNTEN") is not None
         assert repo.get_mapping(EntityType.GRAD_FUNKTION, "Oberstlt i Gst") is not None
+
+
+class TestImportNamesDelimiterDetection:
+    def test_import_names_semicolon_delimiter(self, use_case, repo, tmp_path):
+        # Standard semicolon-delimited format
+        csv_path = _csv(tmp_path, "Grad;Vorname;Nachname\nMaj;Roger;Siegrist\n")
+        use_case.execute(csv_path)
+        assert repo.get_mapping(EntityType.PERSON, "Roger SIEGRIST") is not None
+
+    def test_import_names_comma_delimiter(self, use_case, repo, tmp_path):
+        # Comma-delimited with simple (non-quoted) values
+        csv_path = _csv(tmp_path, "Grad,Vorname,Nachname\nMaj,Roger,Siegrist\n")
+        use_case.execute(csv_path)
+        assert repo.get_mapping(EntityType.PERSON, "Roger SIEGRIST") is not None
+
+    def test_import_names_quoted_values_with_comma(self, use_case, repo, tmp_path):
+        # Real MilOffice export: comma delimiter, combined Name/Vorname column,
+        # values quoted because the Nachname itself contains a comma
+        content = (
+            'Name / Vorname,Grad Kurzform\n'
+            '"von Gunten, Jürg",Maj\n'
+            '"Egger, Pascal",Maj\n'
+        )
+        csv_path = _csv(tmp_path, content)
+        use_case.execute(csv_path)
+        assert repo.get_mapping(EntityType.NACHNAME, "von Gunten") is not None
+        assert repo.get_mapping(EntityType.VORNAME, "Jürg") is not None
+        assert repo.get_mapping(EntityType.PERSON, "Jürg VON GUNTEN") is not None
+        assert repo.get_mapping(EntityType.NACHNAME, "Egger") is not None
+        assert repo.get_mapping(EntityType.VORNAME, "Pascal") is not None
+        assert repo.get_mapping(EntityType.PERSON, "Pascal EGGER") is not None
