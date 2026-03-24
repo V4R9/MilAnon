@@ -236,3 +236,83 @@ class TestGenerateErrors:
         assert out.exists()
         content = out.read_text(encoding="utf-8")
         assert "← YOUR UNIT" in content
+
+
+# ---------------------------------------------------------------------------
+# generate — DB hierarchy
+# ---------------------------------------------------------------------------
+
+def _insert_concrete_unit(
+    repo: SqliteMappingRepository,
+    full_name: str,
+    abbreviation: str,
+    parent: str,
+    unit_type: str = "concrete_unit",
+) -> None:
+    """Insert a concrete_unit row directly into ref_military_units."""
+    repo._conn.execute(
+        """INSERT INTO ref_military_units
+           (pattern, unit_type, parent_unit, full_name, abbreviation, level, category)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (abbreviation, unit_type, parent, full_name, abbreviation, "", ""),
+    )
+    repo._conn.commit()
+
+
+def _build_ter_div2_hierarchy(repo: SqliteMappingRepository) -> None:
+    """Insert Kdo Op → Ter Div 2 → Inf Bat 56 → companies into ref_military_units."""
+    _insert_concrete_unit(repo, "Kommando Operationen", "Kdo Op", "_root")
+    _insert_concrete_unit(repo, "Territorialdivision 2", "Ter Div 2", "Kommando Operationen")
+    _insert_concrete_unit(repo, "Infanteriebataillon 56", "Inf Bat 56", "Territorialdivision 2")
+    _insert_concrete_unit(repo, "Infanteriebataillon 11", "Inf Bat 11", "Territorialdivision 2")
+    _insert_concrete_unit(repo, "Infanteriebataillon 20", "Inf Bat 20", "Territorialdivision 2")
+    _insert_concrete_unit(repo, "Infanteriekompanie 56/1", "Inf Kp 56/1", "Infanteriebataillon 56")
+    _insert_concrete_unit(repo, "Infanteriekompanie 56/2", "Inf Kp 56/2", "Infanteriebataillon 56")
+    _insert_concrete_unit(repo, "Infanteriekompanie 56/3", "Inf Kp 56/3", "Infanteriebataillon 56")
+    _insert_concrete_unit(repo, "Infanterie Stabskompanie 56", "Inf Stabskp 56", "Infanteriebataillon 56")
+
+
+class TestHierarchyFromDB:
+    def test_hierarchy_from_db_shows_parent_chain(self, repo, service, tmp_path):
+        """Given hierarchy data in DB, context shows full command chain."""
+        _add_unit(service, "Inf Kp 56/1")
+        _build_ter_div2_hierarchy(repo)
+        use_case = GenerateContextUseCase(repo)
+        out = tmp_path / "CONTEXT.md"
+        use_case.generate("Inf Kp 56/1", out)
+        content = out.read_text(encoding="utf-8")
+        assert "Kdo Op → Ter Div 2 → Inf Bat 56 → Inf Kp 56/1" in content
+
+    def test_hierarchy_fallback_without_concrete_units(self, repo, service, tmp_path):
+        """Given no concrete_unit data, context falls back to slash heuristic."""
+        _standard_units(service)
+        use_case = GenerateContextUseCase(repo)
+        out = tmp_path / "CONTEXT.md"
+        use_case.generate("Inf Kp 56/1", out)
+        content = out.read_text(encoding="utf-8")
+        # Slash-heuristic parent detection still works
+        assert "Parent unit" in content
+        # No command chain section (no DB data)
+        assert "Command Chain" not in content
+
+    def test_siblings_shown_for_company(self, repo, service, tmp_path):
+        """Given Inf Kp 56/1, context shows sibling companies of Inf Bat 56."""
+        _add_unit(service, "Inf Kp 56/1")
+        _build_ter_div2_hierarchy(repo)
+        use_case = GenerateContextUseCase(repo)
+        out = tmp_path / "CONTEXT.md"
+        use_case.generate("Inf Kp 56/1", out)
+        content = out.read_text(encoding="utf-8")
+        assert "Inf Kp 56/2" in content
+        assert "Inf Kp 56/3" in content
+
+    def test_sister_battalions_shown(self, repo, service, tmp_path):
+        """Given Inf Bat 56, context shows sister battalions under Ter Div 2."""
+        _add_unit(service, "Inf Bat 56")
+        _build_ter_div2_hierarchy(repo)
+        use_case = GenerateContextUseCase(repo)
+        out = tmp_path / "CONTEXT.md"
+        use_case.generate("Inf Bat 56", out)
+        content = out.read_text(encoding="utf-8")
+        assert "Inf Bat 11" in content
+        assert "Inf Bat 20" in content

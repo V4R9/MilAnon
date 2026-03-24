@@ -339,6 +339,58 @@ class SqliteMappingRepository:
         self._conn.commit()
         return self.get_ref_military_unit_count()
 
+    def get_unit_by_abbreviation(self, abbreviation: str) -> dict | None:
+        """Look up a concrete unit by its abbreviation."""
+        row = self._conn.execute(
+            "SELECT * FROM ref_military_units WHERE abbreviation = ? AND unit_type = 'concrete_unit'",
+            (abbreviation,),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def get_unit_parent_chain(self, full_name: str) -> list[dict]:
+        """Return the parent chain from the given unit up to root.
+
+        Returns list starting from root down to (and including) the given unit.
+        """
+        chain: list[dict] = []
+        current = full_name
+        seen: set[str] = set()
+        while current and current != "_root" and current not in seen:
+            seen.add(current)
+            row = self._conn.execute(
+                "SELECT * FROM ref_military_units WHERE full_name = ?",
+                (current,),
+            ).fetchone()
+            if row is None:
+                break
+            chain.append(dict(row))
+            current = row["parent_unit"] if "parent_unit" in row.keys() else ""
+        chain.reverse()  # root first
+        return chain
+
+    def get_unit_children(self, parent_full_name: str) -> list[dict]:
+        """Return direct children of a unit ordered by abbreviation."""
+        rows = self._conn.execute(
+            "SELECT * FROM ref_military_units WHERE parent_unit = ? ORDER BY abbreviation",
+            (parent_full_name,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_unit_siblings(self, full_name: str) -> list[dict]:
+        """Return sibling units (same parent, excluding self) ordered by abbreviation."""
+        row = self._conn.execute(
+            "SELECT parent_unit FROM ref_military_units WHERE full_name = ?",
+            (full_name,),
+        ).fetchone()
+        if row is None:
+            return []
+        parent = row["parent_unit"]
+        rows = self._conn.execute(
+            "SELECT * FROM ref_military_units WHERE parent_unit = ? AND full_name != ? ORDER BY abbreviation",
+            (parent, full_name),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
     def get_file_tracking(
         self, file_path: str, operation: str
     ) -> dict | None:

@@ -143,6 +143,11 @@ class GenerateContextUseCase:
                 f"Parent unit: **{parent_entry.placeholder}** ({parent_entry.level}).\n"
             )
 
+        # DB-sourced command chain (shown when concrete_unit hierarchy data is available)
+        db_section = self._render_hierarchy_from_db(user_entry)
+        if db_section:
+            lines.extend(db_section)
+
         lines.append("\n## Organizational Hierarchy\n")
         lines.append("| Placeholder | Level | Notes |")
         lines.append("|---|---|---|")
@@ -179,6 +184,48 @@ class GenerateContextUseCase:
         )
 
         return "\n".join(lines) + "\n"
+
+    def _render_hierarchy_from_db(self, user_entry: UnitEntry) -> list[str] | None:
+        """Render DB-sourced command chain section.
+
+        Returns a list of markdown lines if hierarchy data is available in the
+        repository, or None to signal the caller to skip this section.
+        """
+        if not hasattr(self._repo, "get_unit_by_abbreviation"):
+            return None
+
+        unit = self._repo.get_unit_by_abbreviation(user_entry.original_value)
+        if unit is None:
+            return None
+
+        chain = self._repo.get_unit_parent_chain(unit["full_name"])
+        if not chain:
+            return None
+
+        chain_abbrevs = [u.get("abbreviation") or u.get("pattern", "?") for u in chain]
+        chain_str = " → ".join(chain_abbrevs)
+
+        lines: list[str] = ["\n## Command Chain\n", chain_str]
+
+        # Siblings (units at same level under same parent)
+        siblings = self._repo.get_unit_siblings(unit["full_name"])
+        if siblings:
+            sibling_abbrevs = ", ".join(
+                s.get("abbreviation") or s.get("pattern", "?") for s in siblings
+            )
+            parent_abbrev = chain[-2].get("abbreviation") if len(chain) >= 2 else ""
+            label = f"**Sibling units ({parent_abbrev}):**" if parent_abbrev else "**Sibling units:**"
+            lines.append(f"\n{label} {sibling_abbrevs}")
+
+        # Children (subordinate units)
+        children = self._repo.get_unit_children(unit["full_name"])
+        if children:
+            child_abbrevs = ", ".join(
+                c.get("abbreviation") or c.get("pattern", "?") for c in children
+            )
+            lines.append(f"\n**Subordinate units:** {child_abbrevs}")
+
+        return lines
 
     def _build_hierarchy_rows(
         self, user_entry: UnitEntry, all_units: list[UnitEntry]
