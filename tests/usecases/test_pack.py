@@ -212,3 +212,32 @@ class TestPackUseCase:
 
         assert result.context_included is True
         assert "Explicit context" in pack_text
+
+    def test_update_dashboard_template_exists(self):
+        templates = list_templates()
+        names = [t["name"] for t in templates]
+        assert "update-dashboard" in names
+
+    def test_zusammenfassung_template_exists(self):
+        templates = list_templates()
+        names = [t["name"] for t in templates]
+        assert "zusammenfassung" in names
+
+    def test_update_dashboard_template_loads(self, tmp_path):
+        from milanon.adapters.repositories.sqlite_repository import SqliteMappingRepository
+        repo = SqliteMappingRepository(":memory:")
+        uc = PackUseCase(repo)
+
+        input_dir = tmp_path / "anon"
+        input_dir.mkdir()
+        (input_dir / "doc.md").write_text("Content.", encoding="utf-8")
+
+        pack_text, result = uc.execute(
+            input_path=input_dir,
+            template_name="update-dashboard",
+            copy_clipboard=False,
+        )
+
+        assert "PRESERVE" in pack_text
+        assert "NEVER delete" in pack_text
+        assert result.template_used == "update-dashboard"
