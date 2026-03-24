@@ -22,6 +22,8 @@ Local-only CLI + GUI tool for Swiss Army company commanders to anonymize sensiti
 - Optional PNG embedding for visual PDF pages (`--embed-images`)
 - Word-boundary-safe entity matching (Unicode-aware, prevents substring false positives)
 - Streamlit GUI for non-CLI users (`milanon gui`)
+- **5+2 Workflow System** — doctrine-aware prompt assembly for Swiss Army Aktionsplanungsprozess
+- **DOCX Export** — local Markdown→DOCX generation with de-anonymization (`milanon export --docx --deanonymize`)
 
 ---
 
@@ -204,6 +206,37 @@ The GUI offers 5 pages:
 
 ---
 
+## 5+2 Workflow System
+
+MilAnon v0.5.0 adds doctrine-aware prompt assembly for the Swiss Army 5+2 Aktionsplanungsprozess (BFE 52.080 Kap 5).
+
+```bash
+# Assemble a prompt for Step 1 (Analyse) in Bereitschaftsraum mode
+milanon pack --workflow analyse --mode berrm --context ./vault/ --step 1
+
+# Assemble a prompt for Einsatzbefehl (Step 5), including prior products as context
+milanon pack --workflow ei-bf --mode adf --context ./vault/ --step 5
+
+# List available doctrine files
+milanon doctrine list
+
+# Extract chapter-level doctrine snippets for token-efficient prompting
+milanon doctrine extract --all
+```
+
+The assembled prompt contains 5 layers: role definition, unit context + placeholders, relevant doctrine chapters, task template, and output rules. Paste the result into Claude.ai (or any LLM), then de-anonymize the response locally.
+
+### DOCX Export
+
+```bash
+# Convert de-anonymized LLM output to CH Armee DOCX format
+milanon export vault/befehl.md --docx --deanonymize
+```
+
+Produces a ready-to-distribute DOCX using the official CH Armee Befehl template. De-anonymization happens locally — no cleartext ever leaves your machine.
+
+---
+
 ## Typical Workflow
 
 ```
@@ -225,6 +258,11 @@ The GUI offers 5 pages:
 | `milanon deanonymize` | De-anonymize LLM outputs |
 | `milanon context` | Generate LLM context file |
 | `milanon validate` | Check placeholder integrity |
+| `milanon pack` | Assemble 5-layer workflow prompt (`--workflow`, `--mode`, `--context`, `--step`) |
+| `milanon export` | Export Markdown to DOCX (`--docx`, `--deanonymize`) |
+| `milanon doctrine list` | List available doctrine files |
+| `milanon doctrine extract` | Extract doctrine chapters for prompting |
+| `milanon config set/get` | Read/write project configuration |
 | `milanon db init` | Initialize reference data |
 | `milanon db import` | Import from CSV (PISA or name list) |
 | `milanon db reset` | Reset mapping database |
@@ -255,6 +293,14 @@ The same entity always gets the same placeholder — consistent across files, ru
 |---|---|
 | `data/swiss_municipalities.csv` | 4059 Swiss municipalities with PLZ and canton |
 | `data/military_units.csv` | Ranks, branches, functions, unit patterns (single source of truth) |
+| `data/doctrine/INDEX.yaml` | Workflow → doctrine chapter → mode mapping |
+| `data/doctrine/*.md` | 11 Swiss Army regulations as Markdown (~3 MB) |
+| `data/doctrine/extracts/` | Token-efficient chapter extracts for prompt assembly |
+| `data/doctrine/skeletons/` | Document structure templates (5-Punkte-Befehl universal) |
+| `data/templates/role.md` | Layer 1: LLM role definition |
+| `data/templates/rules.md` | Layer 5: Output rules |
+| `data/templates/workflows/` | Layer 4: Per-workflow task templates |
+| `data/templates/docx/befehl_vorlage.docx` | CH Armee Befehl base template |
 
 ---
 
@@ -262,7 +308,7 @@ The same entity always gets the same placeholder — consistent across files, ru
 
 ```bash
 # Run all tests
-pytest tests/ -v         # 505 tests
+pytest tests/ -v         # 520+ tests
 
 # Specific test modules
 pytest tests/domain/ -v
