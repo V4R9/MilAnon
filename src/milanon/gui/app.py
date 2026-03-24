@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import tempfile
 from pathlib import Path
 
@@ -11,10 +12,31 @@ import streamlit as st
 # Path to bundled reference data
 _DATA_DIR = Path(__file__).parent.parent.parent.parent / "data"
 
+# Path to user config
+_CONFIG_PATH = Path.home() / ".milanon" / "config.json"
+
 
 def _clean_path(raw: str) -> str:
     """Strip surrounding whitespace and single/double quotes from a path input."""
     return raw.strip().strip("'\"")
+
+
+def _load_config() -> dict:
+    """Load project config from ~/.milanon/config.json."""
+    if _CONFIG_PATH.exists():
+        return json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
+    return {}
+
+
+def _save_config(data: dict) -> None:
+    """Save project config to ~/.milanon/config.json."""
+    _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _CONFIG_PATH.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def _get_config_value(key: str, default: str = "") -> str:
+    """Get a single config value by key."""
+    return _load_config().get(key, default)
 
 
 # ---------------------------------------------------------------------------
@@ -97,7 +119,17 @@ st.sidebar.divider()
 
 page = st.sidebar.radio(
     "Navigation",
-    ["Anonymize", "De-Anonymize", "LLM Workflow", "DB Import", "DB Stats"],
+    [
+        "🎯 LLM Workflow",
+        "🔒 Anonymize",
+        "🔓 De-Anonymize",
+        "📄 DOCX Export",
+        "📚 Doctrine",
+        "🚀 Project Generator",
+        "📥 DB Import",
+        "📊 DB Stats",
+        "⚙️ Config",
+    ],
     index=0,
 )
 
@@ -107,12 +139,308 @@ from milanon import __version__
 st.sidebar.caption(f"Version {__version__}")
 
 
-# ---------------------------------------------------------------------------
-# Anonymize page
-# ---------------------------------------------------------------------------
+# ===========================================================================
+# 🎯 LLM Workflow page
+# ===========================================================================
 
-if page == "Anonymize":
-    st.title("Anonymize Documents")
+if page == "🎯 LLM Workflow":
+    st.title("🎯 LLM Workflow")
+    st.markdown(
+        "Assemble doctrine-aware prompts for the 5+2 Aktionsplanungsprozess, "
+        "or use free-form templates."
+    )
+
+    tab_workflow, tab_free, tab_unpack = st.tabs(
+        ["5+2 Workflow", "Freier Modus", "Unpack Response"]
+    )
+
+    # -------------------------------------------------------------------
+    # Tab 1 — 5+2 Workflow Mode
+    # -------------------------------------------------------------------
+    with tab_workflow:
+        col1, col2 = st.columns(2)
+        with col1:
+            wf_mode = st.radio(
+                "Modus",
+                ["berrm", "adf"],
+                index=0 if _get_config_value("mode", "berrm") == "berrm" else 1,
+                horizontal=True,
+                key="wf_mode",
+            )
+        with col2:
+            wf_unit = st.text_input(
+                "Einheit",
+                value=_get_config_value("unit", ""),
+                placeholder='z.B. "Inf Kp 56/1"',
+                key="wf_unit",
+            )
+
+        wf_workflow = st.selectbox(
+            "Workflow",
+            [
+                "analyse — Problemerfassung (5+2 Schritt 1)",
+                "ei-bf — Einsatzbefehl (5+2 Schritt 5)",
+                "wachtdienst — Wachtdienstbefehl",
+                "bdl — Beurteilung der Lage (5+2 Schritt 2)",
+                "entschluss — Entschlussfassung (5+2 Schritt 3)",
+            ],
+            key="wf_workflow",
+        )
+        workflow_name = wf_workflow.split(" — ")[0].strip()
+
+        wf_step = st.number_input(
+            "5+2 Schritt (optional)",
+            min_value=0,
+            max_value=5,
+            value=0,
+            help="0 = auto (determined by workflow). 1-5 = specific step.",
+            key="wf_step",
+        )
+
+        wf_input = st.text_input(
+            "Anonymisierte Dokumente",
+            value="test_output/",
+            placeholder="/path/to/anonymized/output",
+            key="wf_input",
+        )
+
+        wf_context = st.text_input(
+            "Kontext (vorherige Schritte)",
+            value="",
+            placeholder="Pfad zu Vault/Planung/ (optional)",
+            help="Include Vault files from previous 5+2 steps for step chaining.",
+            key="wf_context",
+        )
+
+        wf_output = st.text_input(
+            "Pack speichern unter (optional)",
+            value="",
+            placeholder="/path/to/pack.md",
+            key="wf_output",
+        )
+
+        if st.button("📋 Prompt generieren", type="primary", key="btn_wf_pack", disabled=not wf_input):
+            try:
+                from milanon.usecases.generate_context import GenerateContextUseCase
+                from milanon.usecases.workflow_pack import WorkflowPackUseCase
+
+                repo = _make_repo()
+                ctx_gen = GenerateContextUseCase(repo)
+                wf_uc = WorkflowPackUseCase(repo, ctx_gen)
+
+                pack_text, pack_result = wf_uc.execute(
+                    workflow=workflow_name,
+                    mode=wf_mode,
+                    step=wf_step if wf_step > 0 else None,
+                    input_path=Path(_clean_path(wf_input)),
+                    unit=wf_unit.strip(),
+                    context_path=Path(_clean_path(wf_context)) if wf_context.strip() else None,
+                    output_path=Path(_clean_path(wf_output)) if wf_output.strip() else None,
+                    copy_clipboard=True,
+                )
+
+                token_estimate = pack_result.total_chars // 4
+                ctx_pct = token_estimate * 100 // 200_000
+
+                col_a, col_b, col_c = st.columns(3)
+                col_a.metric("Dokumente", pack_result.documents_included)
+                col_b.metric("~Tokens", f"~{token_estimate:,}")
+                col_c.metric("Context Window", f"{ctx_pct}%")
+
+                if pack_result.copied_to_clipboard:
+                    st.success("Prompt generiert und in Zwischenablage kopiert.")
+                else:
+                    st.warning("Prompt generiert. Konnte nicht in Zwischenablage kopieren.")
+
+                if pack_result.output_path:
+                    st.info(f"Gespeichert: `{pack_result.output_path}`")
+
+                with st.expander("Prompt-Vorschau", expanded=False):
+                    st.code(pack_text[:5000] + ("\n\n[... truncated ...]" if len(pack_text) > 5000 else ""), language="markdown")
+
+            except Exception as exc:
+                st.error(f"Fehler: {exc}")
+
+    # -------------------------------------------------------------------
+    # Tab 2 — Free Mode (classic pack builder)
+    # -------------------------------------------------------------------
+    with tab_free:
+        st.subheader("Generate LLM Context File")
+        st.markdown(
+            "Build a context file that tells the LLM about your unit hierarchy and "
+            "placeholder rules. Paste it before your anonymized document when prompting Claude."
+        )
+
+        from milanon.usecases.generate_context import GenerateContextUseCase
+
+        repo = _make_repo()
+        ctx_uc = GenerateContextUseCase(repo)
+        units = ctx_uc.get_available_units()
+
+        if not units:
+            st.info("No units found in database. Import personnel data first (DB Import page).")
+        else:
+            selected_unit = st.selectbox(
+                "Your unit",
+                options=units,
+                format_func=lambda u: f"{u.original_value} ({u.level})",
+            )
+
+            ctx_output = st.text_input(
+                "Save context file to",
+                value="test_output/CONTEXT.md",
+                help="Path where CONTEXT.md will be written.",
+            )
+
+            if st.button("Generate Context", type="primary"):
+                try:
+                    ctx_uc.generate(selected_unit.original_value, Path(_clean_path(ctx_output)))
+                    content = Path(_clean_path(ctx_output)).read_text(encoding="utf-8")
+                    st.success(f"Context file written to `{ctx_output}`")
+                    st.markdown("**Preview — copy this before your anonymized document:**")
+                    st.code(content, language="markdown")
+                    st.download_button(
+                        "Download CONTEXT.md",
+                        data=content,
+                        file_name="CONTEXT.md",
+                        mime="text/markdown",
+                    )
+                except Exception as exc:
+                    st.error(f"Error generating context: {exc}")
+
+        st.divider()
+        st.subheader("Pack Builder")
+        st.markdown(
+            "Assemble context + template + anonymized documents into a single clipboard-ready prompt."
+        )
+
+        from milanon.usecases.pack import PackUseCase, list_templates as _list_templates
+
+        pack_templates = _list_templates()
+        template_options = [t["name"] for t in pack_templates] if pack_templates else ["frei"]
+
+        pack_col1, pack_col2 = st.columns(2)
+        with pack_col1:
+            pack_input = st.text_input(
+                "Anonymized documents folder",
+                placeholder="/path/to/anon/output",
+                key="pack_input",
+                help="Folder with anonymized .md/.txt files.",
+            )
+        with pack_col2:
+            pack_template = st.selectbox(
+                "Template",
+                options=template_options,
+                key="pack_template",
+            )
+
+        pack_unit = st.text_input(
+            "Your unit (optional)",
+            placeholder='e.g. "Inf Kp 56/1"',
+            key="pack_unit",
+        )
+        pack_prompt = st.text_area(
+            "Custom prompt (optional, used with template 'frei')",
+            height=80,
+            key="pack_prompt",
+        )
+        pack_output = st.text_input(
+            "Save pack to file (optional)",
+            placeholder="/path/to/pack.md",
+            key="pack_output",
+        )
+
+        if st.button("Build Pack & Copy to Clipboard", type="primary", key="btn_pack", disabled=not pack_input):
+            try:
+                repo_pack = _make_repo()
+                pack_uc = PackUseCase(repo_pack)
+                _, pack_result = pack_uc.execute(
+                    Path(_clean_path(pack_input)),
+                    template_name=pack_template,
+                    user_unit=pack_unit.strip(),
+                    user_prompt=pack_prompt.strip(),
+                    output_path=Path(_clean_path(pack_output)) if pack_output.strip() else None,
+                    copy_clipboard=True,
+                )
+                msg = (
+                    f"Pack built — {pack_result.documents_included} doc(s), "
+                    f"{pack_result.total_chars} chars."
+                )
+                if pack_result.copied_to_clipboard:
+                    st.success(msg + " Copied to clipboard.")
+                else:
+                    st.warning(msg + " Could not copy to clipboard (macOS/Linux only).")
+                if pack_result.output_path:
+                    st.info(f"Pack saved to `{pack_result.output_path}`")
+            except Exception as exc:
+                st.error(f"Error building pack: {exc}")
+
+    # -------------------------------------------------------------------
+    # Tab 3 — Unpack Response
+    # -------------------------------------------------------------------
+    with tab_unpack:
+        st.subheader("De-Anonymize LLM Output")
+        st.markdown(
+            "Paste Claude's response here to restore real names, then save to your vault."
+        )
+
+        llm_output = st.text_area(
+            "Paste Claude's output",
+            height=300,
+            placeholder="Paste the LLM response here…",
+        )
+
+        unpack_col1, unpack_col2 = st.columns(2)
+        with unpack_col1:
+            save_path = st.text_input(
+                "Output folder",
+                placeholder="/path/to/obsidian/vault/",
+                help="Folder where de-anonymized file(s) will be written.",
+            )
+        with unpack_col2:
+            split_sections = st.checkbox(
+                "Split on --- separators (write separate files)",
+                help="When enabled, splits on --- and writes one file per section.",
+            )
+
+        can_run = bool(llm_output.strip() and save_path.strip())
+        if st.button("De-Anonymize & Save", type="primary", disabled=not can_run):
+            try:
+                from milanon.domain.deanonymizer import DeAnonymizer
+                from milanon.domain.mapping_service import MappingService
+                from milanon.usecases.unpack import UnpackUseCase
+
+                repo_da = _make_repo()
+                service = MappingService(repo_da)
+                deanonymizer = DeAnonymizer(service)
+                unpack_uc = UnpackUseCase(deanonymizer)
+
+                unpack_result = unpack_uc.execute(
+                    Path(_clean_path(save_path)),
+                    input_text=llm_output,
+                    split_sections=split_sections,
+                )
+
+                st.success(
+                    f"Saved {unpack_result.files_written} file(s). "
+                    f"Resolved {unpack_result.placeholders_resolved} placeholder(s)."
+                )
+                for f in unpack_result.output_files:
+                    st.caption(f"→ `{f}`")
+                if unpack_result.warnings:
+                    with st.expander(f"⚠️ {len(unpack_result.warnings)} unresolved placeholder(s)"):
+                        for w in unpack_result.warnings:
+                            st.warning(w)
+            except Exception as exc:
+                st.error(f"Error: {exc}")
+
+
+# ===========================================================================
+# 🔒 Anonymize page
+# ===========================================================================
+
+elif page == "🔒 Anonymize":
+    st.title("🔒 Anonymize Documents")
     st.markdown("Replace sensitive entities with placeholders before sending to an LLM.")
 
     col1, col2 = st.columns(2)
@@ -186,12 +514,12 @@ if page == "Anonymize":
                 st.info("Dry run — no files were written.")
 
 
-# ---------------------------------------------------------------------------
-# De-Anonymize page
-# ---------------------------------------------------------------------------
+# ===========================================================================
+# 🔓 De-Anonymize page
+# ===========================================================================
 
-elif page == "De-Anonymize":
-    st.title("De-Anonymize Documents")
+elif page == "🔓 De-Anonymize":
+    st.title("🔓 De-Anonymize Documents")
     st.markdown("Restore placeholders in LLM output files to their original values.")
 
     col1, col2 = st.columns(2)
@@ -248,221 +576,225 @@ elif page == "De-Anonymize":
                 st.info("Dry run — no files were written.")
 
 
-# ---------------------------------------------------------------------------
-# LLM Workflow page
-# ---------------------------------------------------------------------------
+# ===========================================================================
+# 📄 DOCX Export page
+# ===========================================================================
 
-elif page == "LLM Workflow":
-    st.title("LLM Workflow")
+elif page == "📄 DOCX Export":
+    st.title("📄 DOCX Export")
     st.markdown(
-        "Prepare context for Claude, work with the LLM, then restore real names from the response."
+        "Convert anonymized Markdown to a formatted DOCX document "
+        "using the official CH Armee Befehl template."
     )
 
-    tab1, tab2, tab3 = st.tabs(["1. Generate Context", "2. Send to LLM", "3. Unpack Response"])
+    export_input = st.text_input(
+        "Markdown-Datei (Pfad)",
+        placeholder="/path/to/befehl.md",
+        help="Path to the Markdown file to convert.",
+        key="export_input",
+    )
 
-    # -------------------------------------------------------------------
-    # Tab 1 — Generate Context
-    # -------------------------------------------------------------------
-    with tab1:
-        st.subheader("Generate LLM Context File")
-        st.markdown(
-            "Build a context file that tells the LLM about your unit hierarchy and "
-            "placeholder rules. Paste it before your anonymized document when prompting Claude."
+    col1, col2 = st.columns(2)
+    with col1:
+        export_template = st.selectbox(
+            "Vorlage",
+            ["Befehl (Einsatz)", "Befehl (Übung)"],
+            key="export_template",
+        )
+    with col2:
+        export_output = st.text_input(
+            "Ausgabedatei (optional)",
+            placeholder="auto: same name with .docx extension",
+            key="export_output",
         )
 
-        from milanon.usecases.generate_context import GenerateContextUseCase
+    export_deanonymize = st.checkbox(
+        "De-anonymisieren (Platzhalter → echte Namen)",
+        value=True,
+        key="export_deanonymize",
+    )
 
-        repo = _make_repo()
-        ctx_uc = GenerateContextUseCase(repo)
-        units = ctx_uc.get_available_units()
+    if st.button("📄 DOCX generieren", type="primary", key="btn_export", disabled=not export_input):
+        try:
+            from milanon.adapters.writers.docx_befehl_writer import DocxBefehlWriter
+            from milanon.usecases.export_docx import ExportDocxUseCase
 
-        if not units:
-            st.info("No units found in database. Import personnel data first (DB Import page).")
-        else:
-            selected_unit = st.selectbox(
-                "Your unit",
-                options=units,
-                format_func=lambda u: f"{u.original_value} ({u.level})",
-            )
-
-            ctx_output = st.text_input(
-                "Save context file to",
-                value="test_output/CONTEXT.md",
-                help="Path where CONTEXT.md will be written.",
-            )
-
-            if st.button("Generate Context", type="primary"):
-                try:
-                    ctx_uc.generate(selected_unit.original_value, Path(_clean_path(ctx_output)))
-                    content = Path(_clean_path(ctx_output)).read_text(encoding="utf-8")
-                    st.success(f"Context file written to `{ctx_output}`")
-                    st.markdown("**Preview — copy this before your anonymized document:**")
-                    st.code(content, language="markdown")
-                    st.download_button(
-                        "Download CONTEXT.md",
-                        data=content,
-                        file_name="CONTEXT.md",
-                        mime="text/markdown",
-                    )
-                except Exception as exc:
-                    st.error(f"Error generating context: {exc}")
-
-        # -------------------------------------------------------------------
-        # Pack Builder
-        # -------------------------------------------------------------------
-        st.divider()
-        st.subheader("Pack Builder")
-        st.markdown(
-            "Assemble context + template + anonymized documents into a single clipboard-ready prompt."
-        )
-
-        from milanon.usecases.pack import PackUseCase, list_templates as _list_templates
-
-        pack_templates = _list_templates()
-        template_options = [t["name"] for t in pack_templates] if pack_templates else ["frei"]
-
-        pack_col1, pack_col2 = st.columns(2)
-        with pack_col1:
-            pack_input = st.text_input(
-                "Anonymized documents folder",
-                placeholder="/path/to/anon/output",
-                key="pack_input",
-                help="Folder with anonymized .md/.txt files.",
-            )
-        with pack_col2:
-            pack_template = st.selectbox(
-                "Template",
-                options=template_options,
-                key="pack_template",
-            )
-
-        pack_unit = st.text_input(
-            "Your unit (optional)",
-            placeholder='e.g. "Inf Kp 56/1"',
-            key="pack_unit",
-        )
-        pack_prompt = st.text_area(
-            "Custom prompt (optional, used with template 'frei')",
-            height=80,
-            key="pack_prompt",
-        )
-        pack_output = st.text_input(
-            "Save pack to file (optional)",
-            placeholder="/path/to/pack.md",
-            key="pack_output",
-        )
-
-        if st.button("Build Pack & Copy to Clipboard", type="primary", key="btn_pack", disabled=not pack_input):
-            try:
-                repo_pack = _make_repo()
-                pack_uc = PackUseCase(repo_pack)
-                _, pack_result = pack_uc.execute(
-                    Path(_clean_path(pack_input)),
-                    template_name=pack_template,
-                    user_unit=pack_unit.strip(),
-                    user_prompt=pack_prompt.strip(),
-                    output_path=Path(_clean_path(pack_output)) if pack_output.strip() else None,
-                    copy_clipboard=True,
+            in_path = Path(_clean_path(export_input))
+            if not in_path.exists():
+                st.error(f"File not found: {in_path}")
+            else:
+                tpl_name = (
+                    "befehl_vorlage_uebung.docx"
+                    if "Übung" in export_template
+                    else "befehl_vorlage.docx"
                 )
-                msg = (
-                    f"Pack built — {pack_result.documents_included} doc(s), "
-                    f"{pack_result.total_chars} chars."
-                )
-                if pack_result.copied_to_clipboard:
-                    st.success(msg + " Copied to clipboard.")
+                tpl_path = _DATA_DIR / "templates" / "docx" / tpl_name
+
+                if not tpl_path.exists():
+                    st.error(f"Template not found: {tpl_path}")
                 else:
-                    st.warning(msg + " Could not copy to clipboard (macOS/Linux only).")
-                if pack_result.output_path:
-                    st.info(f"Pack saved to `{pack_result.output_path}`")
-            except Exception as exc:
-                st.error(f"Error building pack: {exc}")
+                    out_path = (
+                        Path(_clean_path(export_output))
+                        if export_output.strip()
+                        else in_path.with_suffix(".docx")
+                    )
 
-    # -------------------------------------------------------------------
-    # Tab 2 — Send to LLM
-    # -------------------------------------------------------------------
-    with tab2:
-        st.subheader("Work with Claude.ai")
-        st.markdown(
-            """
-**Steps:**
-1. Generate your context file (Tab 1) — or use Pack Builder to assemble everything at once.
-2. Open [Claude.ai](https://claude.ai) in your browser.
-3. Paste the pack (or context + anonymized document) into the prompt.
-4. Work with Claude — ask it to create notes, analyze, draft orders.
-5. Copy Claude's response and paste it in Tab 3 to restore real names.
-            """
-        )
-        st.info(
-            "💡 Tip: Use Pack Builder in Tab 1 to assemble context + template + documents "
-            "into a single clipboard-ready prompt."
-        )
+                    with st.spinner("Generating DOCX…"):
+                        repo = _make_repo()
+                        writer = DocxBefehlWriter()
+                        uc = ExportDocxUseCase(repo, writer)
+                        result_path = uc.execute(
+                            in_path, out_path, tpl_path,
+                            deanonymize=export_deanonymize,
+                        )
 
-    # -------------------------------------------------------------------
-    # Tab 3 — Unpack Response
-    # -------------------------------------------------------------------
-    with tab3:
-        st.subheader("De-Anonymize LLM Output")
-        st.markdown(
-            "Paste Claude's response here to restore real names, then save to your vault."
-        )
+                    st.success(f"DOCX generated: `{result_path}`")
+                    if export_deanonymize:
+                        st.info("De-anonymization applied — placeholders replaced with real values.")
 
-        llm_output = st.text_area(
-            "Paste Claude's output",
-            height=300,
-            placeholder="Paste the LLM response here…",
-        )
+                    docx_bytes = Path(result_path).read_bytes()
+                    st.download_button(
+                        "⬇️ DOCX herunterladen",
+                        data=docx_bytes,
+                        file_name=Path(result_path).name,
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    )
+        except Exception as exc:
+            st.error(f"Error: {exc}")
 
-        unpack_col1, unpack_col2 = st.columns(2)
-        with unpack_col1:
-            save_path = st.text_input(
-                "Output folder",
-                placeholder="/path/to/obsidian/vault/",
-                help="Folder where de-anonymized file(s) will be written.",
-            )
-        with unpack_col2:
-            split_sections = st.checkbox(
-                "Split on --- separators (write separate files)",
-                help="When enabled, splits on --- and writes one file per section.",
-            )
 
-        can_run = bool(llm_output.strip() and save_path.strip())
-        if st.button("De-Anonymize & Save", type="primary", disabled=not can_run):
-            try:
-                from milanon.domain.deanonymizer import DeAnonymizer
-                from milanon.domain.mapping_service import MappingService
-                from milanon.usecases.unpack import UnpackUseCase
+# ===========================================================================
+# 📚 Doctrine Browser page
+# ===========================================================================
 
-                repo_da = _make_repo()
-                service = MappingService(repo_da)
-                deanonymizer = DeAnonymizer(service)
-                unpack_uc = UnpackUseCase(deanonymizer)
+elif page == "📚 Doctrine":
+    st.title("📚 Doktrin-Datenbank")
+    st.markdown(
+        "Browse the Swiss Army doctrine knowledge base. "
+        "These regulations power the 5+2 workflow prompts."
+    )
 
-                unpack_result = unpack_uc.execute(
-                    Path(_clean_path(save_path)),
-                    input_text=llm_output,
-                    split_sections=split_sections,
-                )
+    try:
+        from milanon.usecases.doctrine import DoctrineExtractUseCase
 
-                st.success(
-                    f"Saved {unpack_result.files_written} file(s). "
-                    f"Resolved {unpack_result.placeholders_resolved} placeholder(s)."
-                )
-                for f in unpack_result.output_files:
+        doctrine_uc = DoctrineExtractUseCase(_DATA_DIR / "doctrine")
+        doctrine_files = doctrine_uc.list_doctrine_files()
+
+        if not doctrine_files:
+            st.warning("No doctrine files found in `data/doctrine/`.")
+        else:
+            st.subheader(f"{len(doctrine_files)} Reglemente")
+
+            for doc in doctrine_files:
+                title = doc.get("title", doc.get("filename", "Unknown"))
+                regulation = doc.get("regulation", "")
+                filename = doc.get("filename", "")
+                chapters = doc.get("key_chapters", [])
+
+                with st.expander(f"📖 {regulation} — {title}"):
+                    st.caption(f"Datei: `data/doctrine/{filename}`")
+                    if chapters:
+                        st.markdown("**Kapitel:**")
+                        for ch in chapters:
+                            st.markdown(f"- {ch}")
+
+                    # Show extract preview if available
+                    extracts_dir = _DATA_DIR / "doctrine" / "extracts"
+                    if extracts_dir.exists():
+                        base = filename.replace(".md", "")
+                        matching = list(extracts_dir.glob(f"*{base}*")) + list(
+                            extracts_dir.glob(f"*{regulation.replace('.', '_')}*")
+                        )
+                        if matching:
+                            st.markdown("**Verfügbare Extrakte:**")
+                            for ext_path in sorted(set(matching)):
+                                st.caption(f"`{ext_path.name}`")
+
+        # Extract all button
+        st.divider()
+        extracts_dir = _DATA_DIR / "doctrine" / "extracts"
+        existing_extracts = list(extracts_dir.glob("*.md")) if extracts_dir.exists() else []
+        st.caption(f"{len(existing_extracts)} extract file(s) in `data/doctrine/extracts/`")
+
+        if st.button("🔄 Alle Extrakte generieren", key="btn_extract_all"):
+            with st.spinner("Extracting doctrine chapters…"):
+                results = doctrine_uc.extract_all(extracts_dir)
+            succeeded = sum(1 for v in results.values() if v)
+            st.success(f"Extraction complete: {succeeded}/{len(results)} chapters extracted.")
+
+    except Exception as exc:
+        st.error(f"Error loading doctrine data: {exc}")
+
+
+# ===========================================================================
+# 🚀 Project Generator page
+# ===========================================================================
+
+elif page == "🚀 Project Generator":
+    st.title("🚀 Claude Project Generator")
+    st.markdown(
+        "Generate a ready-to-import Claude.ai Project folder with "
+        "system prompt, doctrine knowledge, and workflow instructions."
+    )
+
+    proj_unit = st.text_input(
+        "Einheit",
+        value=_get_config_value("unit", ""),
+        placeholder='z.B. "Inf Kp 56/1"',
+        key="proj_unit",
+    )
+
+    proj_output = st.text_input(
+        "Ausgabeordner",
+        value=str(Path.home() / "claude_project"),
+        key="proj_output",
+    )
+
+    if st.button("🚀 Projekt generieren", type="primary", key="btn_proj", disabled=not (proj_unit and proj_output)):
+        try:
+            from milanon.usecases.generate_project import GenerateProjectUseCase
+
+            uc = GenerateProjectUseCase(_DATA_DIR)
+            result = uc.execute(proj_unit.strip(), Path(_clean_path(proj_output)))
+
+            st.success(f"Project generated for: **{result.unit}**")
+            st.markdown(f"Output: `{result.output_dir}`")
+
+            with st.expander(f"📁 {len(result.files_created)} files created"):
+                for f in result.files_created:
                     st.caption(f"→ `{f}`")
-                if unpack_result.warnings:
-                    with st.expander(f"⚠️ {len(unpack_result.warnings)} unresolved placeholder(s)"):
-                        for w in unpack_result.warnings:
-                            st.warning(w)
-            except Exception as exc:
-                st.error(f"Error: {exc}")
+
+            # Offer ZIP download
+            import io
+            import zipfile
+
+            zip_buffer = io.BytesIO()
+            project_dir = Path(result.output_dir)
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+                for file_path in sorted(project_dir.rglob("*")):
+                    if file_path.is_file():
+                        zf.write(file_path, file_path.relative_to(project_dir.parent))
+            zip_buffer.seek(0)
+
+            st.download_button(
+                "⬇️ ZIP herunterladen",
+                data=zip_buffer.getvalue(),
+                file_name=f"claude_project_{proj_unit.strip().replace(' ', '_').replace('/', '_')}.zip",
+                mime="application/zip",
+            )
+
+        except Exception as exc:
+            st.error(f"Error: {exc}")
+
+    st.info("Das generierte Projekt kann direkt in Claude.ai importiert werden.")
 
 
-# ---------------------------------------------------------------------------
-# DB Import page
-# ---------------------------------------------------------------------------
+# ===========================================================================
+# 📥 DB Import page
+# ===========================================================================
 
-elif page == "DB Import":
-    st.title("Import Personnel Data")
+elif page == "📥 DB Import":
+    st.title("📥 Import Personnel Data")
     st.markdown(
         "Upload a CSV file to pre-populate the mapping database. "
         "Known entities will be detected more accurately during anonymization."
@@ -563,12 +895,12 @@ elif page == "DB Import":
                 st.rerun()
 
 
-# ---------------------------------------------------------------------------
-# DB Stats page
-# ---------------------------------------------------------------------------
+# ===========================================================================
+# 📊 DB Stats page
+# ===========================================================================
 
-elif page == "DB Stats":
-    st.title("Database Statistics")
+elif page == "📊 DB Stats":
+    st.title("📊 Database Statistics")
     st.markdown(f"Database: `{Path.home() / '.milanon' / 'milanon.db'}`")
 
     repo = _make_repo()
@@ -642,3 +974,49 @@ elif page == "DB Stats":
                 f"{init_result.military_units_loaded} military units."
             )
             st.rerun()
+
+
+# ===========================================================================
+# ⚙️ Config page
+# ===========================================================================
+
+elif page == "⚙️ Config":
+    st.title("⚙️ Konfiguration")
+    st.markdown(
+        f"Settings are saved to `{_CONFIG_PATH}` and persist across sessions."
+    )
+
+    current_config = _load_config()
+
+    cfg_mode = st.radio(
+        "Standard-Modus",
+        ["berrm", "adf"],
+        index=0 if current_config.get("mode", "berrm") == "berrm" else 1,
+        horizontal=True,
+        key="cfg_mode",
+    )
+
+    cfg_unit = st.text_input(
+        "Standard-Einheit",
+        value=current_config.get("unit", ""),
+        placeholder='z.B. "Inf Kp 56/1"',
+        key="cfg_unit",
+    )
+
+    if st.button("💾 Speichern", type="primary", key="btn_cfg_save"):
+        new_config = _load_config()
+        new_config["mode"] = cfg_mode
+        if cfg_unit.strip():
+            new_config["unit"] = cfg_unit.strip()
+        elif "unit" in new_config:
+            del new_config["unit"]
+        _save_config(new_config)
+        st.success("Konfiguration gespeichert.")
+
+    st.divider()
+    st.subheader("Aktuelle Konfiguration")
+    if current_config:
+        for k, v in sorted(current_config.items()):
+            st.code(f"{k} = {v}")
+    else:
+        st.caption("Keine Konfiguration gesetzt.")
