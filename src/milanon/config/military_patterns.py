@@ -29,6 +29,24 @@ PHONE_LOCAL_PATTERN: re.Pattern[str] = re.compile(
 )
 PHONE_COMPACT_PATTERN: re.Pattern[str] = re.compile(r"\b0\d{9}\b")
 
+# International phone: +CC followed by 8-12 digits (with optional spaces/dashes)
+# Catches +49, +33, +43, +39, +1, etc. but NOT +41 (already handled by Swiss patterns)
+PHONE_INTL_GENERIC_PATTERN: re.Pattern[str] = re.compile(
+    r"\+(?!41[\s\-]?)(\d{1,3})[\s\-]?\d[\d\s\-]{7,14}\b"
+)
+
+# c/o, p.A., bei + Firstname Lastname pattern
+# Matches: "c/o Walter Fanger", "p.A. Maria Schmidt", "bei Hans Müller"
+CO_NAME_PATTERN: re.Pattern[str] = re.compile(
+    r"(?:c/o|p\.A\.|bei)\s+([A-ZÄÖÜ][a-zäöüé]+\s+[A-ZÄÖÜ][a-zäöüÄÖÜé\-]+)"
+)
+
+# Near-AHV: Looks like an AHV number but with a transposed prefix.
+# 765, 675, 576, 657 etc. — common digit transpositions of 756.
+NEAR_AHV_PATTERN: re.Pattern[str] = re.compile(
+    r"\b(?:765|675|576|657|567)\.\d{4}\.\d{4}\.\d{2}\b"
+)
+
 # Email address (RFC 5321 simplified)
 EMAIL_PATTERN: re.Pattern[str] = re.compile(
     r"\b[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}\b"

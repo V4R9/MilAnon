@@ -311,3 +311,78 @@ class TestDisplayNameRecognition:
             if e.entity_type == EntityType.PERSON and e.confidence == 0.85
         ]
         assert len(person_entities) == 0
+
+
+class TestInternationalPhoneDetection:
+    """B-015: International phone numbers."""
+
+    def test_german_number_with_spaces(self):
+        entities = _entities_of_type(PatternRecognizer(), "+49 157 86 08 12 32", EntityType.TELEFON)
+        assert len(entities) == 1
+
+    def test_german_number_compact(self):
+        entities = _entities_of_type(PatternRecognizer(), "+4915786081232", EntityType.TELEFON)
+        assert len(entities) == 1
+
+    def test_french_number(self):
+        entities = _entities_of_type(PatternRecognizer(), "+33 6 12 34 56 78", EntityType.TELEFON)
+        assert len(entities) == 1
+
+    def test_swiss_number_still_caught_by_specific_pattern(self):
+        """Swiss +41 should be caught by PHONE_INTL_PATTERN, not the generic one."""
+        entities = _entities_of_type(PatternRecognizer(), "+41 79 535 80 46", EntityType.TELEFON)
+        assert len(entities) == 1
+
+    def test_short_number_not_matched(self):
+        """Numbers too short should not match."""
+        entities = _entities_of_type(PatternRecognizer(), "+49 123", EntityType.TELEFON)
+        assert len(entities) == 0
+
+
+class TestCoNameDetection:
+    """B-016: c/o name detection."""
+
+    def test_co_name_detected(self):
+        entities = PatternRecognizer().recognize(_doc("Adresse: c/o Walter Fanger, Hauptstr. 5"))
+        persons = [e for e in entities if e.entity_type == EntityType.PERSON and e.original_value == "Walter Fanger"]
+        assert len(persons) == 1
+        assert persons[0].confidence == 0.8
+
+    def test_pa_name_detected(self):
+        entities = PatternRecognizer().recognize(_doc("p.A. Maria Schmidt, 8000 Zürich"))
+        persons = [e for e in entities if e.entity_type == EntityType.PERSON and e.original_value == "Maria Schmidt"]
+        assert len(persons) == 1
+
+    def test_bei_name_detected(self):
+        entities = PatternRecognizer().recognize(_doc("bei Hans Müller, Bahnhofstr. 1"))
+        persons = [e for e in entities if e.entity_type == EntityType.PERSON and e.original_value == "Hans Müller"]
+        assert len(persons) == 1
+
+    def test_co_company_not_detected(self):
+        """Company names after c/o should not match (no firstname+lastname pattern)."""
+        entities = PatternRecognizer().recognize(_doc("c/o Swisscom AG, Postfach"))
+        persons = [e for e in entities if e.entity_type == EntityType.PERSON and "Swisscom" in e.original_value]
+        assert len(persons) == 0
+
+
+class TestNearAhvDetection:
+    """B-017: Near-AHV warning for transposed digits."""
+
+    def test_transposed_765_detected(self):
+        entities = _entities_of_type(PatternRecognizer(), "AHV: 765.4056.6550.18", EntityType.AHV_NR)
+        assert len(entities) == 1
+        assert entities[0].confidence == 0.5
+
+    def test_correct_756_has_full_confidence(self):
+        entities = _entities_of_type(PatternRecognizer(), "AHV: 756.1234.5678.97", EntityType.AHV_NR)
+        assert len(entities) == 1
+        assert entities[0].confidence == 1.0
+
+    def test_unrelated_number_not_detected(self):
+        entities = _entities_of_type(PatternRecognizer(), "Code: 123.4567.8901.23", EntityType.AHV_NR)
+        assert len(entities) == 0
+
+    def test_675_transposition_detected(self):
+        entities = _entities_of_type(PatternRecognizer(), "675.1234.5678.97", EntityType.AHV_NR)
+        assert len(entities) == 1
+        assert entities[0].confidence == 0.5

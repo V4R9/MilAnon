@@ -7,9 +7,12 @@ import re
 from milanon.config.military_patterns import (
     ADRESSE_PATTERN,
     AHV_PATTERN,
+    CO_NAME_PATTERN,
     EMAIL_PATTERN,
     INITIAL_SURNAME_PATTERN,
+    NEAR_AHV_PATTERN,
     PHONE_COMPACT_PATTERN,
+    PHONE_INTL_GENERIC_PATTERN,
     PHONE_INTL_PATTERN,
     PHONE_LOCAL_PATTERN,
 )
@@ -24,6 +27,7 @@ _PATTERNS: list[tuple[EntityType, re.Pattern[str]]] = [
     (EntityType.TELEFON, PHONE_INTL_PATTERN),
     (EntityType.TELEFON, PHONE_LOCAL_PATTERN),
     (EntityType.TELEFON, PHONE_COMPACT_PATTERN),
+    (EntityType.TELEFON, PHONE_INTL_GENERIC_PATTERN),
     (EntityType.ADRESSE, ADRESSE_PATTERN),
     (EntityType.PERSON, INITIAL_SURNAME_PATTERN),
 ]
@@ -70,6 +74,8 @@ class PatternRecognizer:
                 )
         entities.extend(self._match_birthdates(text))
         entities.extend(self._match_display_names(document))
+        entities.extend(self._match_co_names(text))
+        entities.extend(self._match_near_ahv(text))
         return entities
 
     def _match_display_names(self, document: ExtractedDocument) -> list[DetectedEntity]:
@@ -99,6 +105,49 @@ class PatternRecognizer:
                         source="pattern",
                     )
                 )
+        return entities
+
+    def _match_co_names(self, text: str) -> list[DetectedEntity]:
+        """Detect person names in c/o address prefixes (B-016).
+
+        Matches patterns like 'c/o Walter Fanger', 'p.A. Maria Schmidt',
+        'bei Hans Müller'. The name part (group 1) is flagged as PERSON
+        with confidence 0.8.
+        """
+        entities: list[DetectedEntity] = []
+        for match in CO_NAME_PATTERN.finditer(text):
+            name = match.group(1).strip()
+            entities.append(
+                DetectedEntity(
+                    entity_type=EntityType.PERSON,
+                    original_value=name,
+                    start_offset=match.start(1),
+                    end_offset=match.end(1),
+                    confidence=0.8,
+                    source="pattern",
+                )
+            )
+        return entities
+
+    def _match_near_ahv(self, text: str) -> list[DetectedEntity]:
+        """Detect possible AHV numbers with transposed prefix (B-017).
+
+        Numbers like 765.xxxx.xxxx.xx are flagged as AHV_NR with
+        confidence 0.5 to signal they are likely AHV numbers with a
+        transposed prefix and should be anonymized as a precaution.
+        """
+        entities: list[DetectedEntity] = []
+        for match in NEAR_AHV_PATTERN.finditer(text):
+            entities.append(
+                DetectedEntity(
+                    entity_type=EntityType.AHV_NR,
+                    original_value=match.group(0),
+                    start_offset=match.start(),
+                    end_offset=match.end(),
+                    confidence=0.5,
+                    source="pattern",
+                )
+            )
         return entities
 
     def _match_birthdates(self, text: str) -> list[DetectedEntity]:
