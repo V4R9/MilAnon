@@ -1,60 +1,64 @@
-type,full_name,abbreviation,category,pattern_example
-rank,Soldat,Sdt,Mannschaft,Sdt Muster
-rank,Gefreiter,Gfr,Mannschaft,Gfr Muster
-rank,Obergefreiter,Obgfr,Mannschaft,Obgfr Muster
-rank,Korporal,Kpl,Unteroffizier,Kpl Muster
-rank,Wachtmeister,Wm,Unteroffizier,Wm Muster
-rank,Oberwachtmeister,Obwm,Höherer Unteroffizier,Obwm Muster
-rank,Fourier,Four,Höherer Unteroffizier,Four Muster
-rank,Feldweibel,Fw,Höherer Unteroffizier,Fw Muster
-rank,Hauptfeldweibel,Hptfw,Höherer Unteroffizier,Hptfw Muster
-rank,Adjutant Unteroffizier,Adj Uof,Höherer Unteroffizier,Adj Uof Muster
-rank,Stabsadjutant,Stabsadj,Höherer Unteroffizier,Stabsadj Muster
-rank,Hauptadjutant,Hptadj,Höherer Unteroffizier,Hptadj Muster
-rank,Chefadjutant,Chefadj,Höherer Unteroffizier,Chefadj Muster
-rank,Leutnant,Lt,Subalternoffizier,Lt Muster
-rank,Oberleutnant,Oblt,Subalternoffizier,Oblt Muster
-rank,Hauptmann,Hptm,Hauptmann,Hptm Muster
-rank,Major,Maj,Stabsoffizier,Maj Muster
-rank,Oberstleutnant,Oberstlt,Stabsoffizier,Oberstlt Muster
-rank,Oberstleutnant im Generalstab,Oberstlt i Gst,Stabsoffizier,Oberstlt i Gst Muster
-rank,Oberst,Oberst,Stabsoffizier,Oberst Muster
-rank,Brigadier,Br,Höherer Stabsoffizier,Br Muster
-rank,Divisionaer,Div,Höherer Stabsoffizier,Div Muster
-rank,Korpskommandant,KKdt,Höherer Stabsoffizier,KKdt Muster
-rank,General,General,Höchster Rang,General Muster
-rank,Fachoffizier,Fachof,Spezialoffizier,Fachof Muster
-rank,Generalstabsoffizier,Gst Of,Spezialoffizier,Gst Of Muster
-branch,Infanterie,Inf,Truppengattung,Inf Bat 56
-branch,Panzertruppen,Pz,Truppengattung,Pz Bat 3
-branch,Artillerie,Art,Truppengattung,Art Abt 1
-branch,Fliegertruppen,Fl,Truppengattung,Fl Staffel 1
-branch,Fliegerabwehrtruppen,Flab,Truppengattung,Flab Bat 33
-branch,Genietruppen,G,Truppengattung,G Bat 1
-branch,Uebermittlungstruppen,Uem,Truppengattung,Uem Bat 2
-branch,Fuehrungsunterstuetzung,FU,Truppengattung,FU Kp 1
-branch,Rettungstruppen,Rttg,Truppengattung,Rttg Kp 1
-branch,Logistiktruppen,Log,Truppengattung,Log Bat 1
-branch,Sanitaetstruppen,San,Truppengattung,San Kp 1
-branch,Militaerische Sicherheit,Mil Sich,Truppengattung,Mil Sich Kp 1
-branch,ABC Abwehrtruppen,ABC Abw,Truppengattung,ABC Abw Kp 1
-branch,Militaerischer Nachrichtendienst,Mil ND,Truppengattung,Mil ND Kp 1
-branch,Territorialdienst,Ter D,Truppengattung,Ter D Kp 1
-branch,Rotkreuzdienst,RKD,Truppengattung,RKD Kp 1
-unit_pattern,Bataillon,Bat,Truppenkörper,Inf Bat 56
-unit_pattern,Kompanie,Kp,Truppenkörper,Inf Kp 56/1
-unit_pattern,Stabskompanie,Stabskp,Truppenkörper,Inf Stabskp 56
-unit_pattern,Unterstuetzungskompanie,Ustü Kp,Truppenkörper,Inf Ustü Kp 56
-unit_pattern,Territorialdivision,Ter Div,Truppenkörper,Ter Div 2
-unit_pattern,Brigade,Br,Truppenkörper,Inf Br 5
-unit_pattern,Stab,Stab,Truppenkörper,Stab Br 1
-unit_pattern,Abteilung,Abt,Truppenkörper,Art Abt 1
-function,Kommandant,Kdt,Funktion,Kdt Inf Kp 56/1
-function,Kommandant Stellvertreter,Kdt Stv,Funktion,Kdt Stv Inf Kp 56/1
-function,Zugfuehrer,Zfhr,Funktion,Zfhr 1 Zug
-function,Gruppenfuehrer,Grfhr,Funktion,Grfhr 1 Gruppe
-function,Einheitskommandant,Einh Kdt,Funktion,Einh Kdt
-function,Bataillonskommandant,Bat Kdt,Funktion,Bat Kdt Inf Bat 56
-function,Kompanie Kommandant,Kp Kdt,Funktion,Kp Kdt Inf Kp 56/1
-function,Einheitsfeldweibel,Einh Fw,Funktion,Einh Fw
-function,Einheitsfourier,Einh Four,Funktion,Einh Four
+type,full_name,abbreviation,category,pattern_example,parent,level
+rank,Soldat,Sdt,Mannschaft,Sdt Muster,,
+rank,Gefreiter,Gfr,Mannschaft,Gfr Muster,,
+rank,Obergefreiter,Obgfr,Mannschaft,Obgfr Muster,,
+rank,Korporal,Kpl,Unteroffizier,Kpl Muster,,
+rank,Wachtmeister,Wm,Unteroffizier,Wm Muster,,
+rank,Oberwachtmeister,Obwm,Höherer Unteroffizier,Obwm Muster,,
+rank,Fourier,Four,Höherer Unteroffizier,Four Muster,,
+rank,Feldweibel,Fw,Höherer Unteroffizier,Fw Muster,,
+rank,Hauptfeldweibel,Hptfw,Höherer Unteroffizier,Hptfw Muster,,
+rank,Adjutant Unteroffizier,Adj Uof,Höherer Unteroffizier,Adj Uof Muster,,
+rank,Adjutant,Adj,Höherer Unteroffizier,Adj Muster,,
+rank,Stabsadjutant,Stabsadj,Höherer Unteroffizier,Stabsadj Muster,,
+rank,Hauptadjutant,Hptadj,Höherer Unteroffizier,Hptadj Muster,,
+rank,Chefadjutant,Chefadj,Höherer Unteroffizier,Chefadj Muster,,
+rank,Leutnant,Lt,Subalternoffizier,Lt Muster,,
+rank,Oberleutnant,Oblt,Subalternoffizier,Oblt Muster,,
+rank,Hauptmann,Hptm,Hauptmann,Hptm Muster,,
+rank,Major,Maj,Stabsoffizier,Maj Muster,,
+rank,Oberstleutnant,Oberstlt,Stabsoffizier,Oberstlt Muster,,
+rank,Oberstleutnant im Generalstab,Oberstlt i Gst,Stabsoffizier,Oberstlt i Gst Muster,,
+rank,Oberst,Oberst,Stabsoffizier,Oberst Muster,,
+rank,Brigadier,Br,Höherer Stabsoffizier,Br Muster,,
+rank,Divisionaer,Div,Höherer Stabsoffizier,Div Muster,,
+rank,Korpskommandant,KKdt,Höherer Stabsoffizier,KKdt Muster,,
+rank,General,General,Höchster Rang,General Muster,,
+rank,Fachoffizier,Fachof,Spezialoffizier,Fachof Muster,,
+rank,Generalstabsoffizier,Gst Of,Spezialoffizier,Gst Of Muster,,
+branch,Infanterie,Inf,Truppengattung,Inf Bat 56,,
+branch,Panzertruppen,Pz,Truppengattung,Pz Bat 3,,
+branch,Artillerie,Art,Truppengattung,Art Abt 1,,
+branch,Fliegertruppen,Fl,Truppengattung,Fl Staffel 1,,
+branch,Fliegerabwehrtruppen,Flab,Truppengattung,Flab Bat 33,,
+branch,Genietruppen,G,Truppengattung,G Bat 1,,
+branch,Uebermittlungstruppen,Uem,Truppengattung,Uem Bat 2,,
+branch,Fuehrungsunterstuetzung,FU,Truppengattung,FU Kp 1,,
+branch,Rettungstruppen,Rttg,Truppengattung,Rttg Kp 1,,
+branch,Logistiktruppen,Log,Truppengattung,Log Bat 1,,
+branch,Sanitaetstruppen,San,Truppengattung,San Kp 1,,
+branch,Militaerische Sicherheit,Mil Sich,Truppengattung,Mil Sich Kp 1,,
+branch,ABC Abwehrtruppen,ABC Abw,Truppengattung,ABC Abw Kp 1,,
+branch,Militaerischer Nachrichtendienst,Mil ND,Truppengattung,Mil ND Kp 1,,
+branch,Territorialdienst,Ter D,Truppengattung,Ter D Kp 1,,
+branch,Rotkreuzdienst,RKD,Truppengattung,RKD Kp 1,,
+branch,Militaerjustiz,MJ,Truppengattung,MJ Kp 1,,
+branch,Armeeseelsorge,AS,Truppengattung,AS Kp 1,,
+unit_pattern,Bataillon,Bat,Truppenkörper,Inf Bat 56,,
+unit_pattern,Kompanie,Kp,Truppenkörper,Inf Kp 56/1,,
+unit_pattern,Stabskompanie,Stabskp,Truppenkörper,Inf Stabskp 56,,
+unit_pattern,Unterstuetzungskompanie,Ustü Kp,Truppenkörper,Inf Ustü Kp 56,,
+unit_pattern,Territorialdivision,Ter Div,Truppenkörper,Ter Div 2,,
+unit_pattern,Brigade,Br,Truppenkörper,Inf Br 5,,
+unit_pattern,Stab,Stab,Truppenkörper,Stab Br 1,,
+unit_pattern,Abteilung,Abt,Truppenkörper,Art Abt 1,,
+function,Kommandant,Kdt,Funktion,Kdt Inf Kp 56/1,,
+function,Kommandant Stellvertreter,Kdt Stv,Funktion,Kdt Stv Inf Kp 56/1,,
+function,Zugfuehrer,Zfhr,Funktion,Zfhr 1 Zug,,
+function,Gruppenfuehrer,Grfhr,Funktion,Grfhr 1 Gruppe,,
+function,Einheitskommandant,Einh Kdt,Funktion,Einh Kdt,,
+function,Bataillonskommandant,Bat Kdt,Funktion,Bat Kdt Inf Bat 56,,
+function,Kompanie Kommandant,Kp Kdt,Funktion,Kp Kdt Inf Kp 56/1,,
+function,Einheitsfeldweibel,Einh Fw,Funktion,Einh Fw,,
+function,Einheitsfourier,Einh Four,Funktion,Einh Four,,
+function,Bataillonskommandant Stellvertreter,Bat Kdt Stv,Funktion,Bat Kdt Stv Inf Bat 56,,

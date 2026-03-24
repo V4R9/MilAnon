@@ -44,7 +44,11 @@ CREATE TABLE IF NOT EXISTS ref_military_units (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     pattern TEXT NOT NULL,
     unit_type TEXT,
-    parent_unit TEXT
+    parent_unit TEXT,
+    full_name TEXT DEFAULT '',
+    abbreviation TEXT DEFAULT '',
+    level TEXT DEFAULT '',
+    category TEXT DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS file_tracking (
@@ -117,6 +121,22 @@ class SqliteMappingRepository:
     def _init_schema(self) -> None:
         """Create tables and indexes if they don't exist."""
         self._conn.executescript(_SCHEMA_SQL)
+        self._migrate_schema()
+
+    def _migrate_schema(self) -> None:
+        """Add new columns to existing tables (safe to run multiple times)."""
+        migrations = [
+            "ALTER TABLE ref_military_units ADD COLUMN full_name TEXT DEFAULT ''",
+            "ALTER TABLE ref_military_units ADD COLUMN abbreviation TEXT DEFAULT ''",
+            "ALTER TABLE ref_military_units ADD COLUMN level TEXT DEFAULT ''",
+            "ALTER TABLE ref_military_units ADD COLUMN category TEXT DEFAULT ''",
+        ]
+        for sql in migrations:
+            try:
+                self._conn.execute(sql)
+            except Exception:
+                pass  # Column already exists
+        self._conn.commit()
 
     def close(self) -> None:
         """Close the database connection."""
@@ -303,8 +323,18 @@ class SqliteMappingRepository:
             if not pattern:
                 continue
             self._conn.execute(
-                "INSERT INTO ref_military_units (pattern, unit_type) VALUES (?, ?)",
-                (pattern, unit_type),
+                """INSERT INTO ref_military_units
+                   (pattern, unit_type, parent_unit, full_name, abbreviation, level, category)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    pattern,
+                    unit_type,
+                    unit.get("parent", ""),
+                    unit.get("full_name", ""),
+                    unit.get("abbreviation", pattern),
+                    unit.get("level", ""),
+                    unit.get("category", ""),
+                ),
             )
         self._conn.commit()
         return self.get_ref_military_unit_count()
