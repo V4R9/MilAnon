@@ -97,7 +97,7 @@ st.sidebar.divider()
 
 page = st.sidebar.radio(
     "Navigation",
-    ["Anonymize", "De-Anonymize", "DB Import", "DB Stats"],
+    ["Anonymize", "De-Anonymize", "LLM Workflow", "DB Import", "DB Stats"],
     index=0,
 )
 
@@ -129,13 +129,18 @@ if page == "Anonymize":
             help="Where anonymized files are written.",
         )
 
-    col3, col4, col5 = st.columns(3)
+    col3, col4, col5, col6 = st.columns(4)
     with col3:
         recursive = st.checkbox("Recursive (include subfolders)")
     with col4:
         force = st.checkbox("Force (reprocess all files)")
     with col5:
         dry_run = st.checkbox("Dry run (no files written)")
+    with col6:
+        embed_images = st.checkbox(
+            "Embed visual pages as PNG",
+            help="Renders WAP/schedule pages as PNG images in the output (NOT anonymized).",
+        )
 
     if st.button("Start Anonymization", type="primary", disabled=not (input_path and output_path)):
         input_p = Path(_clean_path(input_path))
@@ -149,7 +154,10 @@ if page == "Anonymize":
                 repo = _make_repo()
                 uc = _make_anonymize_uc(repo)
                 progress.progress(10, text="Pipeline ready — processing files…")
-                result = uc.execute(input_p, output_p, recursive=recursive, force=force, dry_run=dry_run)
+                result = uc.execute(
+                    input_p, output_p,
+                    recursive=recursive, force=force, dry_run=dry_run, embed_images=embed_images,
+                )
                 progress.progress(100, text="Done.")
 
             st.success("Anonymization complete.")
@@ -238,6 +246,140 @@ elif page == "De-Anonymize":
 
             if dry_run:
                 st.info("Dry run — no files were written.")
+
+
+# ---------------------------------------------------------------------------
+# LLM Workflow page
+# ---------------------------------------------------------------------------
+
+elif page == "LLM Workflow":
+    st.title("LLM Workflow")
+    st.markdown(
+        "Prepare context for Claude, work with the LLM, then restore real names from the response."
+    )
+
+    tab1, tab2, tab3 = st.tabs(["1. Generate Context", "2. Send to LLM", "3. Unpack Response"])
+
+    # -------------------------------------------------------------------
+    # Tab 1 — Generate Context
+    # -------------------------------------------------------------------
+    with tab1:
+        st.subheader("Generate LLM Context File")
+        st.markdown(
+            "Build a context file that tells the LLM about your unit hierarchy and "
+            "placeholder rules. Paste it before your anonymized document when prompting Claude."
+        )
+
+        from milanon.usecases.generate_context import GenerateContextUseCase
+
+        repo = _make_repo()
+        ctx_uc = GenerateContextUseCase(repo)
+        units = ctx_uc.get_available_units()
+
+        if not units:
+            st.info("No units found in database. Import personnel data first (DB Import page).")
+        else:
+            selected_unit = st.selectbox(
+                "Your unit",
+                options=units,
+                format_func=lambda u: f"{u.original_value} ({u.level})",
+            )
+
+            ctx_output = st.text_input(
+                "Save context file to",
+                value="test_output/CONTEXT.md",
+                help="Path where CONTEXT.md will be written.",
+            )
+
+            if st.button("Generate Context", type="primary"):
+                try:
+                    ctx_uc.generate(selected_unit.original_value, Path(_clean_path(ctx_output)))
+                    content = Path(_clean_path(ctx_output)).read_text(encoding="utf-8")
+                    st.success(f"Context file written to `{ctx_output}`")
+                    st.markdown("**Preview — copy this before your anonymized document:**")
+                    st.code(content, language="markdown")
+                    st.download_button(
+                        "Download CONTEXT.md",
+                        data=content,
+                        file_name="CONTEXT.md",
+                        mime="text/markdown",
+                    )
+                except Exception as exc:
+                    st.error(f"Error generating context: {exc}")
+
+    # -------------------------------------------------------------------
+    # Tab 2 — Send to LLM
+    # -------------------------------------------------------------------
+    with tab2:
+        st.subheader("Work with Claude.ai")
+        st.markdown(
+            """
+**Steps:**
+1. Generate your context file (Tab 1) and copy its content.
+2. Open [Claude.ai](https://claude.ai) in your browser.
+3. Paste the context, then paste your anonymized document.
+4. Work with Claude — ask it to create notes, analyze, draft orders.
+5. Copy Claude's response and paste it in Tab 3 to restore real names.
+            """
+        )
+        st.info(
+            "💡 Tip: The Pack feature (coming soon) will automate steps 1–3 "
+            "into a single clipboard action."
+        )
+
+    # -------------------------------------------------------------------
+    # Tab 3 — Unpack Response
+    # -------------------------------------------------------------------
+    with tab3:
+        st.subheader("De-Anonymize LLM Output")
+        st.markdown(
+            "Paste Claude's response here to restore real names, then save to your vault."
+        )
+
+        llm_output = st.text_area(
+            "Paste Claude's output",
+            height=300,
+            placeholder="Paste the LLM response here…",
+        )
+
+        save_path = st.text_input(
+            "Save de-anonymized text to file",
+            placeholder="/path/to/obsidian/vault/response.md",
+        )
+
+        can_run = bool(llm_output.strip() and save_path.strip())
+        if st.button("De-Anonymize & Save", type="primary", disabled=not can_run):
+            try:
+                from milanon.domain.deanonymizer import DeAnonymizer
+                from milanon.domain.mapping_service import MappingService
+
+                repo_da = _make_repo()
+                service = MappingService(repo_da)
+                deanonymizer = DeAnonymizer(service)
+
+                restored, warnings = deanonymizer.deanonymize(llm_output)
+
+                out_p = Path(_clean_path(save_path))
+                out_p.parent.mkdir(parents=True, exist_ok=True)
+                out_p.write_text(restored, encoding="utf-8")
+
+                placeholder_count = len(deanonymizer.find_placeholders(llm_output))
+                unresolved = len(warnings)
+                resolved = placeholder_count - unresolved
+                st.success(
+                    f"Saved to `{out_p}`. "
+                    f"Resolved {resolved}/{placeholder_count} placeholder(s)."
+                )
+                if warnings:
+                    with st.expander(f"⚠️ {unresolved} unresolved placeholder(s)"):
+                        for w in warnings:
+                            st.warning(w)
+            except Exception as exc:
+                st.error(f"Error: {exc}")
+
+        st.caption(
+            "🔮 Coming soon: Clipboard integration, multi-file splitting, in-place mode."
+        )
 
 
 # ---------------------------------------------------------------------------
