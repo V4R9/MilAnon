@@ -1,16 +1,16 @@
 """DOCX Befehl writer — converts structured Markdown into a formatted DOCX
 using the official Armee-Vorlage as template.
 
-Style mapping (from template analysis):
-  # Grundlagen       → "Heading 1"
-  ## "DECKNAME"      → "Subject heading"
-  ### 1 Title        → "1. Main title"
-  #### 1.1 Title     → "1.1 Title"
-  ##### 1.1.1 Title  → "1.1.1 Title"
-  Body text          → "Text Indent"
-  - Bullet item      → "Bullet List 1"
-  1. Item            → "Numbered List 2"
-  | Table |          → DOCX Table (Aufträge)
+Style mapping (verified against befehl_vorlage.docx — all styles confirmed present):
+  # Grundlagen       → "Heading 1"          ✓ exists in template
+  ## "DECKNAME"      → "Subject heading"     ✓ exists in template
+  ### 1 Title        → "1. Main title"       ✓ exists in template
+  #### 1.1 Title     → "1.1 Title"           ✓ exists in template
+  ##### 1.1.1 Title  → "1.1.1 Title"         ✓ exists in template
+  Body text          → "Text Indent"         ✓ exists in template
+  - Bullet item      → "Bullet List 1"       ✓ exists in template
+  1. Item            → "Numbered List 2"     ✓ exists in template
+  | Table |          → DOCX Table (Aufträge) — table cells use "Bullet List 1"
 """
 
 from __future__ import annotations

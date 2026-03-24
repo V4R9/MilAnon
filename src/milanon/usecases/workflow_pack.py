@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 import tempfile
 from pathlib import Path
@@ -228,10 +229,14 @@ class WorkflowPackUseCase:
         if not unit or self._context_gen is None:
             return ""
         try:
-            tmp_path = Path(tempfile.mktemp(suffix=".md"))
-            self._context_gen.generate(unit, tmp_path)
-            text = tmp_path.read_text(encoding="utf-8")
-            tmp_path.unlink(missing_ok=True)
+            fd, tmp_name = tempfile.mkstemp(suffix=".md")
+            os.close(fd)
+            tmp_path = Path(tmp_name)
+            try:
+                self._context_gen.generate(unit, tmp_path)
+                text = tmp_path.read_text(encoding="utf-8")
+            finally:
+                tmp_path.unlink(missing_ok=True)
             return text
         except Exception as exc:
             logger.warning(

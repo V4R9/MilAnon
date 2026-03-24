@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 # Matches headings: "### 5.2.1 Einsatzgrundsätze", "# 5 Aktionsplanung", etc.
 # Group 1 = hashes, group 2 = chapter number (digits/dots), group 3 = title text
-_HEADING_RE: re.Pattern[str] = re.compile(r"^(#{1,6})\s+(\d+(?:\.\d+)*)\s+(.+)$")
+_HEADING_RE: re.Pattern[str] = re.compile(r"^(#{1,6})\s+\*{0,2}(\d+(?:\.\d+)*)\*{0,2}\s+(.+)$")
 
 # Minimal YAML key-value extractor — used for INDEX.yaml (no pyyaml dependency)
 _YAML_KEY_RE: re.Pattern[str] = re.compile(r"^(\s{2})(\S[^:]+\.md):\s*$")
@@ -35,7 +35,7 @@ EXTRACTS: dict[str, tuple[str, str]] = {
     "bfe_befehlsgebung.md":        ("52_080_bfe_einsatz.md",              "5.7"),
     "fso_aktionsplanung.md":       ("50_040_fso_17.md",                   "4.2"),
     "tf_einsatzgrundsaetze.md":    ("50_030_taktische_fuehrung.md",       "5.2.1"),
-    "tf_taktische_grundsaetze.md": ("50_030_taktische_fuehrung.md",       "5.2.2"),
+    "tf_taktische_grundsaetze.md": ("50_030_taktische_fuehrung.md",       "5.2.3"),
     "tf_raumordnung.md":           ("50_030_taktische_fuehrung.md",       "5.4"),
     "tf_taktische_aufgaben.md":    ("50_030_taktische_fuehrung.md",       "5.5"),
     "wat_wachtdienstbefehl.md":    ("51_301_wachtdienst_aller_truppen.md", "10"),
