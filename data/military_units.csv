@@ -62,3 +62,101 @@ function,Kompanie Kommandant,Kp Kdt,Funktion,Kp Kdt Inf Kp 56/1,,
 function,Einheitsfeldweibel,Einh Fw,Funktion,Einh Fw,,
 function,Einheitsfourier,Einh Four,Funktion,Einh Four,,
 function,Bataillonskommandant Stellvertreter,Bat Kdt Stv,Funktion,Bat Kdt Stv Inf Bat 56,,
+concrete_unit,Kommando Operationen,Kdo Op,Kommando,,_root,command
+concrete_unit,Kommando Ausbildung,Kdo Ausb,Kommando,,_root,command
+concrete_unit,Logistikbasis der Armee,LBA,Kommando,,_root,command
+concrete_unit,Kommando Cyber,Kdo Cyber,Kommando,,_root,command
+concrete_unit,Heer,Heer,Kommando,,Kommando Operationen,command
+concrete_unit,Mechanisierte Brigade 1,Mech Br 1,Brigade,,Heer,brigade
+concrete_unit,Mechanisierte Brigade 4,Mech Br 4,Brigade,,Heer,brigade
+concrete_unit,Mechanisierte Brigade 11,Mech Br 11,Brigade,,Heer,brigade
+concrete_unit,Aufklaerungsbataillon 1,Aufkl Bat 1,Bataillon,,Mechanisierte Brigade 1,battalion
+concrete_unit,Panzerbataillon 12,Pz Bat 12,Bataillon,,Mechanisierte Brigade 1,battalion
+concrete_unit,Mechanisiertes Bataillon 17,Mech Bat 17,Bataillon,,Mechanisierte Brigade 1,battalion
+concrete_unit,Mechanisiertes Bataillon 18,Mech Bat 18,Bataillon,,Mechanisierte Brigade 1,battalion
+concrete_unit,Artillerieabteilung 1,Art Abt 1,Bataillon,,Mechanisierte Brigade 1,battalion
+concrete_unit,Panzersappeurbataillon 1,Pz Sap Bat 1,Bataillon,,Mechanisierte Brigade 1,battalion
+concrete_unit,Aufklaerungsbataillon 4,Aufkl Bat 4,Bataillon,,Mechanisierte Brigade 4,battalion
+concrete_unit,Aufklaerungsbataillon 5,Aufkl Bat 5,Bataillon,,Mechanisierte Brigade 4,battalion
+concrete_unit,Artillerieabteilung 10,Art Abt 10,Bataillon,,Mechanisierte Brigade 4,battalion
+concrete_unit,Artillerieabteilung 49,Art Abt 49,Bataillon,,Mechanisierte Brigade 4,battalion
+concrete_unit,Pontonierbataillon 26,Pont Bat 26,Bataillon,,Mechanisierte Brigade 4,battalion
+concrete_unit,Aufklaerungsbataillon 11,Aufkl Bat 11,Bataillon,,Mechanisierte Brigade 11,battalion
+concrete_unit,Panzerbataillon 13,Pz Bat 13,Bataillon,,Mechanisierte Brigade 11,battalion
+concrete_unit,Mechanisiertes Bataillon 14,Mech Bat 14,Bataillon,,Mechanisierte Brigade 11,battalion
+concrete_unit,Mechanisiertes Bataillon 29,Mech Bat 29,Bataillon,,Mechanisierte Brigade 11,battalion
+concrete_unit,Artillerieabteilung 16,Art Abt 16,Bataillon,,Mechanisierte Brigade 11,battalion
+concrete_unit,Panzersappeurbataillon 11,Pz Sap Bat 11,Bataillon,,Mechanisierte Brigade 11,battalion
+concrete_unit,Territorialdivision 1,Ter Div 1,Division,,Kommando Operationen,division
+concrete_unit,Territorialdivision 2,Ter Div 2,Division,,Kommando Operationen,division
+concrete_unit,Territorialdivision 3,Ter Div 3,Division,,Kommando Operationen,division
+concrete_unit,Territorialdivision 4,Ter Div 4,Division,,Kommando Operationen,division
+concrete_unit,Infanteriebataillon 13,Inf Bat 13,Bataillon,,Territorialdivision 1,battalion
+concrete_unit,Infanteriebataillon 19,Inf Bat 19,Bataillon,,Territorialdivision 1,battalion
+concrete_unit,Schuetzenbataillon 1,Schtz Bat 1,Bataillon,,Territorialdivision 1,battalion
+concrete_unit,Schuetzenbataillon 14,Schtz Bat 14,Bataillon,,Territorialdivision 1,battalion
+concrete_unit,Gebirgsinfanteriebataillon 7,Geb Inf Bat 7,Bataillon,,Territorialdivision 1,battalion
+concrete_unit,Geniebataillon 2,G Bat 2,Bataillon,,Territorialdivision 1,battalion
+concrete_unit,Rettungsbataillon 1,Rttg Bat 1,Bataillon,,Territorialdivision 1,battalion
+concrete_unit,Infanteriebataillon 11,Inf Bat 11,Bataillon,,Territorialdivision 2,battalion
+concrete_unit,Infanteriebataillon 20,Inf Bat 20,Bataillon,,Territorialdivision 2,battalion
+concrete_unit,Infanteriebataillon 56,Inf Bat 56,Bataillon,,Territorialdivision 2,battalion
+concrete_unit,Infanteriebataillon 97,Inf Bat 97,Bataillon,,Territorialdivision 2,battalion
+concrete_unit,Geniebataillon 6,G Bat 6,Bataillon,,Territorialdivision 2,battalion
+concrete_unit,Rettungsbataillon 2,Rttg Bat 2,Bataillon,,Territorialdivision 2,battalion
+concrete_unit,Gebirgsinfanteriebataillon 29,Geb Inf Bat 29,Bataillon,,Territorialdivision 3,battalion
+concrete_unit,Gebirgsinfanteriebataillon 30,Geb Inf Bat 30,Bataillon,,Territorialdivision 3,battalion
+concrete_unit,Gebirgsinfanteriebataillon 48,Geb Inf Bat 48,Bataillon,,Territorialdivision 3,battalion
+concrete_unit,Gebirgsinfanteriebataillon 91,Geb Inf Bat 91,Bataillon,,Territorialdivision 3,battalion
+concrete_unit,Geniebataillon 9,G Bat 9,Bataillon,,Territorialdivision 3,battalion
+concrete_unit,Rettungsbataillon 3,Rttg Bat 3,Bataillon,,Territorialdivision 3,battalion
+concrete_unit,Infanteriebataillon 61,Inf Bat 61,Bataillon,,Territorialdivision 4,battalion
+concrete_unit,Infanteriebataillon 65,Inf Bat 65,Bataillon,,Territorialdivision 4,battalion
+concrete_unit,Gebirgsinfanteriebataillon 85,Geb Inf Bat 85,Bataillon,,Territorialdivision 4,battalion
+concrete_unit,Gebirgsschuetzenbataillon 6,Geb Schtz Bat 6,Bataillon,,Territorialdivision 4,battalion
+concrete_unit,Geniebataillon 23,G Bat 23,Bataillon,,Territorialdivision 4,battalion
+concrete_unit,Rettungsbataillon 4,Rttg Bat 4,Bataillon,,Territorialdivision 4,battalion
+concrete_unit,Infanterie Stabskompanie 11,Inf Stabskp 11,Kompanie,Stabskp 11,Infanteriebataillon 11,company
+concrete_unit,Infanteriekompanie 11/1,Inf Kp 11/1,Kompanie,,Infanteriebataillon 11,company
+concrete_unit,Infanteriekompanie 11/2,Inf Kp 11/2,Kompanie,,Infanteriebataillon 11,company
+concrete_unit,Infanteriekompanie 11/3,Inf Kp 11/3,Kompanie,,Infanteriebataillon 11,company
+concrete_unit,Infanterie Unterstuetzungskompanie 11/4,Inf Ustue Kp 11/4,Kompanie,,Infanteriebataillon 11,company
+concrete_unit,Infanterie Stabskompanie 13,Inf Stabskp 13,Kompanie,Stabskp 13,Infanteriebataillon 13,company
+concrete_unit,Infanteriekompanie 13/1,Inf Kp 13/1,Kompanie,,Infanteriebataillon 13,company
+concrete_unit,Infanteriekompanie 13/2,Inf Kp 13/2,Kompanie,,Infanteriebataillon 13,company
+concrete_unit,Infanteriekompanie 13/3,Inf Kp 13/3,Kompanie,,Infanteriebataillon 13,company
+concrete_unit,Infanterie Unterstuetzungskompanie 13/4,Inf Ustue Kp 13/4,Kompanie,,Infanteriebataillon 13,company
+concrete_unit,Infanterie Stabskompanie 19,Inf Stabskp 19,Kompanie,Stabskp 19,Infanteriebataillon 19,company
+concrete_unit,Infanteriekompanie 19/1,Inf Kp 19/1,Kompanie,,Infanteriebataillon 19,company
+concrete_unit,Infanteriekompanie 19/2,Inf Kp 19/2,Kompanie,,Infanteriebataillon 19,company
+concrete_unit,Infanteriekompanie 19/3,Inf Kp 19/3,Kompanie,,Infanteriebataillon 19,company
+concrete_unit,Infanterie Unterstuetzungskompanie 19/4,Inf Ustue Kp 19/4,Kompanie,,Infanteriebataillon 19,company
+concrete_unit,Infanterie Stabskompanie 20,Inf Stabskp 20,Kompanie,Stabskp 20,Infanteriebataillon 20,company
+concrete_unit,Infanteriekompanie 20/1,Inf Kp 20/1,Kompanie,,Infanteriebataillon 20,company
+concrete_unit,Infanteriekompanie 20/2,Inf Kp 20/2,Kompanie,,Infanteriebataillon 20,company
+concrete_unit,Infanteriekompanie 20/3,Inf Kp 20/3,Kompanie,,Infanteriebataillon 20,company
+concrete_unit,Infanterie Unterstuetzungskompanie 20/4,Inf Ustue Kp 20/4,Kompanie,,Infanteriebataillon 20,company
+concrete_unit,Infanterie Stabskompanie 56,Inf Stabskp 56,Kompanie,Stabskp 56,Infanteriebataillon 56,company
+concrete_unit,Infanteriekompanie 56/1,Inf Kp 56/1,Kompanie,,Infanteriebataillon 56,company
+concrete_unit,Infanteriekompanie 56/2,Inf Kp 56/2,Kompanie,,Infanteriebataillon 56,company
+concrete_unit,Infanteriekompanie 56/3,Inf Kp 56/3,Kompanie,,Infanteriebataillon 56,company
+concrete_unit,Infanterie Unterstuetzungskompanie 56/4,Inf Ustue Kp 56/4,Kompanie,,Infanteriebataillon 56,company
+concrete_unit,Infanterie Stabskompanie 61,Inf Stabskp 61,Kompanie,Stabskp 61,Infanteriebataillon 61,company
+concrete_unit,Infanteriekompanie 61/1,Inf Kp 61/1,Kompanie,,Infanteriebataillon 61,company
+concrete_unit,Infanteriekompanie 61/2,Inf Kp 61/2,Kompanie,,Infanteriebataillon 61,company
+concrete_unit,Infanteriekompanie 61/3,Inf Kp 61/3,Kompanie,,Infanteriebataillon 61,company
+concrete_unit,Infanterie Unterstuetzungskompanie 61/4,Inf Ustue Kp 61/4,Kompanie,,Infanteriebataillon 61,company
+concrete_unit,Infanterie Stabskompanie 65,Inf Stabskp 65,Kompanie,Stabskp 65,Infanteriebataillon 65,company
+concrete_unit,Infanteriekompanie 65/1,Inf Kp 65/1,Kompanie,,Infanteriebataillon 65,company
+concrete_unit,Infanteriekompanie 65/2,Inf Kp 65/2,Kompanie,,Infanteriebataillon 65,company
+concrete_unit,Infanteriekompanie 65/3,Inf Kp 65/3,Kompanie,,Infanteriebataillon 65,company
+concrete_unit,Infanterie Unterstuetzungskompanie 65/4,Inf Ustue Kp 65/4,Kompanie,,Infanteriebataillon 65,company
+concrete_unit,Infanterie Stabskompanie 97,Inf Stabskp 97,Kompanie,Stabskp 97,Infanteriebataillon 97,company
+concrete_unit,Infanteriekompanie 97/1,Inf Kp 97/1,Kompanie,,Infanteriebataillon 97,company
+concrete_unit,Infanteriekompanie 97/2,Inf Kp 97/2,Kompanie,,Infanteriebataillon 97,company
+concrete_unit,Infanteriekompanie 97/3,Inf Kp 97/3,Kompanie,,Infanteriebataillon 97,company
+concrete_unit,Infanterie Unterstuetzungskompanie 97/4,Inf Ustue Kp 97/4,Kompanie,,Infanteriebataillon 97,company
+concrete_unit,Luftwaffe,Luftwaffe,Kommando,,Kommando Operationen,command
+concrete_unit,Bodengestuetzte Luftverteidigungsbrigade 33,BODLUV Br 33,Brigade,,Luftwaffe,brigade
+concrete_unit,Logistikbrigade 1,Log Br 1,Brigade,,Logistikbasis der Armee,brigade
+concrete_unit,Fuehrungsunterstuetzungsbrigade 41,FU Br 41,Brigade,,Kommando Cyber,brigade
