@@ -27,89 +27,206 @@
 
 ## Iteration 2b — Done ✅
 
-## B-008-fix: Handle "Name / Vorname" Combined Column Format (P0) ✅
-
-**Problem:** Military system exports (MilOffice, PISA custom) often use a single column "Name / Vorname" with values like "von Gunten, Jürg" (Nachname, Vorname separated by comma). The current B-008 import expects separate "Vorname" and "Nachname" columns and won't work with this common format.
-
-**Required Fix:**
-
-The ImportNamesUseCase must auto-detect and handle both formats:
-- **Format A (separate columns):** "Grad;Vorname;Nachname" → already works
-- **Format B (combined column):** "Name / Vorname;Grad Kurzform" → needs to split on comma
-
-Detection: If header contains "Name / Vorname" or "Name, Vorname" or "Name/Vorname" → use Format B logic.
-
-**Acceptance Criteria:**
-- Given a CSV with "Name / Vorname" header and values like "von Gunten, Jürg", when imported, then Nachname="von Gunten" and Vorname="Jürg" are correctly split.
-- Given a CSV with "Grad Kurzform" header, when imported, then it maps to GRAD_FUNKTION.
-- Given a CSV with separate "Vorname" and "Nachname" columns, when imported, then existing behavior is unchanged.
-- Given a value without comma (e.g. just "Müller"), when imported, then it is treated as Nachname only.
-
-**Commit:** `fix(import): handle combined Name/Vorname column format from military exports`
+- B-008-fix: Combined "Name / Vorname" column format ✅
+- B-011: Visual PDF page detection + optional image embed ✅
+- "Alle" municipality completely excluded from matching ✅
+- "Adj" added as standalone rank ✅
+- Per-file progress output in CLI ✅
+- Version number in GUI sidebar ✅
+- CSV delimiter auto-detection (csv.Sniffer) ✅
 
 ---
 
-## B-011: Visual PDF Pages — Detect, Warn, Optional Image Embed (P1) ✅
+## Iteration 2c — Done ✅
 
-**Problem:** WAP/Picasso pages in PDFs are visual Gantt charts, not data tables. pdfplumber produces unreadable garbage (85+ columns, fragmented text). These pages need special handling.
+- B-011-fix: --embed-images rendering PNGs ✅
+- B-012: LLM Context Generator with interactive unit selection ✅
+- B-012-fix: EINHEIT duplicate normalization + Context output path ✅
+- B-011-fix2: Visual page heuristic tightened (AND logic) ✅
+- Code Review: All 14 findings addressed (refactoring) ✅
 
-**Solution:** Detect "fake table" pages via heuristic. Show user a warning and let them decide whether to embed the page as an image (with clear warning that images are NOT anonymized).
+---
 
-### Detection Heuristic
+## Iteration 4 — Output Quality (from MD Analysis 2026-03-24)
 
-A PDF page is "visual layout" when:
-- `extract_tables()` returns a table with **>20 columns**, OR
-- A table has **>70% empty/None cells**, OR
-- The extracted text contains heavily fragmented words (average word length < 2 chars after stripping)
+## B-013: Organigramm/Gliederung Pages — Mega-Cell Visual Detection (P1) 🔴
 
-### Behavior
+**Discovered in:** Real-world test MD analysis (2026-03-24)
 
-**CLI:** When visual pages are detected, print a warning per page:
+**Problem:** The Organigramm Stab (page ~68) and Gliederung (page ~67) are visual layouts (org charts with boxes and connection lines), but the current visual detection heuristic does NOT flag them because:
+- The extracted table has only **3 columns** (below the >20 threshold)
+- However, one cell contains **1000+ characters** of garbled content — all the org chart boxes mashed into a single cell
+
+The result is an unreadable wall of placeholders:
 ```
-⚠ Page 3: Visual layout detected (WAP/schedule) — text not extractable.
-⚠ Page 4: Visual layout detected (WAP/schedule) — text not extractable.
-Use --embed-images to include these pages as PNG images (NOT anonymized).
-```
-With `--embed-images` flag: rasterize as PNG (200 DPI), save alongside .md, embed in Markdown.
-
-**GUI:** After anonymization, show detected visual pages with checkboxes:
-```
-⚠ Visual pages detected (not extractable as text):
-☐ Page 3 — embed as image (NOT anonymized)
-☐ Page 4 — embed as image (NOT anonymized)
-☐ Page 5 — embed as image (NOT anonymized)
-[Embed selected] [Skip all]
+[GRAD_FUNKTION_008] [GRAD_FUNKTION_009] A CIARDO [PERSON_176] KdtL InfBat 11 
+[FUNKTION_001] (a i) (1.1.2026) [GRAD_FUNKTION_009] [GRAD_FUNKTION_008]...
 ```
 
-### Markdown Output (when embedded)
+**Root Cause:** The heuristic only checks column count + empty cell percentage. It doesn't detect "mega-cells" — single cells with hundreds of characters of garbled content from visual layouts.
 
-```markdown
-⚠ **Page 3: Visual layout (WAP/schedule) — embedded as image. NOT ANONYMIZED.**
+**Required Fix:**
 
-![Page 3](WK25_InfBat56_Bf_Dossier_56_page_3.png)
+Add a third condition to `_is_visual_layout()` in `pdf_parser.py`:
+```
+A page is visual layout when ANY of:
+  (a) >20 columns AND >70% empty cells (existing — catches WAP/Picasso)
+  (b) ANY single cell contains >500 characters (new — catches Organigramm)
 ```
 
-### Markdown Output (when skipped)
+When condition (b) triggers:
+- Same behavior as existing visual detection: skip table extraction, insert marker, optionally embed as PNG.
 
-```markdown
-⚠ **Page 3: Visual layout (WAP/schedule) — not extractable as text. See original PDF.**
+**Acceptance Criteria:**
+- Given a PDF page with an org chart where one cell contains >500 chars of garbled content, when parsed, then it is detected as visual layout.
+- Given a normal data table where the longest cell has <200 chars, when parsed, then it is NOT detected as visual layout.
+- Given the Organigramm Stab page, when --embed-images is used, then the page is rasterized as PNG instead of producing garbled text.
+
+**Commit:** `fix(parser): detect mega-cell visual layouts (organigramm, gliederung)`
+
+---
+
+## B-014: Remove Empty Columns from PDF Tables (P1) 🔴
+
+**Discovered in:** Real-world test MD analysis (2026-03-24)
+
+**Problem:** The Dokumentenbudget table has 5 actual columns (Dok, Titel, Dokument, Wer, Status), but pdfplumber extracts 15 columns because of merged cells and invisible column separators. The extra columns are completely empty in every row:
+```
+| | Dok | | | Titel | | | Dokument | | | Wer | | | Status | |
 ```
 
-### Acceptance Criteria
+This is readable but unnecessarily wide and noisy.
 
-- Given a PDF with WAP/Picasso pages (>20 cols, >70% empty), when parsed, then these pages are detected and a warning is emitted.
-- Given --embed-images flag (CLI) or checkbox confirmation (GUI), when enabled, then the page is rasterized as PNG and embedded in Markdown with warning.
-- Given NO embed flag/confirmation, when visual pages exist, then a skip message is inserted in Markdown.
-- Given a normal data table (5 columns, Dokumentenbudget), when parsed, then existing Markdown table behavior is unchanged.
-- Given embedded images, when the output directory is checked, then PNG files exist alongside the .md file.
+**Required Fix:**
 
-### Negative Criteria
+Post-processing step in `_table_to_markdown()` or `_extract_with_tables()` in `pdf_parser.py`:
+1. After extracting a table, check each column index.
+2. If a column is empty (or only whitespace) in EVERY row including header → remove it.
+3. Apply before rendering to Markdown.
 
-- Must NOT embed images without user consent — always require explicit opt-in.
-- Must NOT rasterize normal data table pages.
-- Must NOT silently skip visual pages — always warn.
+```python
+def _remove_empty_columns(table: list[list[str]]) -> list[list[str]]:
+    if not table:
+        return table
+    num_cols = max(len(row) for row in table)
+    keep = [
+        col_idx for col_idx in range(num_cols)
+        if any(
+            col_idx < len(row) and (row[col_idx] or "").strip()
+            for row in table
+        )
+    ]
+    return [[row[i] if i < len(row) else "" for i in keep] for row in table]
+```
 
-**Commit:** `feat(parser): detect visual PDF pages with optional image embedding`
+**Acceptance Criteria:**
+- Given a table with 15 columns where 10 are empty in all rows, when processed, then the Markdown table has only 5 columns.
+- Given a table where all columns have at least one non-empty cell, when processed, then no columns are removed.
+- Given a table with a header row where a column header is empty but data cells below are not, when processed, then the column is preserved.
+
+**Commit:** `feat(parser): strip empty columns from PDF table extraction`
+
+---
+
+## B-015: International Phone Numbers (P2) 🔴
+
+**Discovered in:** Real-world test MD analysis (2026-03-24)
+
+**Problem:** The current TELEFON patterns only match Swiss phone numbers (+41 and 0xx prefixes). International numbers are not caught:
+```
++49 157 86 08 12 32    ← German number, not anonymized
++4915786081232          ← Same number compact, not anonymized
+```
+
+In the Befehlsdossier Adressliste, at least one person has a German mobile number.
+
+**Required Fix:**
+
+Add international phone patterns to `config/military_patterns.py`:
+
+Option A — Generic international pattern:
+```python
+PHONE_INTL_GENERIC_PATTERN = re.compile(
+    r"\+\d{2}[\s\-]?\d{2,3}[\s\-]?\d{2,3}[\s\-]?\d{2}[\s\-]?\d{2}[\s\-]?\d{0,2}\b"
+)
+```
+
+Option B — Specific patterns for common countries (DE, AT, FR, IT):
+```python
+PHONE_DE_PATTERN = re.compile(r"\+49[\s\-]?\d{2,4}[\s\-]?\d{2,}[\s\-]?\d{2}[\s\-]?\d{2}\b")
+```
+
+Recommend Option A — generic catch-all for any international number starting with +.
+
+**Acceptance Criteria:**
+- Given text containing "+49 157 86 08 12 32", when recognition runs, then it is detected as TELEFON.
+- Given text containing "+4915786081232" (compact), when recognition runs, then it is detected as TELEFON.
+- Given existing Swiss numbers (+41, 079), when recognition runs, then they are still correctly detected (no regression).
+- Given text containing "+1 800 555 1234" (US toll-free), when recognition runs, then it is detected as TELEFON.
+
+**Commit:** `feat(recognition): detect international phone numbers beyond Swiss +41`
+
+---
+
+## B-016: c/o Name Detection in Address Fields (P2) 🔴
+
+**Discovered in:** Real-world test MD analysis (2026-03-24)
+
+**Problem:** When a person's address contains "c/o [Name]", the name inside the address is not anonymized:
+```
+c/o Walter Fanger / [ADRESSE_016]
+```
+
+"Walter Fanger" is a person's name embedded in an address field. The Adressliste parser correctly anonymized the street address but not the c/o recipient.
+
+**Root Cause:** The PatternRecognizer has no pattern for c/o names, and the ListRecognizer only matches names that are in the DB. "Walter Fanger" might not be in the DB if he's not in the PISA export (he could be a relative at the same address).
+
+**Required Fix:**
+
+New pattern in `PatternRecognizer` or as a post-processing step:
+```python
+# c/o + Titlecase Firstname + Titlecase/ALLCAPS Lastname
+CO_NAME_PATTERN = re.compile(
+    r"(?:c/o|p\.A\.|bei)\s+([A-ZÄÖÜ][a-zäöüé]+\s+[A-ZÄÖÜ][a-zäöüÄÖÜé]+)"
+)
+```
+
+Detected names are flagged as PERSON entities with confidence 0.8.
+
+**Acceptance Criteria:**
+- Given text "c/o Walter Fanger", when recognition runs, then "Walter Fanger" is detected as PERSON.
+- Given text "p.A. Maria Schmidt", when recognition runs, then "Maria Schmidt" is detected as PERSON.
+- Given text "c/o Firma XY AG", when recognition runs, then "Firma XY AG" is NOT detected as PERSON (company names don't match Firstname Lastname pattern).
+
+**Commit:** `feat(recognition): detect person names in c/o address prefixes`
+
+---
+
+## B-017: Near-AHV Warning for Transposed Digits (P3) 🔴
+
+**Discovered in:** Real-world test MD analysis (2026-03-24)
+
+**Problem:** One AHV number in the Adressliste was extracted as `765.4056.6550.18` — this starts with `765` instead of the correct `756`. It could be a typo in the original document or an OCR error. The AHV pattern only matches `756.xxxx.xxxx.xx` and correctly ignores this.
+
+However, a transposed `765` is very likely a real AHV number with a data entry error. It would be useful to warn the user.
+
+**Required Fix:**
+
+In `PatternRecognizer._match_birthdates` or as a separate scan, add a "near-AHV" detector:
+```python
+NEAR_AHV_PATTERN = re.compile(r"\b(?:756|765|675)\.\d{4}\.\d{4}\.\d{2}\b")
+```
+
+When a near-AHV is found that doesn't match the strict `756.` prefix:
+- Do NOT anonymize it (it might be something else)
+- Add a warning: "Possible AHV with transposed digits: 765.4056.6550.18 on page X"
+
+**Acceptance Criteria:**
+- Given text "765.4056.6550.18", when recognition runs, then a warning is emitted but the number is NOT anonymized.
+- Given text "756.1234.5678.97" (correct), when recognition runs, then it IS anonymized as AHV_NR.
+- Given text "123.4567.8901.23" (clearly not AHV), when recognition runs, then no warning is emitted.
+
+**Commit:** `feat(recognition): warn on possible AHV numbers with transposed digits`
 
 ---
 
@@ -117,9 +234,76 @@ With `--embed-images` flag: rasterize as PNG (200 DPI), save alongside .md, embe
 
 ## B-010: Post-Anonymization Review — Learn Unknown Names (P2) 🔴
 
-Every document processed makes the tool smarter. After anonymization, scan output for candidate names (ALLCAPS words not in exclusion list, title-case words near rank abbreviations). User confirms/rejects → confirmed names added to DB automatically. See full spec in previous backlog version.
+**As a** commander, **I want** the tool to show me suspicious words that might be names after anonymization, **so that** I can confirm them and the tool learns for next time.
+
+**Problem:** The Adressliste Stab contains 20+ names not in any import list. After anonymization, these leak in cleartext:
+- Ciardo, Adrian — not in CSV import
+- Koch, Fanger, Müller, Tribelhorn, Merisi, Schneeberger, Sarasin, Storrer, Greco, Dürst, Megevand — all Bat Stab personnel not covered by the 21-person CSV
+
+The tool currently has no way to flag these. The user must manually read the entire output to find leaks.
+
+**Solution:** After anonymization, scan the output for candidate names:
+1. ALLCAPS words (≥3 chars) not in known exclusion lists (military abbreviations, Ortschaften)
+2. Title-case words near rank abbreviations that weren't caught
+3. Title-case words in personnel-context sections (near phone numbers, email addresses)
+
+Present candidates to user. Confirmed → added to DB. Rejected → exclusion list.
+
+**GUI interaction:**
+```
+⚠ Possible names found (not anonymized):
+☐ DÜRST (appears 2x, near rank abbreviations)
+☐ Ciardo (appears 2x, in organigramm context)  
+☐ Koch (appears 1x, in adressliste)
+☐ Fanger (appears 3x, in adressliste + address field)
+☐ Tribelhorn (appears 1x)
+```
+
+**CLI interaction:** `milanon anonymize --review` flag → interactive prompts after processing.
+
+**Why this matters:** Every run makes the tool smarter. After 2-3 runs with review, the DB covers virtually all personnel. This is the most sustainable path to high recall.
 
 **Commit:** `feat(review): add post-anonymization review for unknown name candidates`
+
+---
+
+## Iteration 5 — EINHEIT Alias System
+
+## B-018: Military Unit Alias Table (P2) 🔴
+
+**Discovered in:** EINHEIT analysis (2026-03-24)
+
+**Problem:** Multiple placeholders map to the same real unit due to different writing styles in the document:
+- EINHEIT_006 = "Inf Ustü Kp 56/4" and EINHEIT_013 = "Inf Ustü Kp 56" → same unit
+- EINHEIT_009 = "Inf Stabskp 56" and EINHEIT_012 = "Inf Kp 56/0" → same unit (Stabskp = 56/0)
+- EINHEIT_016 = "Inf Kp 56" → doesn't exist, likely a parsing artefact or abbreviation for the battalion's organic units
+
+These are not whitespace/newline duplicates (those were fixed). These are **military naming aliases** — different valid names for the same organizational unit.
+
+**Required Fix:**
+
+New table `unit_aliases` in SQLite schema:
+```sql
+CREATE TABLE IF NOT EXISTS unit_aliases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    canonical_mapping_id INTEGER REFERENCES entity_mappings(id),
+    alias_value TEXT NOT NULL,
+    normalized_alias TEXT NOT NULL,
+    UNIQUE(normalized_alias)
+);
+```
+
+Domain knowledge rules (configurable in `config/military_patterns.py`):
+- "Ustü Kp XX/4" = "Ustü Kp XX" (with or without /4)
+- "Stabskp XX" = "Kp XX/0" (Stabskompanie = /0)
+- When creating a new EINHEIT mapping, check if an alias exists → use canonical placeholder
+
+**Acceptance Criteria:**
+- Given "Inf Ustü Kp 56/4" already in DB, when "Inf Ustü Kp 56" is encountered, then it maps to the same placeholder.
+- Given "Inf Stabskp 56" already in DB, when "Inf Kp 56/0" is encountered, then it maps to the same placeholder.
+- Given "Inf Kp 56/1" and "Inf Kp 56/2", when both encountered, then they remain separate (different sub-units).
+
+**Commit:** `feat(mapping): military unit alias table for duplicate EINHEIT resolution`
 
 ---
 
@@ -131,4 +315,6 @@ Every document processed makes the tool smarter. After anonymization, scan outpu
 - **B-103**: Manual entity management — edit/delete via GUI
 - **B-104**: Reporting & Audit trail
 - **B-105**: Import summary with delta info
-- **B-106**: Progress bar / percentage display during anonymization
+- **B-106**: GUI Finder dialog for folder/file selection (tkinter.filedialog) — replace manual path copy-paste
+- **B-107**: --exclude pattern for anonymize (e.g. `--exclude "Personel Lists"`) — skip folders/files matching pattern
+- **B-108**: CLI UX polish — Kali-Linux-style terminal output (ASCII banner, colored sections, icons, clear summary blocks via click.style)

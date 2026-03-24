@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import re
 
-import re
-
 from milanon.config.military_patterns import (
     ADRESSE_PATTERN,
     AHV_PATTERN,

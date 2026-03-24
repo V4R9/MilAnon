@@ -23,10 +23,15 @@ _OCR_LANG = "deu"
 _VISUAL_TABLE_MAX_COLS = 20
 _VISUAL_TABLE_EMPTY_THRESHOLD = 0.70
 
-# Marker inserted in place of a visual/schedule page
-_VISUAL_PAGE_MARKER = (
+# Markers for visual/schedule pages — exported so anonymize.py can reference them.
+VISUAL_PAGE_SKIP_MARKER = (
     "\n\n⚠ **Page {page_num}: Visual layout (WAP/schedule) — "
     "not extractable as text. See original PDF.**\n\n"
+)
+VISUAL_PAGE_EMBED_MARKER = (
+    "\n\n⚠ **Page {page_num}: Visual layout (WAP/schedule) — "
+    "embedded as image. NOT ANONYMIZED.**\n\n"
+    "![Page {page_num}]({png_name})\n\n"
 )
 
 
@@ -132,7 +137,7 @@ class PdfParser:
         if tables:
             if self._is_visual_layout(tables):
                 logger.info("Page %d: visual layout detected — skipping table extraction", page_num)
-                marker = _VISUAL_PAGE_MARKER.format(page_num=page_num)
+                marker = VISUAL_PAGE_SKIP_MARKER.format(page_num=page_num)
                 return marker, False, True
 
             content = self._extract_with_tables(page, tables)

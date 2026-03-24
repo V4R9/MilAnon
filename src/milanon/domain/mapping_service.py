@@ -16,6 +16,10 @@ class MappingService:
     def __init__(self, repository: MappingRepository) -> None:
         self._repository = repository
 
+    def has_mapping(self, entity_type: EntityType, value: str) -> bool:
+        """Return True if a mapping already exists for this entity type and value."""
+        return self._repository.get_mapping(entity_type, value) is not None
+
     def get_or_create_placeholder(
         self, entity_type: EntityType, value: str, source_document: str = ""
     ) -> str:

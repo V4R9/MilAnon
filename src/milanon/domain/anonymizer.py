@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from milanon.domain.entities import (
     AnonymizedDocument,
     DetectedEntity,
@@ -10,6 +12,12 @@ from milanon.domain.entities import (
     ExtractedDocument,
 )
 from milanon.domain.mapping_service import MappingService
+
+# Canonical pattern for the embedded legend block — shared by deanonymizer and writers.
+LEGEND_PATTERN: re.Pattern[str] = re.compile(
+    r"<!--\s*MILANON LEGEND START.*?MILANON LEGEND END\s*-->",
+    re.DOTALL,
+)
 
 _LEGEND_HEADER_TEMPLATE = """\
 <!-- MILANON LEGEND START

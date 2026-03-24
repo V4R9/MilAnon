@@ -2,15 +2,10 @@
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
+from milanon.domain.anonymizer import LEGEND_PATTERN
 from milanon.domain.entities import AnonymizedDocument
-
-_LEGEND_RE = re.compile(
-    r"<!--\s*MILANON LEGEND START.*?MILANON LEGEND END\s*-->",
-    re.DOTALL,
-)
 
 
 class EmlWriter:
@@ -26,7 +21,7 @@ class EmlWriter:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Strip legend block
-        body = _LEGEND_RE.sub("", document.content).strip()
+        body = LEGEND_PATTERN.sub("", document.content).strip()
 
         # Wrap in a minimal EML envelope if not already one
         if not body.startswith(("From:", "Return-Path:", "Received:")):

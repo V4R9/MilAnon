@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
-from milanon.domain.entities import AnonymizedDocument
+from docx import Document
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 
-# Strip the MilAnon legend block before writing to DOCX
-_LEGEND_RE = re.compile(
-    r"<!--\s*MILANON LEGEND START.*?MILANON LEGEND END\s*-->",
-    re.DOTALL,
-)
+from milanon.domain.anonymizer import LEGEND_PATTERN
+from milanon.domain.entities import AnonymizedDocument
 
 
 class DocxWriter:
@@ -32,14 +30,10 @@ class DocxWriter:
         Returns:
             The path to the written file.
         """
-        from docx import Document
-        from docx.oxml.ns import qn
-        from docx.oxml import OxmlElement
-
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Strip legend
-        text = _LEGEND_RE.sub("", document.content).strip()
+        text = LEGEND_PATTERN.sub("", document.content).strip()
 
         doc = Document()
         pages = text.split("\n\n---\n\n")

@@ -205,10 +205,7 @@ def db_init(force: bool) -> None:
     repo = _make_repo()
 
     if force:
-        # Clear existing ref data to allow re-initialization
-        repo._conn.execute("DELETE FROM ref_municipalities")
-        repo._conn.execute("DELETE FROM ref_military_units")
-        repo._conn.commit()
+        repo.clear_reference_data()
 
     uc = InitReferenceDataUseCase(repo, _DATA_DIR)
     result = uc.execute()
