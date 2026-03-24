@@ -1,6 +1,6 @@
 # MilAnon — Session Handover / Project Status
 
-> Last updated: 2026-03-23
+> Last updated: 2026-03-24
 > Purpose: Complete context for continuing development in a new chat session.
 
 ---
@@ -60,6 +60,33 @@
 | 16 | Documentation Update | ✅ | — |
 | **Total** | | **393 tests passing** | |
 
+### Post-MVP Iterations ✅
+
+#### Iteration 1 (v0.2.0)
+
+| Item | What | Tests |
+|------|------|-------|
+| B-007 | PDF tables rendered as Markdown pipe-syntax | 4 |
+| B-004 | Initial.NACHNAME pattern (`D. MUFFLER`) | 6 |
+| B-005 | Municipality stopword list (context signal) | 5 |
+| B-006 | GEBURTSDATUM restricted to personnel context | 6 |
+| B-001 | GUI + CLI database reset | 4 |
+| Quick Fix | "Alle" fully excluded from municipality matching | — |
+| Quick Fix | "Adj" added as standalone rank | 2 |
+| **Total** | | **418 tests passing** |
+
+#### Iteration 2 + 2b (v0.3.0)
+
+| Item | What | Tests |
+|------|------|-------|
+| B-008 | Generic name CSV import (`Grad;Vorname;Nachname`) | 11 |
+| B-008-fix | Auto-detect combined `Name / Vorname` column + `Grad Kurzform` alias | (included above) |
+| B-009 | Quick-Add single person via GUI form | — |
+| B-011 | Visual PDF page detection (WAP/schedules), warning marker | 5 |
+| Quick Fix | Per-file progress output in CLI (anonymize + deanonymize) | — |
+| Quick Fix | Version number in GUI sidebar | — |
+| **Total** | | **438 tests passing** |
+
 ---
 
 ## 3. ✅ CRITICAL BUG — Word Boundary in Anonymizer — FIXED
@@ -88,7 +115,9 @@ Short entity values were matched INSIDE normal German words:
 
 ## 4. ✅ Completed Prompts
 
-All implementation steps and bug fixes are complete. No pending prompts.
+All implementation steps, bug fixes, and post-MVP iterations (1, 2, 2b) are complete.
+Current release: **v0.3.0** — 438 tests passing.
+Next: Iteration 3 (B-010: Post-Anonymization Review) or Future Ideas.
 
 ---
 
@@ -127,12 +156,13 @@ All implementation steps and bug fixes are complete. No pending prompts.
 ## 7. CLI Commands (current)
 
 ```bash
-milanon anonymize <input> --output <o> [--recursive] [--force] [--dry-run]
+milanon anonymize <input> --output <o> [--recursive] [--force] [--dry-run] [--embed-images]
 milanon deanonymize <input> --output <o> [--force] [--dry-run]
 milanon validate <file>
-milanon db import <csv_path>
+milanon db import <csv_path> [--format pisa|names]
 milanon db list [--type PERSON]
 milanon db init [--force]      # Load reference data (Swiss municipalities + military units)
+milanon db reset [--include-ref-data]   # Delete mappings (keeps or also clears ref data)
 milanon db stats
 milanon gui [--port 8501]      # Opens Streamlit in browser
 ```

@@ -13,6 +13,10 @@ Local-only CLI + GUI tool for Swiss Army company commanders to anonymize sensiti
 - Supports: CSV, XLSX, DOCX, PDF (with OCR fallback), EML
 - Cross-source consistency: "Basel" from PISA import, municipality DB, and documents = same placeholder
 - Persistent mapping database (`~/.milanon/milanon.db`) — consistent placeholders across runs
+- PDF table extraction as Markdown pipe-syntax tables
+- Visual PDF page detection (WAP/Picasso schedules) — warns instead of producing garbled output
+- Generic name CSV import (`Grad;Vorname;Nachname`) + combined `Name / Vorname` column auto-detection
+- Quick-add single person via GUI
 - Streamlit GUI for non-CLI users (`milanon gui`)
 
 ---
@@ -31,7 +35,7 @@ Local-only CLI + GUI tool for Swiss Army company commanders to anonymize sensiti
 
 ```bash
 # Clone the repository
-git clone https://github.com/<your-user>/Anonymizer_Tool_Army.git
+git clone https://github.com/V4R9/MilAnon.git
 cd Anonymizer_Tool_Army
 
 # Create virtual environment
@@ -93,6 +97,9 @@ milanon anonymize ./input/ --output ./anonymized/ --force
 
 # Dry run — show what would be processed without writing
 milanon anonymize ./input/ --output ./anonymized/ --dry-run
+
+# Embed visual PDF pages (WAP/schedules) as PNG — NOT anonymized
+milanon anonymize ./input/ --output ./anonymized/ --embed-images
 ```
 
 Output:
@@ -137,6 +144,9 @@ milanon db init
 # Import personnel from PISA 410 / MilOffice CSV
 milanon db import personnel_export.csv
 
+# Import from simple name list (Grad;Vorname;Nachname or combined Name/Vorname column)
+milanon db import bat_stab.csv --format names
+
 # List entities (optionally filtered)
 milanon db list
 milanon db list --type PERSON
@@ -162,9 +172,9 @@ milanon gui --port 8502  # Custom port
 ```
 
 The GUI offers 4 pages:
-- **Anonymize** — folder pickers, options, progress bar, entity count summary
+- **Anonymize** — folder pickers, options, progress bar, entity count summary; warns on visual PDF pages
 - **De-Anonymize** — restore LLM output files
-- **DB Import** — upload PISA 410 CSV via file upload
+- **DB Import** — upload PISA 410 or simple name list CSV; format selector; Quick-Add single person form
 - **DB Stats** — entity counts per type with bar chart; Reset Mappings / Reset Everything buttons
 
 > **Tip:** When entering paths in the GUI, quotes are stripped automatically. You can paste paths from Finder (with or without quotes).
@@ -213,7 +223,7 @@ The same entity always gets the same placeholder — consistent across files, ru
 
 ```bash
 # Run all tests
-pytest tests/ -v         # 418 tests
+pytest tests/ -v         # 438 tests
 
 # Specific test modules
 pytest tests/domain/ -v

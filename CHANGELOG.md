@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] — 2026-03-24 — Iteration 2 + Hardening
+
+### B-008: Generic Name CSV Import
+- New `ImportNamesUseCase` for simple 3-column CSV (`Grad;Vorname;Nachname`).
+- Auto-detects "Name / Vorname" combined column format (splits on first comma).
+- Auto-detects "Grad Kurzform" as alias for "Grad".
+- CLI: `milanon db import <csv> --format names` (vs `--format pisa`).
+- GUI: Format radio on DB Import page (PISA 410 / Simple Name List).
+- 11 new tests.
+
+### B-009: Quick-Add Names in GUI
+- Single-person entry form on DB Import page: Grad + Vorname + Nachname → Add.
+- Immediate feedback: "Added: Hptm Thomas WEGMÜLLER (4 entities)".
+- Duplicate detection: "Already exists in database".
+- Fields cleared after successful add via session_state.
+
+### B-011: Visual PDF Page Detection
+- Heuristic detects WAP/Picasso pages (>20 columns or >70% empty cells).
+- Inserts warning marker in Markdown output instead of unreadable table garbage.
+- `ExtractedDocument` gains `visual_pages: list[int]` field.
+- `AnonymizeResult` gains `visual_page_count`; CLI prints warning and accepts `--embed-images` flag.
+- GUI: Warning shown after anonymization.
+- 5 new tests.
+
+### Quick Fixes & Hardening
+- "Alle" (PLZ 2942, JU) completely excluded from municipality matching — 20 false positives in real-world test.
+- "Adj" added as standalone rank (catches "Adj Stefan SCHEGG" pattern).
+- Per-file progress output during anonymization and de-anonymization (CLI).
+- Version number shown in GUI sidebar.
+
+### Test Coverage
+- **438 tests** passing (up from 418 at v0.2.0).
+
+---
+
 ## [0.2.0] — 2026-03-24 — Post-MVP Improvements (Iteration 1)
 
 ### B-007: PDF Tables Rendered as Markdown Tables

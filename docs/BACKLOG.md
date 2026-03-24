@@ -8,87 +8,108 @@
 
 ## Iteration 1 — Done ✅
 
-## B-007: PDF Tables Must Render as Markdown Tables (P0) ✅
-
-**Commit:** `feat(parser): extract PDF tables as Markdown table syntax`
-
-## B-004: Name Leaks — Initial.NACHNAME Pattern (P0) ✅
-
-**Commit:** `fix(recognition): detect initial+surname patterns like D. MUFFLER`
-
-## B-005: Municipality "Alle" False Positive (P1) ✅
-
-**Commit:** `fix(recognition): add municipality stopword list to prevent false positives`
-
-## B-006: All Dates Flagged as GEBURTSDATUM (P1) ✅
-
-**Commit:** `fix(recognition): restrict GEBURTSDATUM to personnel context only`
-
-## B-001: GUI Database Reset (P1) ✅
-
-**Commit:** `feat(db): add database reset with GUI and CLI support`
-
-## B-002: Documentation Cleanup (P1) ✅
-
-**Commit:** `docs: update all documentation for current state`
-
-## B-003: Real-World Verification Test ✅
-
-Tested 2026-03-24. Results: 22 files, 0 errors, 1457 entities. Markdown tables working (665 rows). "Alle" FP: 0. GEBURTSDATUM FP: 0. Name leaks: 3 (DÜRST, CIARDO, Schegg — all Bat Stab, not in PISA). EML anonymization clean.
+- B-007: PDF Tables as Markdown ✅
+- B-004: Initial.NACHNAME Pattern ✅
+- B-005: Municipality Stopwords ✅
+- B-006: GEBURTSDATUM context-only ✅
+- B-001: GUI Database Reset ✅
+- B-002: Documentation Cleanup ✅
+- B-003: Real-World Verification ✅
 
 ---
 
-## Iteration 2 — Next (by end of March)
+## Iteration 2 — Done ✅
 
-## B-008: Generic Name CSV Import for Bat Stab / External Personnel (P1) 🔴
+- B-008: Generic Name CSV Import ✅
+- B-009: Quick-Add Names in GUI ✅
 
-**As a** commander, **I want to** import a simple name list (Grad, Vorname, Nachname) from a CSV, **so that** I can pre-load Bat Stab, Div Stab, and other external personnel not covered by my PISA 410 export.
+---
 
-**Problem:** PISA 410 only covers the commander's own unit (~150 people). The Befehlsdossier contains names from the entire battalion staff, division staff, and attached units — people NOT in the PISA export. These names leak through anonymization.
+## Iteration 2b — Done ✅
 
-**Format:** Simple 3-column CSV (semicolon-separated, UTF-8):
+## B-008-fix: Handle "Name / Vorname" Combined Column Format (P0) ✅
+
+**Problem:** Military system exports (MilOffice, PISA custom) often use a single column "Name / Vorname" with values like "von Gunten, Jürg" (Nachname, Vorname separated by comma). The current B-008 import expects separate "Vorname" and "Nachname" columns and won't work with this common format.
+
+**Required Fix:**
+
+The ImportNamesUseCase must auto-detect and handle both formats:
+- **Format A (separate columns):** "Grad;Vorname;Nachname" → already works
+- **Format B (combined column):** "Name / Vorname;Grad Kurzform" → needs to split on comma
+
+Detection: If header contains "Name / Vorname" or "Name, Vorname" or "Name/Vorname" → use Format B logic.
+
+**Acceptance Criteria:**
+- Given a CSV with "Name / Vorname" header and values like "von Gunten, Jürg", when imported, then Nachname="von Gunten" and Vorname="Jürg" are correctly split.
+- Given a CSV with "Grad Kurzform" header, when imported, then it maps to GRAD_FUNKTION.
+- Given a CSV with separate "Vorname" and "Nachname" columns, when imported, then existing behavior is unchanged.
+- Given a value without comma (e.g. just "Müller"), when imported, then it is treated as Nachname only.
+
+**Commit:** `fix(import): handle combined Name/Vorname column format from military exports`
+
+---
+
+## B-011: Visual PDF Pages — Detect, Warn, Optional Image Embed (P1) ✅
+
+**Problem:** WAP/Picasso pages in PDFs are visual Gantt charts, not data tables. pdfplumber produces unreadable garbage (85+ columns, fragmented text). These pages need special handling.
+
+**Solution:** Detect "fake table" pages via heuristic. Show user a warning and let them decide whether to embed the page as an image (with clear warning that images are NOT anonymized).
+
+### Detection Heuristic
+
+A PDF page is "visual layout" when:
+- `extract_tables()` returns a table with **>20 columns**, OR
+- A table has **>70% empty/None cells**, OR
+- The extracted text contains heavily fragmented words (average word length < 2 chars after stripping)
+
+### Behavior
+
+**CLI:** When visual pages are detected, print a warning per page:
 ```
-Grad;Vorname;Nachname
-Oberstlt i Gst;Thomas;Wegmüller
-Hptm;Simon;Kohler
-Maj;Roger;Siegrist
-Stabsadj;Thomas;Uhlmann
+⚠ Page 3: Visual layout detected (WAP/schedule) — text not extractable.
+⚠ Page 4: Visual layout detected (WAP/schedule) — text not extractable.
+Use --embed-images to include these pages as PNG images (NOT anonymized).
+```
+With `--embed-images` flag: rasterize as PNG (200 DPI), save alongside .md, embed in Markdown.
+
+**GUI:** After anonymization, show detected visual pages with checkboxes:
+```
+⚠ Visual pages detected (not extractable as text):
+☐ Page 3 — embed as image (NOT anonymized)
+☐ Page 4 — embed as image (NOT anonymized)
+☐ Page 5 — embed as image (NOT anonymized)
+[Embed selected] [Skip all]
+```
+
+### Markdown Output (when embedded)
+
+```markdown
+⚠ **Page 3: Visual layout (WAP/schedule) — embedded as image. NOT ANONYMIZED.**
+
+![Page 3](WK25_InfBat56_Bf_Dossier_56_page_3.png)
+```
+
+### Markdown Output (when skipped)
+
+```markdown
+⚠ **Page 3: Visual layout (WAP/schedule) — not extractable as text. See original PDF.**
 ```
 
 ### Acceptance Criteria
 
-- Given a 3-column CSV with Grad/Vorname/Nachname, when imported via `milanon db import --format names`, then each row creates PERSON, VORNAME, NACHNAME, and GRAD_FUNKTION mappings.
-- Given the GUI "DB Import" page, when "Simple Name List" format is selected and a CSV uploaded, then the import runs and shows a summary.
-- Given a name already in the DB (from PISA), when the same name appears in the name CSV, then no duplicate is created.
-- Given the Bat Stab Organigramm names imported via this CSV, when the Befehlsdossier is anonymized, then those names are caught by ListRecognizer.
+- Given a PDF with WAP/Picasso pages (>20 cols, >70% empty), when parsed, then these pages are detected and a warning is emitted.
+- Given --embed-images flag (CLI) or checkbox confirmation (GUI), when enabled, then the page is rasterized as PNG and embedded in Markdown with warning.
+- Given NO embed flag/confirmation, when visual pages exist, then a skip message is inserted in Markdown.
+- Given a normal data table (5 columns, Dokumentenbudget), when parsed, then existing Markdown table behavior is unchanged.
+- Given embedded images, when the output directory is checked, then PNG files exist alongside the .md file.
 
-### Implementation Notes
+### Negative Criteria
 
-- Extend ImportEntitiesUseCase or create a new ImportNamesUseCase.
-- CLI: `milanon db import <csv> --format names` (vs existing `--format miloffice`).
-- GUI: Dropdown on DB Import page to select format (PISA 410 / Simple Name List).
+- Must NOT embed images without user consent — always require explicit opt-in.
+- Must NOT rasterize normal data table pages.
+- Must NOT silently skip visual pages — always warn.
 
-**Commit:** `feat(import): add simple name CSV import for external personnel`
-
----
-
-## B-009: Quick-Add Names in GUI (P2) 🔴
-
-**As a** commander, **I want to** add individual names directly in the GUI, **so that** I can quickly add a person without creating a CSV file.
-
-### Acceptance Criteria
-
-- Given the GUI, when I enter Grad + Vorname + Nachname in input fields and click "Add", then PERSON, VORNAME, NACHNAME, and GRAD_FUNKTION mappings are created.
-- Given a name already in the DB, when I try to add it again, then a message shows "already exists" and no duplicate is created.
-- Given the Quick-Add form, when I add 5 names, then all 5 are immediately available for the next anonymize run.
-
-### Implementation Notes
-
-- New section on GUI "DB Import" page or separate "Manage Entities" page.
-- Simple form: st.text_input for Grad, Vorname, Nachname + st.button("Add").
-- Uses MappingService.get_or_create_placeholder() for each entity.
-
-**Commit:** `feat(gui): add quick-add name form for individual entity entry`
+**Commit:** `feat(parser): detect visual PDF pages with optional image embedding`
 
 ---
 
@@ -96,68 +117,7 @@ Stabsadj;Thomas;Uhlmann
 
 ## B-010: Post-Anonymization Review — Learn Unknown Names (P2) 🔴
 
-**As a** commander, **I want** the tool to show me suspicious words that might be names after anonymization, **so that** I can confirm them and the tool learns for next time.
-
-### Problem
-
-The tool can only anonymize names it already knows (from PISA import, CSV import, or pattern matching). Names that are not in the DB and don't match any pattern (e.g. standalone title-case surnames like "Schegg", or foreign names) slip through silently. The user has no way to know what was missed without manually reading the entire output.
-
-### Concept: Feedback Loop
-
-After anonymization, the tool scans the output for **candidate names** — words that look like they might be names but were not matched by any recognizer. The user reviews these candidates and confirms or rejects each one. Confirmed names are added to the DB and used in all future runs.
-
-### Candidate Detection Heuristics
-
-1. **ALLCAPS words (≥3 chars) not in a known exclusion list**: Words like "STORRER", "CIARDO" that are not military abbreviations (FGG, KVK, etc.), not municipality names, and not common German/French words. Show these as "possibly a surname."
-2. **Title-case words after rank abbreviations that weren't caught**: If "Adj Stefan Schegg" wasn't matched because "Schegg" is title-case, flag "Schegg" as candidate.
-3. **Title-case words in personnel-context sections**: Words appearing near phone numbers, email addresses, rank abbreviations — likely names.
-4. **Words that appear in the same position as known anonymized names**: If line format is "Rank Firstname LASTNAME" and some are anonymized but one isn't, flag the unanonymized one.
-
-### User Interaction (GUI)
-
-After anonymize completes, a new "Review" section shows:
-```
-⚠ Possible names found (not anonymized):
-☐ DÜRST (appears 2x, near rank abbreviations)
-☐ CIARDO (appears 2x, in organigramm context)
-☐ Schegg (appears 2x, after "Adj Stefan")
-☐ TSAW (appears 16x) — probably not a name
-```
-User checks the boxes → confirmed names are added to DB as NACHNAME (and PERSON if firstname is adjacent). Next anonymize run catches them automatically.
-
-### User Interaction (CLI)
-
-```bash
-milanon anonymize ./input/ --output ./output/ --review
-# After processing:
-# Found 4 possible unrecognized names:
-# [1] DÜRST (2x) — Confirm as name? [y/N]
-# [2] CIARDO (2x) — Confirm as name? [y/N]
-# [3] Schegg (2x) — Confirm as name? [y/N]
-# [4] TSAW (16x) — Confirm as name? [y/N]
-# Added 3 names to database. Re-run anonymize to apply.
-```
-
-### Acceptance Criteria
-
-- Given an anonymized document with unknown ALLCAPS words, when review runs, then candidates are presented to the user sorted by likelihood.
-- Given a user confirms "DÜRST" as a name, when confirmed, then NACHNAME "Dürst" is added to the DB.
-- Given a confirmed name in the DB, when the next anonymize runs, then the name is caught by ListRecognizer.
-- Given a user rejects "TSAW", when rejected, then it is added to an exclusion list and never shown again.
-- Given the GUI, when review is shown, then checkboxes allow batch confirmation/rejection.
-- Given the CLI with --review flag, when processing completes, then interactive prompts allow confirmation.
-
-### Implementation Notes
-
-- New use case: `ReviewUnmatchedUseCase` — scans anonymized output for candidate names.
-- New DB table: `review_exclusions` — words the user has rejected (never show again).
-- Heuristics module: `adapters/recognizers/candidate_detector.py` — identifies suspicious unmatched words.
-- GUI integration: New section on Anonymize results page.
-- CLI integration: `--review` flag on anonymize command.
-
-### Why This Matters
-
-Every document the user processes makes the tool smarter. After 3-4 runs with review, the DB covers virtually all personnel in the user's operational scope. This is the most sustainable path to high recall without NLP dependencies.
+Every document processed makes the tool smarter. After anonymization, scan output for candidate names (ALLCAPS words not in exclusion list, title-case words near rank abbreviations). User confirms/rejects → confirmed names added to DB automatically. See full spec in previous backlog version.
 
 **Commit:** `feat(review): add post-anonymization review for unknown name candidates`
 
@@ -165,9 +125,10 @@ Every document the user processes makes the tool smarter. After 3-4 runs with re
 
 ## Future Ideas (P3)
 
-- **B-100**: NLP-based entity recognition (spaCy) for unknown names (US-2.3)
-- **B-101**: Fuzzy matching for typos (US-2.4)
-- **B-102**: Image OCR in DOCX/PDF for embedded text (US-3.5 post-MVP)
-- **B-103**: Manual entity management — edit/delete via GUI (US-5.3)
-- **B-104**: Reporting & Audit trail (Epic E9)
-- **B-105**: Import summary with delta info (new/existing/only-in-DB comparison)
+- **B-100**: NLP-based entity recognition (spaCy) for unknown names
+- **B-101**: Fuzzy matching for typos
+- **B-102**: Image OCR in DOCX/PDF for embedded text
+- **B-103**: Manual entity management — edit/delete via GUI
+- **B-104**: Reporting & Audit trail
+- **B-105**: Import summary with delta info
+- **B-106**: Progress bar / percentage display during anonymization
