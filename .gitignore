@@ -92,6 +92,7 @@ mapping_db/
 
 # Never commit real documents used for testing
 test_documents/
+test_input/
 test_output/
 input/
 output/
