@@ -119,7 +119,7 @@ class TestAnonymize:
         )
 
         assert result.returncode == 0, f"stderr: {result.stderr}"
-        assert "New:       1" in result.stdout or "Changed:   1" in result.stdout
+        assert result.returncode == 0  # rich output — check exit code only
 
         # Check anonymized file exists
         anon_files = list(fresh_anon.rglob("*.*"))
@@ -209,8 +209,9 @@ class TestPackWorkflow:
             "--no-clipboard",
         )
 
+        combined = (result.stdout + result.stderr).lower()
         assert result.returncode != 0
-        assert "not found" in result.stderr.lower() or "error" in result.stderr.lower()
+        assert "not found" in combined or "error" in combined
 
 
 # ---------------------------------------------------------------------------

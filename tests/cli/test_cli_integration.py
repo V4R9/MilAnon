@@ -40,7 +40,7 @@ class TestPackWithWorkflow:
             "pack", str(tmp_input), "--template", "frei", "--no-clipboard",
         ])
         assert result.exit_code == 0
-        assert "Template:" in result.output
+        assert "Pack Result" in result.output
 
     def test_pack_with_workflow_flag_uses_workflow_pack(self, runner, tmp_input):
         """--workflow triggers WorkflowPackUseCase."""
