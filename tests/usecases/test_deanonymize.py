@@ -184,3 +184,121 @@ class TestFilenameDeanonymization:
         result = uc.execute(input_dir, output_dir)
 
         assert (output_dir / "dashboard.md").exists()
+
+
+# ---------------------------------------------------------------------------
+# B-025: In-place de-anonymization
+# ---------------------------------------------------------------------------
+
+class TestInPlaceDeanonymization:
+    """B-025: In-place de-anonymization modifies files directly."""
+
+    def _make_uc(self, repo):
+        service = MappingService(repo)
+        da = DeAnonymizer(service)
+        return DeAnonymizeUseCase(da, repo)
+
+    def test_in_place_overwrites_original(self, tmp_path):
+        """Content is de-anonymized in the original file location."""
+        from milanon.domain.entities import EntityType
+
+        repo = SqliteMappingRepository(":memory:")
+        repo.create_mapping(EntityType.PERSON, "Thomas WEGMÜLLER")
+        uc = self._make_uc(repo)
+
+        input_dir = tmp_path / "vault"
+        input_dir.mkdir()
+        test_file = input_dir / "note.md"
+        test_file.write_text("# [PERSON_001]\nContent about [PERSON_001].", encoding="utf-8")
+
+        result = uc.execute(input_dir, in_place=True)
+
+        content = test_file.read_text(encoding="utf-8")
+        assert "Thomas WEGMÜLLER" in content
+        assert "[PERSON_001]" not in content
+
+    def test_in_place_creates_backup(self, tmp_path):
+        """Original files are backed up to .milanon_backup/."""
+        from milanon.domain.entities import EntityType
+
+        repo = SqliteMappingRepository(":memory:")
+        repo.create_mapping(EntityType.PERSON, "Thomas WEGMÜLLER")
+        uc = self._make_uc(repo)
+
+        input_dir = tmp_path / "vault"
+        input_dir.mkdir()
+        original_content = "# [PERSON_001]\nOriginal content."
+        (input_dir / "note.md").write_text(original_content, encoding="utf-8")
+
+        uc.execute(input_dir, in_place=True)
+
+        backup = input_dir / ".milanon_backup" / "note.md"
+        assert backup.exists()
+        assert backup.read_text(encoding="utf-8") == original_content
+
+    def test_in_place_renames_placeholder_filenames(self, tmp_path):
+        """Placeholder filenames are resolved in-place."""
+        from milanon.domain.entities import EntityType
+
+        repo = SqliteMappingRepository(":memory:")
+        repo.create_mapping(EntityType.PERSON, "Thomas WEGMÜLLER")
+        uc = self._make_uc(repo)
+
+        input_dir = tmp_path / "vault"
+        input_dir.mkdir()
+        (input_dir / "[PERSON_001].md").write_text("# [PERSON_001]", encoding="utf-8")
+
+        uc.execute(input_dir, in_place=True)
+
+        assert (input_dir / "Wegmüller_Thomas.md").exists()
+        assert not (input_dir / "[PERSON_001].md").exists()
+        content = (input_dir / "Wegmüller_Thomas.md").read_text(encoding="utf-8")
+        assert "Thomas WEGMÜLLER" in content
+
+    def test_in_place_no_output_dir_needed(self, tmp_path):
+        """In-place mode works without output_dir parameter."""
+        repo = SqliteMappingRepository(":memory:")
+        uc = self._make_uc(repo)
+
+        input_dir = tmp_path / "vault"
+        input_dir.mkdir()
+        (input_dir / "test.md").write_text("No placeholders here.", encoding="utf-8")
+
+        result = uc.execute(input_dir, output_dir=None, in_place=True)
+        assert result.files_scanned == 1
+
+    def test_without_in_place_requires_output(self, tmp_path):
+        """Without --in-place, output_dir is used for writing."""
+        repo = SqliteMappingRepository(":memory:")
+        uc = self._make_uc(repo)
+
+        input_dir = tmp_path / "vault"
+        input_dir.mkdir()
+        (input_dir / "test.md").write_text("test", encoding="utf-8")
+
+        output_dir = tmp_path / "output"
+        result = uc.execute(input_dir, output_dir)
+        assert result.files_scanned == 1
+
+    def test_in_place_backup_not_reprocessed(self, tmp_path):
+        """Files in .milanon_backup/ are excluded from processing."""
+        from milanon.domain.entities import EntityType
+
+        repo = SqliteMappingRepository(":memory:")
+        repo.create_mapping(EntityType.PERSON, "Thomas WEGMÜLLER")
+        uc = self._make_uc(repo)
+
+        input_dir = tmp_path / "vault"
+        input_dir.mkdir()
+        (input_dir / "note.md").write_text("[PERSON_001] here.", encoding="utf-8")
+
+        # First run
+        uc.execute(input_dir, in_place=True)
+        backup_count_before = len(list((input_dir / ".milanon_backup").rglob("*")))
+
+        # Second run — backup dir must not be scanned
+        result2 = uc.execute(input_dir, in_place=True, force=True)
+        backup_count_after = len(list((input_dir / ".milanon_backup").rglob("*")))
+
+        # Backup count must not have grown from second run
+        assert backup_count_after == backup_count_before

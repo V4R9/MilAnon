@@ -133,20 +133,33 @@ def anonymize(
 
 @cli.command()
 @click.argument("input_path", type=click.Path(exists=True))
-@click.option("--output", "-o", required=True, type=click.Path(), help="Output directory.")
+@click.option("--output", "-o", default=None, type=click.Path(), help="Output directory (ignored with --in-place).")
 @click.option("--force", is_flag=True, help="Reprocess all files, ignoring cache.")
 @click.option("--dry-run", is_flag=True, help="Show what would be processed without doing it.")
-def deanonymize(input_path: str, output: str, force: bool, dry_run: bool) -> None:
+@click.option("--in-place", "in_place", is_flag=True, help="De-anonymize files directly in their current location. Creates .milanon_backup/ before modifying.")
+def deanonymize(input_path: str, output: str | None, force: bool, dry_run: bool, in_place: bool) -> None:
     """De-anonymize LLM outputs by restoring original entity values."""
+    if not in_place and not output:
+        click.echo("Error: --output is required unless --in-place is used.", err=True)
+        sys.exit(1)
+
+    if in_place and not dry_run:
+        click.confirm(
+            f"This will modify files in-place at '{input_path}'. "
+            "Originals will be backed up to .milanon_backup/. Continue?",
+            abort=True,
+        )
+
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     repo = _make_repo()
     use_case = _make_deanonymize_use_case(repo)
 
     result = use_case.execute(
         Path(input_path),
-        Path(output),
+        Path(output) if output else None,
         force=force,
         dry_run=dry_run,
+        in_place=in_place,
     )
 
     mode = "[dry-run] " if dry_run else ""
@@ -162,6 +175,9 @@ def deanonymize(input_path: str, output: str, force: bool, dry_run: bool) -> Non
 
     for warning in result.warnings:
         click.echo(f"  WARNING: {warning}", err=True)
+
+    if in_place and not dry_run:
+        click.echo(f"Backup saved to: {Path(input_path) / '.milanon_backup'}/")
 
     if result.files_error > 0:
         sys.exit(1)

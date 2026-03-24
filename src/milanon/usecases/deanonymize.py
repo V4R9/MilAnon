@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -59,12 +60,39 @@ class DeAnonymizeUseCase:
     def execute(
         self,
         input_path: Path,
-        output_dir: Path,
+        output_dir: Path | None = None,
         force: bool = False,
         dry_run: bool = False,
+        in_place: bool = False,
     ) -> DeAnonymizeResult:
         result = DeAnonymizeResult()
 
+        if in_place:
+            if input_path.is_file():
+                files = [input_path]
+                input_root = input_path.parent
+            else:
+                files = [
+                    f for f in input_path.glob("**/*")
+                    if f.is_file()
+                    and f.suffix.lower() in _SUPPORTED_EXTENSIONS
+                    and ".milanon_backup" not in f.parts
+                ]
+                input_root = input_path
+
+            result.files_scanned = len(files)
+            for file_path in files:
+                try:
+                    self._process_file(
+                        file_path, input_root, None, force, dry_run, True, result
+                    )
+                except Exception as exc:
+                    logger.error("Error processing %s: %s", file_path, exc)
+                    result.files_error += 1
+                    result.warnings.append(f"{file_path.name}: {exc}")
+            return result
+
+        # Non-in-place: output_dir is required
         if input_path.is_file():
             files = [input_path]
             input_root = input_path.parent
@@ -80,7 +108,7 @@ class DeAnonymizeUseCase:
         for file_path in files:
             try:
                 self._process_file(
-                    file_path, input_root, output_dir, force, dry_run, result
+                    file_path, input_root, output_dir, force, dry_run, False, result
                 )
             except Exception as exc:
                 logger.error("Error processing %s: %s", file_path, exc)
@@ -90,7 +118,7 @@ class DeAnonymizeUseCase:
         return result
 
     def _process_file(
-        self, file_path, input_root, output_dir, force, dry_run, result
+        self, file_path, input_root, output_dir, force, dry_run, in_place, result
     ) -> None:
         current_hash = _sha256(file_path)
         rel_path = str(file_path.relative_to(input_root))
@@ -120,19 +148,42 @@ class DeAnonymizeUseCase:
         unresolved = len(warnings)
         result.placeholders_resolved += placeholders_in_file - unresolved
 
-        out_path = output_dir / file_path.relative_to(input_root)
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(restored, encoding="utf-8")
+        if in_place:
+            # Backup original before modifying
+            backup_dir = input_root / ".milanon_backup"
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            rel = file_path.relative_to(input_root)
+            backup_path = backup_dir / rel
+            backup_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(file_path, backup_path)
 
-        # De-anonymize filename if it contains placeholders
-        original_name = out_path.name
-        new_name = self._deanonymize_filename(original_name)
-        if new_name != original_name:
-            new_path = out_path.parent / new_name
-            if out_path.exists():
+            # Overwrite original with restored content
+            file_path.write_text(restored, encoding="utf-8")
+            out_path = file_path
+
+            # Rename file if filename contains placeholders
+            original_name = out_path.name
+            new_name = self._deanonymize_filename(original_name)
+            if new_name != original_name:
+                new_path = out_path.parent / new_name
                 out_path.rename(new_path)
-            logger.info("Renamed %s → %s", original_name, new_name)
-            out_path = new_path
+                out_path = new_path
+                logger.info("Renamed %s → %s", original_name, new_name)
+        else:
+            # Write to output directory
+            out_path = output_dir / file_path.relative_to(input_root)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(restored, encoding="utf-8")
+
+            # Rename in output dir if filename contains placeholders
+            original_name = out_path.name
+            new_name = self._deanonymize_filename(original_name)
+            if new_name != original_name:
+                new_path = out_path.parent / new_name
+                if out_path.exists():
+                    out_path.rename(new_path)
+                out_path = new_path
+                logger.info("Renamed %s → %s", original_name, new_name)
 
         self._repository.upsert_file_tracking(
             rel_path, current_hash, "deanonymize", output_path=str(out_path)
