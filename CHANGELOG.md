@@ -2,38 +2,48 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.3.0] — 2026-03-24 — Iteration 2 + Hardening
+## [0.3.0] — 2026-03-24 — Iteration 2 + Output Quality + Code Review
 
-### B-008: Generic Name CSV Import
-- New `ImportNamesUseCase` for simple 3-column CSV (`Grad;Vorname;Nachname`).
-- Auto-detects "Name / Vorname" combined column format (splits on first comma).
-- Auto-detects "Grad Kurzform" as alias for "Grad".
-- CLI: `milanon db import <csv> --format names` (vs `--format pisa`).
-- GUI: Format radio on DB Import page (PISA 410 / Simple Name List).
-- 11 new tests.
+### Iteration 2: External Personnel Import
+- B-008: Generic name CSV import (`milanon db import <csv> --format names`) for Bat Stab and external personnel.
+  - New `ImportNamesUseCase` for simple 3-column CSV (`Grad;Vorname;Nachname`).
+  - Auto-detects "Name / Vorname" combined column format (splits on first comma).
+  - Auto-detects "Grad Kurzform" as alias for "Grad".
+  - GUI: Format radio on DB Import page (PISA 410 / Simple Name List).
+  - 11 new tests.
+- B-009: Quick-Add single person form in GUI (Grad + Vorname + Nachname).
+  - Immediate feedback: "Added: Hptm Thomas WEGMÜLLER (4 entities)".
+  - Duplicate detection: "Already exists in database".
+  - Fields cleared after successful add via session_state.
 
-### B-009: Quick-Add Names in GUI
-- Single-person entry form on DB Import page: Grad + Vorname + Nachname → Add.
-- Immediate feedback: "Added: Hptm Thomas WEGMÜLLER (4 entities)".
-- Duplicate detection: "Already exists in database".
-- Fields cleared after successful add via session_state.
-
-### B-011: Visual PDF Page Detection
-- Heuristic detects WAP/Picasso pages (>20 columns or >70% empty cells).
-- Inserts warning marker in Markdown output instead of unreadable table garbage.
-- `ExtractedDocument` gains `visual_pages: list[int]` field.
-- `AnonymizeResult` gains `visual_page_count`; CLI prints warning and accepts `--embed-images` flag.
-- GUI: Warning shown after anonymization.
-- 5 new tests.
-
-### Quick Fixes & Hardening
+### Iteration 2b: Format Compatibility + Visual Pages
+- B-008-fix: Auto-detect "Name / Vorname" combined column format (split on comma).
+- B-011: Visual PDF page detection (WAP/Picasso heuristic: >20 cols AND >70% empty → skip with warning).
+  - `ExtractedDocument` gains `visual_pages: list[int]` field.
+  - `AnonymizeResult` gains `visual_page_count`; CLI prints warning and accepts `--embed-images` flag.
+  - GUI: Warning shown after anonymization.
+  - 5 new tests.
+- B-011-fix: `--embed-images` flag renders visual pages as PNG (200 DPI) alongside the `.md` output.
+- B-011-fix2: Tightened visual heuristic to require BOTH conditions (AND logic) — fixes false positives on normal data tables (e.g. Dokumentenbudget).
 - "Alle" (PLZ 2942, JU) completely excluded from municipality matching — 20 false positives in real-world test.
 - "Adj" added as standalone rank (catches "Adj Stefan SCHEGG" pattern).
-- Per-file progress output during anonymization and de-anonymization (CLI).
-- Version number shown in GUI sidebar.
+- CSV delimiter auto-detection via `csv.Sniffer` (handles `;`, `,` and tab) — new shared `utils/csv_helpers.py`.
+- Per-file progress output during anonymization (CLI).
+- Version number displayed in GUI sidebar.
+
+### Iteration 2c: LLM Context + EINHEIT Quality
+- B-012: LLM Context Generator — `milanon context --unit "Inf Kp 56/1"` generates `CONTEXT.md` with unit hierarchy, filtering instructions, and placeholder mapping. Interactive unit selection when `--unit` is omitted.
+- B-012-fix: EINHEIT whitespace normalization (newlines → spaces) prevents duplicate placeholders from PDF extraction. Single-word fragments ("Ter", "Inf") rejected. Context file output path configurable via `--output`.
+- B-012-fix2: Battalion filtering in `CONTEXT.md` now correctly uses the identified parent unit (not a random battalion).
+
+### Code Review Refactoring (14 Findings)
+- **P0 — Encapsulation:** Use Cases no longer access private `_repository` attribute directly — new `MappingService.has_mapping()` method added. CLI no longer accesses private `_conn` — new `clear_reference_data()` method.
+- **P1 — DRY:** Extracted shared `detect_delimiter()` into `utils/csv_helpers.py`. Consolidated `LEGEND_PATTERN` into single definition in `anonymizer.py` (imported by writers and deanonymizer). Consolidated `VISUAL_PAGE_SKIP_MARKER` / `VISUAL_PAGE_EMBED_MARKER` into `pdf_parser.py`. Introduced `ProcessingOptions` frozen dataclass for `AnonymizeUseCase`.
+- **P2 — Encapsulation + Types:** Added `DeAnonymizer.resolve_placeholder()` public method; `ValidateOutputUseCase` no longer accesses `_mapping_service` directly. Added explicit type hints to all use case constructors. Added performance and SRP notes in code comments.
+- **P3 — Polish:** Fixed duplicate `import re`, promoted lazy imports to module level, added `__all__` to `domain/`, `adapters/parsers/`, `adapters/recognizers/`, `adapters/writers/` `__init__.py` files. Added NOTE to `_parent_number()` documenting Swiss Army `/` naming convention assumption.
 
 ### Test Coverage
-- **438 tests** passing (up from 418 at v0.2.0).
+- **480 tests** passing (up from 418 at v0.2.0).
 
 ---
 

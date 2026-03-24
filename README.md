@@ -17,6 +17,7 @@ Local-only CLI + GUI tool for Swiss Army company commanders to anonymize sensiti
 - Visual PDF page detection (WAP/Picasso schedules) — warns instead of producing garbled output
 - Generic name CSV import (`Grad;Vorname;Nachname`) + combined `Name / Vorname` column auto-detection
 - Quick-add single person via GUI
+- LLM context generator (`milanon context`) — produces `CONTEXT.md` with unit hierarchy and filtering instructions
 - Streamlit GUI for non-CLI users (`milanon gui`)
 
 ---
@@ -135,6 +136,24 @@ Unresolved:   0
 OK
 ```
 
+### Import external personnel (Bat Stab, Div Stab)
+
+```bash
+milanon db import bat_stab.csv --format names
+```
+
+### Generate LLM context
+
+```bash
+# For a specific unit
+milanon context --unit "Inf Kp 56/1" --output CONTEXT.md
+
+# Interactive unit selection (lists all known units)
+milanon context --output CONTEXT.md
+```
+
+Generates a `CONTEXT.md` with the organizational hierarchy, filtering instructions, and all `[EINHEIT_NNN]` placeholders — paste it before your anonymized document when prompting an LLM.
+
 ### Database management
 
 ```bash
@@ -223,7 +242,7 @@ The same entity always gets the same placeholder — consistent across files, ru
 
 ```bash
 # Run all tests
-pytest tests/ -v         # 438 tests
+pytest tests/ -v         # 480 tests
 
 # Specific test modules
 pytest tests/domain/ -v

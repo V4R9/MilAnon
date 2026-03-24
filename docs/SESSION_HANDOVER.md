@@ -75,7 +75,7 @@
 | Quick Fix | "Adj" added as standalone rank | 2 |
 | **Total** | | **418 tests passing** |
 
-#### Iteration 2 + 2b (v0.3.0)
+#### Iteration 2 + 2b (v0.3.0 — partial)
 
 | Item | What | Tests |
 |------|------|-------|
@@ -83,9 +83,40 @@
 | B-008-fix | Auto-detect combined `Name / Vorname` column + `Grad Kurzform` alias | (included above) |
 | B-009 | Quick-Add single person via GUI form | — |
 | B-011 | Visual PDF page detection (WAP/schedules), warning marker | 5 |
+| B-011-fix | `--embed-images` renders visual pages as PNG (200 DPI) | 5 |
+| B-011-fix2 | Visual heuristic tightened to AND logic (fixes false positives) | 2 |
 | Quick Fix | Per-file progress output in CLI (anonymize + deanonymize) | — |
 | Quick Fix | Version number in GUI sidebar | — |
-| **Total** | | **438 tests passing** |
+| Quick Fix | CSV delimiter auto-detection via `csv.Sniffer` (`;`, `,`, tab) | 6 |
+
+#### Iteration 2c (v0.3.0 — complete)
+
+| Item | What | Tests |
+|------|------|-------|
+| B-012 | LLM Context Generator (`milanon context --unit "Inf Kp 56/1"`) | 24 |
+| B-012-fix | EINHEIT whitespace normalization (newlines → spaces), single-word rejection, `--output` flag | 6 |
+| B-012-fix2 | Battalion filtering uses correct parent unit (not first in list) | 2 |
+
+#### Phase 5 — Code Review Refactoring ✅ (14 findings, all addressed)
+
+| Finding | Priority | What |
+|---------|----------|------|
+| F1 | P0 | `has_mapping()` on `MappingService` — Use Cases no longer access `_repository` directly |
+| F2 | P0 | `clear_reference_data()` on repo — CLI no longer accesses `_conn` directly |
+| F3 | P1 | Extracted `detect_delimiter()` into `utils/csv_helpers.py` (DRY) |
+| F4 | P1 | Consolidated `LEGEND_PATTERN` into `anonymizer.py` — imported by writers and deanonymizer |
+| F5 | P1 | Consolidated `VISUAL_PAGE_SKIP_MARKER` / `_EMBED_MARKER` into `pdf_parser.py` |
+| F6 | P1 | Removed duplicate `import re` from `pattern_recognizer.py` |
+| F7 | P1 | `ProcessingOptions` frozen dataclass replaces 3 bool params in `_process_file` |
+| F8 | P2 | `DeAnonymizer.resolve_placeholder()` public method; `ValidateOutputUseCase` no longer reaches into `_mapping_service` |
+| F9 | P2 | SRP NOTE added to `SqliteMappingRepository` docstring |
+| F10 | P2 | PERFORMANCE NOTE added to `ListRecognizer._match_known_mappings` |
+| F11 | P2 | Explicit type hints — `SqliteMappingRepository` in `AnonymizeUseCase` + `InitReferenceDataUseCase`; `MappingRepository` in `GenerateContextUseCase` |
+| F12 | P2 | Promoted lazy `docx` imports to module level in `DocxWriter` |
+| F13 | P3 | NOTE added to `_parent_number()` about Swiss Army `/` naming convention |
+| F14 | P3 | `__all__` added to `domain/`, `adapters/parsers/`, `adapters/recognizers/`, `adapters/writers/` |
+
+**Current total: 480 tests passing.**
 
 ---
 
@@ -104,24 +135,43 @@ Short entity values were matched INSIDE normal German words:
 - **Total: 917 destroyed words** in a 70-page document
 
 ### Fix Applied
-1. **`list_recognizer.py`**: `_word_boundary_pattern()` helper using `(?<!\w)`/`(?!\w)` applied to all DB entity lookups (`_match_known_mappings`) and municipality lookups (`_match_municipalities`). `_MIN_MUNICIPALITY_LEN = 4` skips "Au" (2), "Ins" (3), "Egg" (3) entirely.
+1. **`list_recognizer.py`**: `_word_boundary_pattern()` helper using `(?<!\w)`/`(?!\w)` applied to all DB entity lookups and municipality lookups. `_MIN_MUNICIPALITY_LEN = 4` skips "Au" (2), "Ins" (3), "Egg" (3) entirely.
 2. **`military_recognizer.py`**: `_FUNCTION_PATTERNS` and `_RANK_PATTERNS` switched from `\b` to `(?<!\w)`/`(?!\w)`.
 3. **`military_patterns.py`**: `UNIT_PATTERN`, `TER_DIV_PATTERN`, `RANK_NAME_PATTERN` switched from `\b` to `(?<!\w)`/`(?!\w)`.
-4. **17 regression tests** added in `TestWordBoundaryProtection` classes in both `test_list_recognizer.py` and `test_military_recognizer.py`, covering all 6 reported cases.
-
-> Note: The Anonymizer itself already used offset-based replacement (start_offset/end_offset), so no change was needed there.
+4. **17 regression tests** covering all 6 reported cases.
 
 ---
 
-## 4. ✅ Completed Prompts
+## 4. Real-World Test Results
 
-All implementation steps, bug fixes, and post-MVP iterations (1, 2, 2b) are complete.
-Current release: **v0.3.0** — 438 tests passing.
-Next: Iteration 3 (B-010: Post-Anonymization Review) or Future Ideas.
+**Test document:** Befehlsdossier Inf Bat 56 (23 files: 1 PDF 70p, 21 EML, 1 DOCX)
+
+| Metric | Value |
+|--------|-------|
+| Files processed | 23 |
+| Errors | 0 |
+| Visual pages detected | 4 (WAP/Picasso schedules) |
+| Total entities anonymized | ~1232 |
+| Known leaks | DÜRST (2×), Schegg (2×) — not in any import list |
+| Partially covered | 20+ names in Adressliste Stab not in CSV import |
+
+**Root causes of known leaks:**
+- Soldiers with no PISA export entry and not in Bat Stab CSV
+- Fix path: B-010 (Post-Anonymization Review) or manual `milanon db import` with their names
 
 ---
 
-## 5. Key Files & Locations
+## 5. Pending (next session)
+
+- **Phase 4 — Abnahmetest** (user acceptance) — real-world full run with current v0.3.0
+- **Iteration 4** — Output Quality: B-013 (Organigramm mega-cell), B-014 (empty column stripping)
+- **Iteration 3** — B-010 Post-Anonymization Review (learn unknown names)
+
+See `docs/BACKLOG.md` for the full backlog (21 open items across 6 planned iterations).
+
+---
+
+## 6. Key Files & Locations
 
 | What | Where |
 |------|-------|
@@ -132,49 +182,49 @@ Next: Iteration 3 (B-010: Post-Anonymization Review) or Future Ideas.
 | Implementation Plan | `docs/IMPLEMENTATION_PLAN.md` |
 | PISA 410 Mapping | `docs/PISA_410_COLUMN_MAPPING.md` |
 | Project Summary | `docs/PROJECT_SUMMARY.md` |
-| Swiss PLZ data | `data/swiss_municipalities.csv` (4'059 entries) |
+| Backlog | `docs/BACKLOG.md` |
+| Swiss PLZ data | `data/swiss_municipalities.csv` (3958 entries) |
 | Military ranks | `data/swiss_military_ranks.md` |
 | Military units CSV | `data/military_units.csv` |
 | CLAUDE.md | Root — context for Claude Code |
 | Source code | `src/milanon/` |
 | Tests | `tests/` |
 | GUI | `src/milanon/gui/app.py` (Streamlit) |
-| Mails (real) | `/Users/<username>/Library/CloudStorage/OneDrive-Armee2030/Inf Kp 56_1/WK 2026/Personelles` |
-| Obsidian vault | `/Users/<username>/Library/Mobile Documents/iCloud~md~obsidian/Documents/Personal Vault/10_Projects/WK 2026` |
-| Befehlsdossier | In Claude Project Knowledge (PDF, 70 pages) |
+| Shared utilities | `src/milanon/utils/csv_helpers.py` |
 
-## 6. Tech Stack
+## 7. Tech Stack
 
 - Python 3.11+, pyproject.toml, pip
 - click (CLI), Streamlit (GUI)
 - pdfplumber + pytesseract + pdf2image (PDF/OCR)
 - python-docx, openpyxl, email stdlib
 - SQLite (mapping DB at ~/.milanon/milanon.db)
-- pytest, ruff, mypy
+- pytest, ruff
 - System deps: `brew install tesseract tesseract-lang poppler`
 
-## 7. CLI Commands (current)
+## 8. CLI Commands (current)
 
 ```bash
 milanon anonymize <input> --output <o> [--recursive] [--force] [--dry-run] [--embed-images]
 milanon deanonymize <input> --output <o> [--force] [--dry-run]
 milanon validate <file>
+milanon context [--unit "Inf Kp 56/1"] [--output CONTEXT.md]
 milanon db import <csv_path> [--format pisa|names]
-milanon db list [--type PERSON]
-milanon db init [--force]      # Load reference data (Swiss municipalities + military units)
-milanon db reset [--include-ref-data]   # Delete mappings (keeps or also clears ref data)
+milanon db list [--type PERSON] [--limit N]
+milanon db init [--force]                          # Load reference data
+milanon db reset [--include-ref-data] [--yes]      # Delete mappings
 milanon db stats
-milanon gui [--port 8501]      # Opens Streamlit in browser
+milanon gui [--port 8501]                          # Opens Streamlit in browser
 ```
 
-## 8. Development Workflow
+## 9. Development Workflow
 
 - **This chat (claude.ai):** Project management, architecture, reviews, documentation
 - **Claude Code (Terminal):** Implementation, testing, committing
 - **Model:** Opus for complex architecture decisions, Sonnet for implementation steps
 - After every Claude Code step: `pytest tests/ -v`, then commit with Conventional Commits
 
-## 9. Key Decisions Made
+## 10. Key Decisions Made
 
 | # | Decision |
 |---|----------|
@@ -185,7 +235,7 @@ milanon gui [--port 8501]      # Opens Streamlit in browser
 | D5 | Auto reference data init on first run |
 | D6 | Dienstbemerkungen NOT anonymized |
 
-## 10. User Context
+## 11. User Context
 
 - Swiss Army Kp Kdt (Inf Kp 56/1), 4-year command cycle
 - ~150 personnel, documents: Befehlsdossier, Mails, PISA exports
