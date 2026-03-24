@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.3.0] — 2026-03-24 — Iteration 2 + Output Quality + Code Review
+## [0.3.0] — 2026-03-25 — Iterations 2-2c + Code Review + GUI Overhaul
 
 ### Iteration 2: External Personnel Import
 - B-008: Generic name CSV import (`milanon db import <csv> --format names`) for Bat Stab and external personnel.
@@ -36,6 +36,14 @@ All notable changes to this project will be documented in this file.
 - B-012-fix: EINHEIT whitespace normalization (newlines → spaces) prevents duplicate placeholders from PDF extraction. Single-word fragments ("Ter", "Inf") rejected. Context file output path configurable via `--output`.
 - B-012-fix2: Battalion filtering in `CONTEXT.md` now correctly uses the identified parent unit (not a random battalion).
 
+### GUI Enhancements
+- New "LLM Workflow" page with 3 tabs: Pack for LLM, Work with LLM, Unpack Response
+- Context Generator integrated in GUI with unit dropdown and preview
+- Embed Images checkbox on Anonymize page
+- "Initialize Reference Data" button on DB Stats page (appears when ref data missing)
+- Auto-initialize reference data after "Reset Everything"
+- De-Anonymize page with paste text area for LLM output
+
 ### Code Review Refactoring (14 Findings)
 - **P0 — Encapsulation:** Use Cases no longer access private `_repository` attribute directly — new `MappingService.has_mapping()` method added. CLI no longer accesses private `_conn` — new `clear_reference_data()` method.
 - **P1 — DRY:** Extracted shared `detect_delimiter()` into `utils/csv_helpers.py`. Consolidated `LEGEND_PATTERN` into single definition in `anonymizer.py` (imported by writers and deanonymizer). Consolidated `VISUAL_PAGE_SKIP_MARKER` / `VISUAL_PAGE_EMBED_MARKER` into `pdf_parser.py`. Introduced `ProcessingOptions` frozen dataclass for `AnonymizeUseCase`.
@@ -43,7 +51,7 @@ All notable changes to this project will be documented in this file.
 - **P3 — Polish:** Fixed duplicate `import re`, promoted lazy imports to module level, added `__all__` to `domain/`, `adapters/parsers/`, `adapters/recognizers/`, `adapters/writers/` `__init__.py` files. Added NOTE to `_parent_number()` documenting Swiss Army `/` naming convention assumption.
 
 ### Test Coverage
-- **480 tests** passing (up from 418 at v0.2.0).
+- **505 tests** passing (up from 418 at v0.2.0).
 
 ---
 

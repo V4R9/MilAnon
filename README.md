@@ -17,7 +17,10 @@ Local-only CLI + GUI tool for Swiss Army company commanders to anonymize sensiti
 - Visual PDF page detection (WAP/Picasso schedules) — warns instead of producing garbled output
 - Generic name CSV import (`Grad;Vorname;Nachname`) + combined `Name / Vorname` column auto-detection
 - Quick-add single person via GUI
-- LLM context generator (`milanon context`) — produces `CONTEXT.md` with unit hierarchy and filtering instructions
+- LLM Context Generator (`milanon context`) — produces `CONTEXT.md` with unit hierarchy and filtering instructions
+- GUI with LLM Workflow page (Pack → Work → Unpack)
+- Optional PNG embedding for visual PDF pages (`--embed-images`)
+- Word-boundary-safe entity matching (Unicode-aware, prevents substring false positives)
 - Streamlit GUI for non-CLI users (`milanon gui`)
 
 ---
@@ -190,11 +193,12 @@ milanon gui              # Opens http://localhost:8501
 milanon gui --port 8502  # Custom port
 ```
 
-The GUI offers 4 pages:
+The GUI offers 5 pages:
 - **Anonymize** — folder pickers, options, progress bar, entity count summary; warns on visual PDF pages
-- **De-Anonymize** — restore LLM output files
+- **De-Anonymize** — restore LLM output files; paste text area for direct LLM output
+- **LLM Workflow** — 3-tab workflow: Pack for LLM, Work with LLM, Unpack Response; includes Context Generator with unit dropdown and preview
 - **DB Import** — upload PISA 410 or simple name list CSV; format selector; Quick-Add single person form
-- **DB Stats** — entity counts per type with bar chart; Reset Mappings / Reset Everything buttons
+- **DB Stats** — entity counts per type with bar chart; Reset Mappings / Reset Everything buttons; Initialize Reference Data button
 
 > **Tip:** When entering paths in the GUI, quotes are stripped automatically. You can paste paths from Finder (with or without quotes).
 
@@ -210,6 +214,23 @@ The GUI offers 4 pages:
 5. Validate LLM output:       milanon validate llm_response.md
 6. De-anonymize:              milanon deanonymize ./llm_output/ --output ./restored/
 ```
+
+---
+
+## CLI Reference
+
+| Command | Description |
+|---|---|
+| `milanon anonymize` | Anonymize documents |
+| `milanon deanonymize` | De-anonymize LLM outputs |
+| `milanon context` | Generate LLM context file |
+| `milanon validate` | Check placeholder integrity |
+| `milanon db init` | Initialize reference data |
+| `milanon db import` | Import from CSV (PISA or name list) |
+| `milanon db reset` | Reset mapping database |
+| `milanon db list` | List known entities |
+| `milanon db stats` | Show database statistics |
+| `milanon gui` | Launch Streamlit web interface |
 
 ---
 
@@ -230,11 +251,10 @@ The same entity always gets the same placeholder — consistent across files, ru
 
 ## Reference Data
 
-| File | Contents |
+| File | Description |
 |---|---|
-| `data/swiss_municipalities.csv` | 3958 Swiss municipalities (BFS open data) |
-| `data/military_units.csv` | Ranks, branches, unit patterns, functions (57 entries) |
-| `data/swiss_military_ranks.md` | Complete rank reference (human-readable) |
+| `data/swiss_municipalities.csv` | 4059 Swiss municipalities with PLZ and canton |
+| `data/military_units.csv` | Ranks, branches, functions, unit patterns (single source of truth) |
 
 ---
 
@@ -242,7 +262,7 @@ The same entity always gets the same placeholder — consistent across files, ru
 
 ```bash
 # Run all tests
-pytest tests/ -v         # 480 tests
+pytest tests/ -v         # 505 tests
 
 # Specific test modules
 pytest tests/domain/ -v
