@@ -51,36 +51,9 @@
 
 ## B-013: Organigramm/Gliederung Pages — Mega-Cell Visual Detection (P1) 🔴
 
-**Discovered in:** Real-world test MD analysis (2026-03-24)
+**Problem:** Organigramm Stab and Gliederung pages are visual layouts but only have 3 columns — heuristic doesn't catch them. One cell contains 1000+ chars of garbled content.
 
-**Problem:** The Organigramm Stab (page ~68) and Gliederung (page ~67) are visual layouts (org charts with boxes and connection lines), but the current visual detection heuristic does NOT flag them because:
-- The extracted table has only **3 columns** (below the >20 threshold)
-- However, one cell contains **1000+ characters** of garbled content — all the org chart boxes mashed into a single cell
-
-The result is an unreadable wall of placeholders:
-```
-[GRAD_FUNKTION_008] [GRAD_FUNKTION_009] A CIARDO [PERSON_176] KdtL InfBat 11 
-[FUNKTION_001] (a i) (1.1.2026) [GRAD_FUNKTION_009] [GRAD_FUNKTION_008]...
-```
-
-**Root Cause:** The heuristic only checks column count + empty cell percentage. It doesn't detect "mega-cells" — single cells with hundreds of characters of garbled content from visual layouts.
-
-**Required Fix:**
-
-Add a third condition to `_is_visual_layout()` in `pdf_parser.py`:
-```
-A page is visual layout when ANY of:
-  (a) >20 columns AND >70% empty cells (existing — catches WAP/Picasso)
-  (b) ANY single cell contains >500 characters (new — catches Organigramm)
-```
-
-When condition (b) triggers:
-- Same behavior as existing visual detection: skip table extraction, insert marker, optionally embed as PNG.
-
-**Acceptance Criteria:**
-- Given a PDF page with an org chart where one cell contains >500 chars of garbled content, when parsed, then it is detected as visual layout.
-- Given a normal data table where the longest cell has <200 chars, when parsed, then it is NOT detected as visual layout.
-- Given the Organigramm Stab page, when --embed-images is used, then the page is rasterized as PNG instead of producing garbled text.
+**Required Fix:** Add third condition to `_is_visual_layout()`: ANY single cell >500 characters → visual layout.
 
 **Commit:** `fix(parser): detect mega-cell visual layouts (organigramm, gliederung)`
 
@@ -88,145 +61,226 @@ When condition (b) triggers:
 
 ## B-014: Remove Empty Columns from PDF Tables (P1) 🔴
 
-**Discovered in:** Real-world test MD analysis (2026-03-24)
+**Problem:** Dokumentenbudget has 5 real columns but pdfplumber extracts 15 due to merged cells. Extra columns are empty in every row.
 
-**Problem:** The Dokumentenbudget table has 5 actual columns (Dok, Titel, Dokument, Wer, Status), but pdfplumber extracts 15 columns because of merged cells and invisible column separators. The extra columns are completely empty in every row:
-```
-| | Dok | | | Titel | | | Dokument | | | Wer | | | Status | |
-```
-
-This is readable but unnecessarily wide and noisy.
-
-**Required Fix:**
-
-Post-processing step in `_table_to_markdown()` or `_extract_with_tables()` in `pdf_parser.py`:
-1. After extracting a table, check each column index.
-2. If a column is empty (or only whitespace) in EVERY row including header → remove it.
-3. Apply before rendering to Markdown.
-
-```python
-def _remove_empty_columns(table: list[list[str]]) -> list[list[str]]:
-    if not table:
-        return table
-    num_cols = max(len(row) for row in table)
-    keep = [
-        col_idx for col_idx in range(num_cols)
-        if any(
-            col_idx < len(row) and (row[col_idx] or "").strip()
-            for row in table
-        )
-    ]
-    return [[row[i] if i < len(row) else "" for i in keep] for row in table]
-```
-
-**Acceptance Criteria:**
-- Given a table with 15 columns where 10 are empty in all rows, when processed, then the Markdown table has only 5 columns.
-- Given a table where all columns have at least one non-empty cell, when processed, then no columns are removed.
-- Given a table with a header row where a column header is empty but data cells below are not, when processed, then the column is preserved.
+**Required Fix:** Post-processing: remove columns that are empty in ALL rows before Markdown rendering.
 
 **Commit:** `feat(parser): strip empty columns from PDF table extraction`
 
 ---
 
-## B-015: International Phone Numbers (P2) 🔴
+## B-022: EML Display Names Not Anonymized (P1) 🔴
 
-**Discovered in:** Real-world test MD analysis (2026-03-24)
+**Problem:** `From: Milo Bärtschi <[EMAIL_178]>` — email anonymized but display name leaks. Systematic problem for ALL EML headers.
 
-**Problem:** The current TELEFON patterns only match Swiss phone numbers (+41 and 0xx prefixes). International numbers are not caught:
-```
-+49 157 86 08 12 32    ← German number, not anonymized
-+4915786081232          ← Same number compact, not anonymized
-```
+**Required Fix:** New EmlDisplayNameRecognizer that extracts display names from From/To/Cc/Bcc headers and creates PERSON entities. Confidence 0.85.
 
-In the Befehlsdossier Adressliste, at least one person has a German mobile number.
-
-**Required Fix:**
-
-Add international phone patterns to `config/military_patterns.py`:
-
-Option A — Generic international pattern:
-```python
-PHONE_INTL_GENERIC_PATTERN = re.compile(
-    r"\+\d{2}[\s\-]?\d{2,3}[\s\-]?\d{2,3}[\s\-]?\d{2}[\s\-]?\d{2}[\s\-]?\d{0,2}\b"
-)
-```
-
-Option B — Specific patterns for common countries (DE, AT, FR, IT):
-```python
-PHONE_DE_PATTERN = re.compile(r"\+49[\s\-]?\d{2,4}[\s\-]?\d{2,}[\s\-]?\d{2}[\s\-]?\d{2}\b")
-```
-
-Recommend Option A — generic catch-all for any international number starting with +.
-
-**Acceptance Criteria:**
-- Given text containing "+49 157 86 08 12 32", when recognition runs, then it is detected as TELEFON.
-- Given text containing "+4915786081232" (compact), when recognition runs, then it is detected as TELEFON.
-- Given existing Swiss numbers (+41, 079), when recognition runs, then they are still correctly detected (no regression).
-- Given text containing "+1 800 555 1234" (US toll-free), when recognition runs, then it is detected as TELEFON.
-
-**Commit:** `feat(recognition): detect international phone numbers beyond Swiss +41`
+**Commit:** `feat(recognition): anonymize display names in EML From/To/Cc/Bcc headers`
 
 ---
 
-## B-016: c/o Name Detection in Address Fields (P2) 🔴
+## Iteration 7 — De-Anonymization Quality (from Obsidian Test 2026-03-24)
 
-**Discovered in:** Real-world test MD analysis (2026-03-24)
+## B-023: De-Anonymize Filenames with Placeholders (P1) 🔴
 
-**Problem:** When a person's address contains "c/o [Name]", the name inside the address is not anonymized:
-```
-c/o Walter Fanger / [ADRESSE_016]
-```
+**Problem:** `[PERSON_005].md` stays as placeholder filename. Should become `Brüngger_Xenia.md`.
 
-"Walter Fanger" is a person's name embedded in an address field. The Adressliste parser correctly anonymized the street address but not the c/o recipient.
+**Required Fix:** Scan output filename for placeholders, resolve via MappingService, transform to filesystem-safe `Nachname_Vorname` format.
 
-**Root Cause:** The PatternRecognizer has no pattern for c/o names, and the ListRecognizer only matches names that are in the DB. "Walter Fanger" might not be in the DB if he's not in the PISA export (he could be a relative at the same address).
-
-**Required Fix:**
-
-New pattern in `PatternRecognizer` or as a post-processing step:
-```python
-# c/o + Titlecase Firstname + Titlecase/ALLCAPS Lastname
-CO_NAME_PATTERN = re.compile(
-    r"(?:c/o|p\.A\.|bei)\s+([A-ZÄÖÜ][a-zäöüé]+\s+[A-ZÄÖÜ][a-zäöüÄÖÜé]+)"
-)
-```
-
-Detected names are flagged as PERSON entities with confidence 0.8.
-
-**Acceptance Criteria:**
-- Given text "c/o Walter Fanger", when recognition runs, then "Walter Fanger" is detected as PERSON.
-- Given text "p.A. Maria Schmidt", when recognition runs, then "Maria Schmidt" is detected as PERSON.
-- Given text "c/o Firma XY AG", when recognition runs, then "Firma XY AG" is NOT detected as PERSON (company names don't match Firstname Lastname pattern).
-
-**Commit:** `feat(recognition): detect person names in c/o address prefixes`
+**Commit:** `feat(deanonymize): resolve placeholders in output filenames`
 
 ---
 
-## B-017: Near-AHV Warning for Transposed Digits (P3) 🔴
+## B-024: Obsidian Wiki-Link Compatibility (P1) 🔴
 
-**Discovered in:** Real-world test MD analysis (2026-03-24)
+**Problem:** `[[PERSON_005]]` becomes `[Xenia BRÜNGGER]` (broken link). Should become `[[Brüngger_Xenia|Xenia BRÜNGGER]]`.
 
-**Problem:** One AHV number in the Adressliste was extracted as `765.4056.6550.18` — this starts with `765` instead of the correct `756`. It could be a typo in the original document or an OCR error. The AHV pattern only matches `756.xxxx.xxxx.xx` and correctly ignores this.
+**Required Fix:** Process Obsidian `[[PLACEHOLDER]]` links BEFORE regular placeholders. Replace with proper alias format matching B-023 naming.
 
-However, a transposed `765` is very likely a real AHV number with a data entry error. It would be useful to warn the user.
+**Commit:** `feat(deanonymize): handle Obsidian wiki-links with proper alias format`
+
+---
+
+## B-025: In-Place De-Anonymization (P2) 🔴
+
+**Problem:** De-anonymizer always creates a copy. User wants to modify files directly in the Obsidian vault.
+
+**Required Fix:** New `--in-place` flag. Safety: confirmation prompt + optional `.milanon_backup/`.
+
+**Commit:** `feat(deanonymize): add --in-place flag for direct vault de-anonymization`
+
+---
+
+## Iteration 8 — GUI Enhancements (E7 + E10 Foundation)
+
+## B-026: Embed Images Checkbox on Anonymize Page (P1) 🔴
+
+**Discovered in:** GUI testing (2026-03-24)
+
+**Problem:** The CLI has `--embed-images` to render visual PDF pages (WAP/Picasso) as PNG, but the GUI has no corresponding option. Users who only use the GUI cannot access this feature.
+
+**Required Fix:** Add a fourth checkbox to the Anonymize page options row:
+- Label: "Embed visual pages as PNG"
+- Help text: "Renders WAP/schedule pages as PNG images in the output (NOT anonymized)."
+- Pass `embed_images=True` to `uc.execute()` when checked.
+
+**Acceptance Criteria:**
+- Given the Anonymize page, when loaded, then an "Embed visual pages as PNG" checkbox is visible alongside Recursive, Force, and Dry run.
+- Given the checkbox is checked and a PDF with visual pages is processed, when anonymization runs, then PNGs are generated next to the .md output.
+- Given the checkbox is unchecked, when a PDF with visual pages is processed, then only placeholder markers are inserted (existing behavior).
+
+**Commit:** `feat(gui): add embed-images checkbox to Anonymize page`
+
+---
+
+## B-027: LLM Workflow Page — Guided Round-Trip Experience (P1) 🔴
+
+**Discovered in:** UX brainstorming session (2026-03-24)
+
+**Problem:** The GUI has no support for the LLM workflow. The user must manually:
+1. Generate a context file via CLI
+2. Copy-paste anonymized documents into Claude.ai
+3. Copy Claude's output into files
+4. Run de-anonymize via CLI
+
+This is error-prone, tedious, and the main reason users fall back to the terminal.
+
+**Vision:** A dedicated "LLM Workflow" page that guides the user through the complete round-trip in a single, intuitive interface. The page grows with Epic E10 (Pack/Unpack) but starts useful from day one.
 
 **Required Fix:**
 
-In `PatternRecognizer._match_birthdates` or as a separate scan, add a "near-AHV" detector:
+New navigation entry between "De-Anonymize" and "DB Import":
 ```python
-NEAR_AHV_PATTERN = re.compile(r"\b(?:756|765|675)\.\d{4}\.\d{4}\.\d{2}\b")
+page = st.sidebar.radio(
+    "Navigation",
+    ["Anonymize", "De-Anonymize", "LLM Workflow", "DB Import", "DB Stats"],
+)
 ```
 
-When a near-AHV is found that doesn't match the strict `756.` prefix:
-- Do NOT anonymize it (it might be something else)
-- Add a warning: "Possible AHV with transposed digits: 765.4056.6550.18 on page X"
+The page uses `st.tabs()` with three guided steps:
+
+### Tab 1: "📦 Pack for LLM"
+
+**Section 1a — Context Generator:**
+- st.subheader("Step 1: Generate Context")
+- st.markdown explaining what the context file does and why it matters
+- Unit selector: st.selectbox populated from `GenerateContextUseCase.get_available_units()`
+  - Format: "Inf Kp 56/1 (Company)" — shows original value + level
+  - If no units in DB: st.info with link to DB Import page
+- Output path: st.text_input with sensible default (e.g. last anonymize output dir + "/CONTEXT.md")
+- [Generate Context] button
+- After generation: show content in st.expander("Preview CONTEXT.md") with st.code(content, language="markdown")
+- st.download_button("📥 Download CONTEXT.md", content) — lets user save it anywhere
+
+**Section 1b — Pack Builder (E10.1 Foundation — initially simplified):**
+- st.subheader("Step 2: Build Prompt Package")
+- Template selector: st.selectbox with options:
+  - "Obsidian Notes — Personendossier pro Person mit YAML Frontmatter"
+  - "Befehlsentwurf — Kompaniebefehl aus dem Dossier ableiten"
+  - "Analyse — Entscheide, Zeitplan, Pendenzen, Risiken"
+  - "Freier Prompt — eigene Anweisung"
+- If "Freier Prompt" selected: st.text_area("Your prompt", placeholder="z.B. Erstelle mir eine Übersicht der Personalfälle...")
+- Anonymized input: st.text_input("Anonymized files folder", placeholder="/path/to/test_output")
+- [Build Pack] button
+- After build: st.text_area with the complete pack content (Context + Template + Document), readonly
+- st.download_button("📥 Download Pack") + st.caption("Copy the content above and paste into Claude.ai")
+
+**Implementation for v1 (before E10.1 is fully built):**
+The "Build Pack" button reads CONTEXT.md + all .md files from the input folder, concatenates them with the template instructions, and displays the result. No clipboard API needed — the user copies from the text area.
+
+### Tab 2: "💬 Work with LLM"
+
+**Guided instructions with visual cues:**
+```
+st.subheader("Send to Claude.ai")
+
+st.markdown("""
+### How to use the pack:
+
+1. **Copy** the pack content from Step 1 (or download and open the file)
+2. **Open** [Claude.ai](https://claude.ai) in a new tab
+3. **Paste** the entire pack as your first message
+4. **Work** with Claude — refine, ask follow-up questions, iterate
+5. **Copy** Claude's final output when you're satisfied
+
+### Tips:
+- Tell Claude to preserve all `[PLACEHOLDER]` tokens exactly as written
+- If Claude's response is too long, ask it to split into sections
+- For Obsidian Notes: ask Claude to separate each person with `---`
+""")
+
+st.info("💡 Coming soon: One-click clipboard integration and prompt templates with auto-fill.")
+```
+
+### Tab 3: "📥 Unpack & De-Anonymize"
+
+**Full de-anonymization interface for LLM output:**
+- st.subheader("Restore Real Names from LLM Output")
+- st.markdown explaining the unpack step
+
+**Input method tabs:** st.radio("Input method", ["Paste text", "Select file/folder"])
+
+**If "Paste text":**
+- llm_output = st.text_area("Paste Claude's output here", height=400, placeholder="Paste the complete LLM response...")
+- Output path: st.text_input("Save to", placeholder="/path/to/obsidian/vault/Personelles")
+
+**If "Select file/folder":**
+- Input path: st.text_input("LLM output file or folder", placeholder="/path/to/llm_output/")
+- Output path: st.text_input("Save to", placeholder="/path/to/obsidian/vault/")
+
+**Options row:**
+- col1: st.checkbox("Split on --- separators", help="Creates separate files for each section")
+- col2: st.checkbox("De-anonymize in-place", help="Overwrites input files directly (requires B-025)", disabled=True) ← disabled until B-025 is implemented
+
+**[De-Anonymize & Save] button:**
+1. If paste mode: write to temp file first
+2. Run DeAnonymizeUseCase
+3. Show results: "Restored N placeholders across M files"
+4. Show file list: which files were written where
+5. If warnings (unresolved placeholders): show in expander
+
+**Preview section:**
+- After de-anonymization, show a preview of the first restored file in st.expander
+- st.caption("Check that names are correctly restored before opening in Obsidian")
+
+### UX Polish:
+
+**Progress indicators:**
+- Each tab shows a status icon in the tab title: "📦 Pack for LLM", "💬 Work with LLM", "📥 Unpack"
+- After completing Step 1, show st.success with arrow: "✅ Pack ready → proceed to Step 2"
+- After completing Step 3, show st.balloons() + link to output folder
+
+**Session state:**
+- Remember the last used unit, template, input/output paths across tab switches
+- If the user already generated a context in Step 1, auto-fill the output path in Step 3
+
+**Error handling:**
+- If DB is empty when opening the page: st.warning("No entities in database. Import data first.") with button linking to DB Import
+- If no units found: st.info("No units found. Run anonymization first to detect units.")
+- If de-anonymization has unresolved placeholders: st.warning with count + expandable list
 
 **Acceptance Criteria:**
-- Given text "765.4056.6550.18", when recognition runs, then a warning is emitted but the number is NOT anonymized.
-- Given text "756.1234.5678.97" (correct), when recognition runs, then it IS anonymized as AHV_NR.
-- Given text "123.4567.8901.23" (clearly not AHV), when recognition runs, then no warning is emitted.
+- Given the GUI, when "LLM Workflow" is selected, then a page with 3 tabs appears.
+- Given units in the DB, when Tab 1 is opened, then the unit dropdown is populated.
+- Given a generated context, when "Preview" is clicked, then the full CONTEXT.md content is shown.
+- Given pasted LLM output with placeholders, when "De-Anonymize & Save" is clicked, then all placeholders are resolved and files are written.
+- Given no entities in the DB, when the page opens, then a helpful message with link to DB Import is shown.
+- Given the round-trip workflow (Pack → Claude → Unpack), when all three steps are completed, then de-anonymized files appear in the target folder with correct names.
 
-**Commit:** `feat(recognition): warn on possible AHV numbers with transposed digits`
+**Negative Criteria:**
+- Must NOT require the terminal for any step of the workflow.
+- Must NOT break existing Anonymize/De-Anonymize pages.
+- Must NOT send any data over the network — all processing stays local.
+
+**Implementation Order:**
+1. Navigation entry + page skeleton with 3 tabs
+2. Tab 1: Context Generator (use existing GenerateContextUseCase)
+3. Tab 3: Unpack with paste text area (use existing DeAnonymizeUseCase)
+4. Tab 1: Pack Builder (simplified v1 — concatenate files)
+5. Tab 2: Static instructions
+6. UX polish (session state, progress, error handling)
+
+**Commit:** `feat(gui): add LLM Workflow page with context generator, instructions, and unpack`
 
 ---
 
@@ -234,34 +288,7 @@ When a near-AHV is found that doesn't match the strict `756.` prefix:
 
 ## B-010: Post-Anonymization Review — Learn Unknown Names (P2) 🔴
 
-**As a** commander, **I want** the tool to show me suspicious words that might be names after anonymization, **so that** I can confirm them and the tool learns for next time.
-
-**Problem:** The Adressliste Stab contains 20+ names not in any import list. After anonymization, these leak in cleartext:
-- Ciardo, Adrian — not in CSV import
-- Koch, Fanger, Müller, Tribelhorn, Merisi, Schneeberger, Sarasin, Storrer, Greco, Dürst, Megevand — all Bat Stab personnel not covered by the 21-person CSV
-
-The tool currently has no way to flag these. The user must manually read the entire output to find leaks.
-
-**Solution:** After anonymization, scan the output for candidate names:
-1. ALLCAPS words (≥3 chars) not in known exclusion lists (military abbreviations, Ortschaften)
-2. Title-case words near rank abbreviations that weren't caught
-3. Title-case words in personnel-context sections (near phone numbers, email addresses)
-
-Present candidates to user. Confirmed → added to DB. Rejected → exclusion list.
-
-**GUI interaction:**
-```
-⚠ Possible names found (not anonymized):
-☐ DÜRST (appears 2x, near rank abbreviations)
-☐ Ciardo (appears 2x, in organigramm context)  
-☐ Koch (appears 1x, in adressliste)
-☐ Fanger (appears 3x, in adressliste + address field)
-☐ Tribelhorn (appears 1x)
-```
-
-**CLI interaction:** `milanon anonymize --review` flag → interactive prompts after processing.
-
-**Why this matters:** Every run makes the tool smarter. After 2-3 runs with review, the DB covers virtually all personnel. This is the most sustainable path to high recall.
+Every document processed makes the tool smarter. After anonymization, scan output for candidate names. User confirms/rejects → confirmed names added to DB automatically.
 
 **Commit:** `feat(review): add post-anonymization review for unknown name candidates`
 
@@ -271,39 +298,41 @@ Present candidates to user. Confirmed → added to DB. Rejected → exclusion li
 
 ## B-018: Military Unit Alias Table (P2) 🔴
 
-**Discovered in:** EINHEIT analysis (2026-03-24)
-
-**Problem:** Multiple placeholders map to the same real unit due to different writing styles in the document:
-- EINHEIT_006 = "Inf Ustü Kp 56/4" and EINHEIT_013 = "Inf Ustü Kp 56" → same unit
-- EINHEIT_009 = "Inf Stabskp 56" and EINHEIT_012 = "Inf Kp 56/0" → same unit (Stabskp = 56/0)
-- EINHEIT_016 = "Inf Kp 56" → doesn't exist, likely a parsing artefact or abbreviation for the battalion's organic units
-
-These are not whitespace/newline duplicates (those were fixed). These are **military naming aliases** — different valid names for the same organizational unit.
-
-**Required Fix:**
-
-New table `unit_aliases` in SQLite schema:
-```sql
-CREATE TABLE IF NOT EXISTS unit_aliases (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    canonical_mapping_id INTEGER REFERENCES entity_mappings(id),
-    alias_value TEXT NOT NULL,
-    normalized_alias TEXT NOT NULL,
-    UNIQUE(normalized_alias)
-);
-```
-
-Domain knowledge rules (configurable in `config/military_patterns.py`):
-- "Ustü Kp XX/4" = "Ustü Kp XX" (with or without /4)
-- "Stabskp XX" = "Kp XX/0" (Stabskompanie = /0)
-- When creating a new EINHEIT mapping, check if an alias exists → use canonical placeholder
-
-**Acceptance Criteria:**
-- Given "Inf Ustü Kp 56/4" already in DB, when "Inf Ustü Kp 56" is encountered, then it maps to the same placeholder.
-- Given "Inf Stabskp 56" already in DB, when "Inf Kp 56/0" is encountered, then it maps to the same placeholder.
-- Given "Inf Kp 56/1" and "Inf Kp 56/2", when both encountered, then they remain separate (different sub-units).
+**Problem:** Multiple placeholders for same unit due to naming variants.
 
 **Commit:** `feat(mapping): military unit alias table for duplicate EINHEIT resolution`
+
+---
+
+## Iteration 6 — Incremental Processing Improvements
+
+## B-019: Clean Up Orphaned Output Files (P2) 🔴
+
+**Commit:** `feat(cli): add --clean flag to remove orphaned output files`
+
+## B-020: Entity Count Total Across All Outputs (P3) 🔴
+
+**Commit:** `feat(cli): show total entity count across all tracked files in summary`
+
+## B-021: Detect Renamed Files via Content Hash (P3) 🔴
+
+**Commit:** `feat(tracking): detect renamed files via content hash to avoid reprocessing`
+
+---
+
+## Iteration 4b — Recognition Gaps
+
+## B-015: International Phone Numbers (P2) 🔴
+
+**Commit:** `feat(recognition): detect international phone numbers beyond Swiss +41`
+
+## B-016: c/o Name Detection in Address Fields (P2) 🔴
+
+**Commit:** `feat(recognition): detect person names in c/o address prefixes`
+
+## B-017: Near-AHV Warning for Transposed Digits (P3) 🔴
+
+**Commit:** `feat(recognition): warn on possible AHV numbers with transposed digits`
 
 ---
 
@@ -315,6 +344,6 @@ Domain knowledge rules (configurable in `config/military_patterns.py`):
 - **B-103**: Manual entity management — edit/delete via GUI
 - **B-104**: Reporting & Audit trail
 - **B-105**: Import summary with delta info
-- **B-106**: GUI Finder dialog for folder/file selection (tkinter.filedialog) — replace manual path copy-paste
-- **B-107**: --exclude pattern for anonymize (e.g. `--exclude "Personel Lists"`) — skip folders/files matching pattern
-- **B-108**: CLI UX polish — Kali-Linux-style terminal output (ASCII banner, colored sections, icons, clear summary blocks via click.style)
+- **B-106**: GUI Finder dialog for folder/file selection (tkinter.filedialog)
+- **B-107**: --exclude pattern for anonymize
+- **B-108**: CLI UX polish — Kali-Linux-style terminal output
