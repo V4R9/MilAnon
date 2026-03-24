@@ -327,6 +327,47 @@ def db_stats() -> None:
 
 
 @cli.command()
+@click.option("--unit", "unit_name", default=None, help='Your unit, e.g. "Inf Kp 56/1".')
+@click.option("--output", "output_path", default="CONTEXT.md", help="Output file path.")
+def context(unit_name: str | None, output_path: str) -> None:
+    """Generate an LLM context file with unit hierarchy and placeholder mapping."""
+    from milanon.usecases.generate_context import GenerateContextUseCase
+
+    repo = _make_repo()
+    use_case = GenerateContextUseCase(repo)
+
+    units = use_case.get_available_units()
+
+    if not units:
+        click.echo("No units found in database. Run 'milanon db import' first.", err=True)
+        sys.exit(1)
+
+    if unit_name is None:
+        # Interactive mode — show list and prompt
+        click.echo("Known units in database:\n")
+        for i, u in enumerate(units, 1):
+            click.echo(f"  {i:2}. {u.original_value:<35} ({u.level})")
+        click.echo("")
+        choice = click.prompt("Which is your unit? Enter number", type=int)
+        if not 1 <= choice <= len(units):
+            click.echo(f"Invalid choice: {choice}", err=True)
+            sys.exit(1)
+        unit_name = units[choice - 1].original_value
+
+    # Validate unit exists (also catches --unit values not in DB)
+    known_lower = {u.original_value.strip().lower() for u in units}
+    if unit_name.strip().lower() not in known_lower:
+        click.echo(f"Unit '{unit_name}' not found in database.", err=True)
+        click.echo("\nKnown units:")
+        for u in units:
+            click.echo(f"  {u.original_value:<35} ({u.level})")
+        sys.exit(1)
+
+    use_case.generate(unit_name, Path(output_path))
+    click.echo(f"Context file written to {output_path}")
+
+
+@cli.command()
 @click.option("--port", default=8501, help="Port to run the Streamlit server on.")
 def gui(port: int) -> None:
     """Launch the Streamlit web interface in the browser."""
