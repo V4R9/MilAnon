@@ -175,6 +175,33 @@ class TestGenerateParentDetection:
         content = out.read_text(encoding="utf-8")
         assert "Parent unit" not in content
 
+    def test_battalion_filtering_uses_parent_not_random_battalion(self, use_case, service, tmp_path):
+        # When multiple battalions exist, "Battalion level only" must use the
+        # identified parent — not just the first Battalion in the list.
+        placeholders = _standard_units(service)
+        # Add a second, unrelated battalion
+        other_bat = service.get_or_create_placeholder(EntityType.EINHEIT, "Inf Bat 20", "test")
+        out = tmp_path / "CONTEXT.md"
+        use_case.generate("Inf Kp 56/1", out)
+        content = out.read_text(encoding="utf-8")
+        bat_line = next(
+            line for line in content.splitlines() if "Battalion level only" in line
+        )
+        # Must point to parent (Bat 56), not the unrelated Bat 20
+        assert placeholders["Inf Bat 56"] in bat_line
+        assert other_bat not in bat_line
+
+    def test_battalion_filtering_falls_back_to_user_when_no_parent(self, use_case, service, tmp_path):
+        # When user IS the battalion (no slash), "Battalion level only" → user's own placeholder
+        placeholders = _standard_units(service)
+        out = tmp_path / "CONTEXT.md"
+        use_case.generate("Inf Bat 56", out)
+        content = out.read_text(encoding="utf-8")
+        bat_line = next(
+            line for line in content.splitlines() if "Battalion level only" in line
+        )
+        assert placeholders["Inf Bat 56"] in bat_line
+
 
 # ---------------------------------------------------------------------------
 # generate — security: no original values in output

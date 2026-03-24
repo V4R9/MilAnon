@@ -115,7 +115,11 @@ class GenerateContextUseCase:
         company_placeholders = ", ".join(
             u.placeholder for u in all_units if u.level == "Company"
         )
-        bat_entry = next((u for u in all_units if u.level == "Battalion"), None)
+        # Use the identified parent for "Battalion level only" — never a random Battalion.
+        # Fall back to user's own placeholder when the user IS the battalion (no parent).
+        bat_placeholder = (
+            parent_entry.placeholder if parent_entry is not None else user_entry.placeholder
+        )
 
         lines: list[str] = []
 
@@ -152,10 +156,9 @@ class GenerateContextUseCase:
             lines.append(
                 f"- **\"All company-level units\"** → {company_placeholders}"
             )
-        if bat_entry:
-            lines.append(
-                f"- **\"Battalion level only\"** → {bat_entry.placeholder}"
-            )
+        lines.append(
+            f"- **\"Battalion level only\"** → {bat_placeholder}"
+        )
         lines.append("- **\"All units\"** → All EINHEIT placeholders listed above")
 
         lines.append("\n## Rules\n")
