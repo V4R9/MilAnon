@@ -389,10 +389,17 @@ elif page == "DB Stats":
             st.rerun()
 
     with col_full:
-        st.error("**Reset Everything** — deletes ALL data including reference data. You will need to run `milanon db init` afterward.")
+        st.error("**Reset Everything** — deletes ALL data including reference data. Reference data will be re-initialized automatically.")
         confirm_full = st.checkbox("I confirm: delete everything including reference data", key="confirm_full")
         if st.button("Reset Everything", disabled=not confirm_full, key="btn_full_reset"):
             counts = repo.reset_everything()
             total = sum(counts.values())
-            st.success(f"Full reset complete. {total} rows deleted across all tables.")
+            from milanon.usecases.init_reference_data import InitReferenceDataUseCase
+            data_dir = Path(__file__).parent.parent.parent.parent / "data"
+            init_result = InitReferenceDataUseCase(repo, data_dir).execute()
+            st.success(
+                f"Full reset complete. {total} rows deleted. "
+                f"Re-initialized: {init_result.municipalities_loaded} municipalities, "
+                f"{init_result.military_units_loaded} military units."
+            )
             st.rerun()
