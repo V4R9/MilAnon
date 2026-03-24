@@ -276,13 +276,20 @@ class TestPdfParserVisualLayout:
         table.extract.return_value = rows
         return table
 
-    def test_visual_layout_detection_many_columns(self, pdf_parser: PdfParser):
-        table = self._make_table_mock(_VISUAL_TABLE_MAX_COLS + 1, 0.0)
+    def test_visual_layout_detected_when_both_conditions_met(self, pdf_parser: PdfParser):
+        # >20 cols AND >70% empty → WAP/schedule grid
+        table = self._make_table_mock(_VISUAL_TABLE_MAX_COLS + 1, _VISUAL_TABLE_EMPTY_THRESHOLD + 0.05)
         assert pdf_parser._is_visual_layout([table]) is True
 
-    def test_visual_layout_detection_mostly_empty(self, pdf_parser: PdfParser):
+    def test_many_columns_but_dense_data_is_not_visual(self, pdf_parser: PdfParser):
+        # Wide table (e.g. Dokumentenbudget) with real data — not a visual page
+        table = self._make_table_mock(_VISUAL_TABLE_MAX_COLS + 5, 0.10)
+        assert pdf_parser._is_visual_layout([table]) is False
+
+    def test_mostly_empty_but_few_columns_is_not_visual(self, pdf_parser: PdfParser):
+        # Sparse narrow table (e.g. checklist) — not a visual page
         table = self._make_table_mock(5, _VISUAL_TABLE_EMPTY_THRESHOLD + 0.05)
-        assert pdf_parser._is_visual_layout([table]) is True
+        assert pdf_parser._is_visual_layout([table]) is False
 
     def test_normal_table_not_detected_as_visual(self, pdf_parser: PdfParser):
         table = self._make_table_mock(5, 0.10)
@@ -290,7 +297,7 @@ class TestPdfParserVisualLayout:
 
     def test_visual_page_marker_in_output(self, pdf_parser: PdfParser, simple_pdf_path: Path):
         """A page whose tables are visual must produce the warning marker."""
-        visual_table = self._make_table_mock(_VISUAL_TABLE_MAX_COLS + 5, 0.0)
+        visual_table = self._make_table_mock(_VISUAL_TABLE_MAX_COLS + 5, _VISUAL_TABLE_EMPTY_THRESHOLD + 0.05)
         with patch("milanon.adapters.parsers.pdf_parser.pdfplumber") as mock_pdfplumber:
             mock_page = MagicMock()
             mock_page.find_tables.return_value = [visual_table]
@@ -307,7 +314,7 @@ class TestPdfParserVisualLayout:
         assert "not extractable as text" in doc.text_content
 
     def test_visual_pages_list_populated(self, pdf_parser: PdfParser, simple_pdf_path: Path):
-        visual_table = self._make_table_mock(_VISUAL_TABLE_MAX_COLS + 5, 0.0)
+        visual_table = self._make_table_mock(_VISUAL_TABLE_MAX_COLS + 5, _VISUAL_TABLE_EMPTY_THRESHOLD + 0.05)
         with patch("milanon.adapters.parsers.pdf_parser.pdfplumber") as mock_pdfplumber:
             mock_page = MagicMock()
             mock_page.find_tables.return_value = [visual_table]

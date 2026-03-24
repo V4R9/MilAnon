@@ -161,18 +161,21 @@ class PdfParser:
     def _is_visual_layout(self, tables) -> bool:
         """Return True if any table looks like a visual/schedule grid.
 
-        Heuristics (either condition triggers):
-        - A table has more than _VISUAL_TABLE_MAX_COLS columns → WAP-style grid.
-        - A table has more than _VISUAL_TABLE_EMPTY_THRESHOLD fraction of empty
-          cells → schedule/timetable with mostly blank slots.
+        Both conditions must hold simultaneously:
+        - A table has more than _VISUAL_TABLE_MAX_COLS columns (WAP-style grid), AND
+        - More than _VISUAL_TABLE_EMPTY_THRESHOLD fraction of cells are empty.
+
+        Requiring both conditions prevents false positives:
+        - Wide tables with dense data (e.g. Dokumentenbudget) → not visual.
+        - Narrow sparse tables (e.g. checklists with blanks) → not visual.
         """
         for table in tables:
             data = table.extract()
             if not data:
                 continue
             num_cols = max(len(row) for row in data)
-            if num_cols > _VISUAL_TABLE_MAX_COLS:
-                return True
+            if num_cols <= _VISUAL_TABLE_MAX_COLS:
+                continue
             total_cells = sum(len(row) for row in data)
             if total_cells == 0:
                 continue
