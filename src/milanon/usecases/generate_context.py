@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from milanon.domain.entities import EntityType
+from milanon.domain.protocols import MappingRepository
 
 
 # Level definitions: keyword → (display name, sort order)
@@ -38,6 +39,10 @@ def _parent_number(value: str) -> str | None:
 
     e.g. "Inf Kp 56/1" → "56", "Inf Bat 56" → None (no slash).
     Returns the part before the slash if a 'number/number' pattern is found.
+
+    NOTE: Assumes Swiss Army convention where sub-units are named with a
+    'parent/sub' suffix (e.g. 56/1 = 1st sub-unit of parent 56).
+    This will not work for unit naming schemes that use '/' for other purposes.
     """
     m = re.search(r"(\d+)/\d+", value)
     return m.group(1) if m else None
@@ -56,7 +61,7 @@ class GenerateContextUseCase:
     The output contains ONLY placeholders and level descriptions — no original values.
     """
 
-    def __init__(self, repository) -> None:
+    def __init__(self, repository: MappingRepository) -> None:
         self._repo = repository
 
     # ------------------------------------------------------------------

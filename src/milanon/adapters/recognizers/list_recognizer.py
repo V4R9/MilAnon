@@ -91,6 +91,11 @@ class ListRecognizer:
 
         Each value is matched with Unicode-safe word boundaries to prevent
         false positives inside longer words (e.g. 'Bern' in 'Arbeitgebern').
+
+        PERFORMANCE NOTE: This compiles one regex per DB mapping on every call.
+        For large databases (thousands of mappings), consider caching compiled
+        patterns keyed by (mapping_id, original_value) or building a single
+        combined alternation pattern.
         """
         entities: list[DetectedEntity] = []
         all_mappings = self._repository.get_all_mappings()

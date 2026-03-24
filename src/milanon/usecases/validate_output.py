@@ -50,7 +50,7 @@ class ValidateOutputUseCase:
             if ph in seen:
                 continue
             seen.add(ph)
-            original = self._deanonymizer._mapping_service.resolve_placeholder(ph)
+            original = self._deanonymizer.resolve_placeholder(ph)
             if original is not None:
                 result.resolved += 1
             else:

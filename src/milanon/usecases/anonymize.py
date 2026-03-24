@@ -7,19 +7,10 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# Marker text inserted by PdfParser for visual/WAP pages (must match pdf_parser._VISUAL_PAGE_MARKER)
-_VISUAL_SKIP_MARKER = (
-    "\n\n⚠ **Page {page_num}: Visual layout (WAP/schedule) — "
-    "not extractable as text. See original PDF.**\n\n"
-)
-_VISUAL_EMBED_MARKER = (
-    "\n\n⚠ **Page {page_num}: Visual layout (WAP/schedule) — "
-    "embedded as image. NOT ANONYMIZED.**\n\n"
-    "![Page {page_num}]({png_name})\n\n"
-)
-_EMBED_DPI = 200
+from milanon.adapters.repositories.sqlite_repository import SqliteMappingRepository
 
 from milanon.adapters.parsers import get_parser
+from milanon.adapters.parsers.pdf_parser import VISUAL_PAGE_EMBED_MARKER, VISUAL_PAGE_SKIP_MARKER
 from milanon.adapters.writers.csv_writer import CsvWriter
 from milanon.adapters.writers.docx_writer import DocxWriter
 from milanon.adapters.writers.eml_writer import EmlWriter
@@ -29,6 +20,8 @@ from milanon.domain.entities import DocumentFormat
 from milanon.domain.recognition import RecognitionPipeline
 
 logger = logging.getLogger(__name__)
+
+_EMBED_DPI = 200
 
 _SUPPORTED_EXTENSIONS = {".eml", ".docx", ".pdf", ".xlsx", ".csv"}
 
@@ -40,6 +33,13 @@ _WRITERS = {
     DocumentFormat.CSV: CsvWriter(),
     DocumentFormat.MARKDOWN: MarkdownWriter(),
 }
+
+
+@dataclass(frozen=True)
+class ProcessingOptions:
+    force: bool = False
+    dry_run: bool = False
+    embed_images: bool = False
 
 
 @dataclass
@@ -98,8 +98,8 @@ def _embed_visual_pages(source_pdf: Path, visual_pages: list[int], out_md: Path)
             logger.warning("Could not rasterize page %d of %s: %s", page_num, source_pdf.name, exc)
             continue
 
-        skip = _VISUAL_SKIP_MARKER.format(page_num=page_num)
-        embed = _VISUAL_EMBED_MARKER.format(page_num=page_num, png_name=png_name)
+        skip = VISUAL_PAGE_SKIP_MARKER.format(page_num=page_num)
+        embed = VISUAL_PAGE_EMBED_MARKER.format(page_num=page_num, png_name=png_name)
         if skip in content:
             content = content.replace(skip, embed)
             changed = True
@@ -118,7 +118,7 @@ class AnonymizeUseCase:
         self,
         pipeline: RecognitionPipeline,
         anonymizer: Anonymizer,
-        repository,  # SqliteMappingRepository (has file tracking methods)
+        repository: SqliteMappingRepository,
     ) -> None:
         self._pipeline = pipeline
         self._anonymizer = anonymizer
@@ -141,10 +141,12 @@ class AnonymizeUseCase:
             recursive: If True, recurse into subdirectories.
             force: If True, reprocess all files regardless of hash.
             dry_run: If True, report what would be done without writing.
+            embed_images: If True, rasterize visual PDF pages and embed as PNG.
 
         Returns:
             AnonymizeResult with processing statistics.
         """
+        options = ProcessingOptions(force=force, dry_run=dry_run, embed_images=embed_images)
         result = AnonymizeResult()
 
         if input_path.is_file():
@@ -162,9 +164,7 @@ class AnonymizeUseCase:
 
         for file_path in files:
             try:
-                self._process_file(
-                    file_path, input_root, output_dir, force, dry_run, embed_images, result
-                )
+                self._process_file(file_path, input_root, output_dir, options, result)
             except Exception as exc:
                 logger.error("Error processing %s: %s", file_path, exc)
                 result.files_error += 1
@@ -177,15 +177,13 @@ class AnonymizeUseCase:
         file_path: Path,
         input_root: Path,
         output_dir: Path,
-        force: bool,
-        dry_run: bool,
-        embed_images: bool,
+        options: ProcessingOptions,
         result: AnonymizeResult,
     ) -> None:
         current_hash = _sha256(file_path)
         rel_path = str(file_path.relative_to(input_root))
 
-        if not force:
+        if not options.force:
             tracking = self._repository.get_file_tracking(rel_path, "anonymize")
             if tracking and tracking["content_hash"] == current_hash:
                 result.files_skipped += 1
@@ -198,7 +196,7 @@ class AnonymizeUseCase:
         else:
             result.files_changed += 1
 
-        if dry_run:
+        if options.dry_run:
             logger.info("[dry-run] Would process: %s", file_path.name)
             return
 
@@ -228,7 +226,7 @@ class AnonymizeUseCase:
         writer.write(anon_doc, out_path)
 
         # Embed visual pages as PNG if requested (PDFs only)
-        if embed_images and getattr(document, "visual_pages", []):
+        if options.embed_images and getattr(document, "visual_pages", []):
             _embed_visual_pages(file_path, document.visual_pages, out_path)
 
         # Track

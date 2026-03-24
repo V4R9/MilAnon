@@ -26,6 +26,9 @@ _EXTENSION_MAP: dict[str, DocumentParser] = {
 }
 
 
+__all__ = ["get_parser"]
+
+
 def get_parser(path: Path) -> DocumentParser:
     """Return the appropriate parser for the given file extension.
 

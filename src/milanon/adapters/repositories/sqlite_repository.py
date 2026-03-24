@@ -98,7 +98,13 @@ def _now_iso() -> str:
 
 
 class SqliteMappingRepository:
-    """SQLite-backed repository for entity-to-placeholder mappings."""
+    """SQLite-backed repository for entity-to-placeholder mappings.
+
+    NOTE (SRP): This class currently handles entity mappings, reference data
+    (municipalities, military units), and file tracking in one place.
+    If any of these concerns grow significantly, consider splitting them into
+    dedicated repository classes (e.g. FileTrackingRepository, RefDataRepository).
+    """
 
     def __init__(self, db_path: str | Path = ":memory:") -> None:
         self._db_path = str(db_path)
@@ -336,6 +342,15 @@ class SqliteMappingRepository:
                    entity_count = excluded.entity_count""",
             (file_path, content_hash, output_path, operation, now, entity_count),
         )
+        self._conn.commit()
+
+    def clear_reference_data(self) -> None:
+        """Delete all reference data (municipalities and military units).
+
+        Used by 'milanon db init --force' to allow clean re-initialization.
+        """
+        self._conn.execute("DELETE FROM ref_municipalities")
+        self._conn.execute("DELETE FROM ref_military_units")
         self._conn.commit()
 
     def reset_all_mappings(self) -> dict[str, int]:

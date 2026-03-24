@@ -5,18 +5,13 @@ from __future__ import annotations
 import logging
 import re
 
+from milanon.domain.anonymizer import LEGEND_PATTERN
 from milanon.domain.mapping_service import MappingService
 
 logger = logging.getLogger(__name__)
 
 # Matches any placeholder of the form [ENTITY_TYPE_NNN]
 _PLACEHOLDER_RE = re.compile(r"\[([A-Z_]+)_(\d{3})\]")
-
-# MilAnon legend block (stripped before de-anonymizing)
-_LEGEND_RE = re.compile(
-    r"<!--\s*MILANON LEGEND START.*?MILANON LEGEND END\s*-->",
-    re.DOTALL,
-)
 
 
 class DeAnonymizer:
@@ -40,7 +35,7 @@ class DeAnonymizer:
             warnings contains one entry per unresolved placeholder.
         """
         # Strip legend header if present
-        text = _LEGEND_RE.sub("", content).lstrip()
+        text = LEGEND_PATTERN.sub("", content).lstrip()
 
         warnings: list[str] = []
         resolved: set[str] = set()
@@ -62,6 +57,10 @@ class DeAnonymizer:
             warnings.append(f"Placeholder not found in mapping DB: {ph}")
 
         return restored, warnings
+
+    def resolve_placeholder(self, placeholder: str) -> str | None:
+        """Return the original value for a placeholder token, or None if not found."""
+        return self._mapping_service.resolve_placeholder(placeholder)
 
     def find_placeholders(self, content: str) -> list[str]:
         """Return all placeholder tokens found in the text (in order, no dedup)."""
