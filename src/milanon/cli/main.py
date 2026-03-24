@@ -328,7 +328,12 @@ def db_stats() -> None:
 
 @cli.command()
 @click.option("--unit", "unit_name", default=None, help='Your unit, e.g. "Inf Kp 56/1".')
-@click.option("--output", "output_path", default="CONTEXT.md", help="Output file path.")
+@click.option(
+    "--output", "output_path", default="CONTEXT.md",
+    help='Output file path (default: CONTEXT.md in working directory). '
+         'Use --output to place it next to your anonymized files, e.g. '
+         '"--output test_output/CONTEXT.md".',
+)
 def context(unit_name: str | None, output_path: str) -> None:
     """Generate an LLM context file with unit hierarchy and placeholder mapping."""
     from milanon.usecases.generate_context import GenerateContextUseCase

@@ -142,6 +142,26 @@ class TestUnitDetection:
         entities = _entities_of_type(recognizer, "Seite 3 von 56", EntityType.EINHEIT)
         assert len(entities) == 0
 
+    def test_unit_with_newline_normalized(self, recognizer):
+        # PDF line-breaks inside unit names must be collapsed to a single space
+        entities = _entities_of_type(recognizer, "Einheit: Inf\nBat 56", EntityType.EINHEIT)
+        assert len(entities) == 1
+        assert entities[0].original_value == "Inf Bat 56"
+
+    def test_unit_with_newline_in_sub_unit_normalized(self, recognizer):
+        entities = _entities_of_type(recognizer, "Inf Kp\n56/3", EntityType.EINHEIT)
+        assert len(entities) == 1
+        assert entities[0].original_value == "Inf Kp 56/3"
+
+    def test_single_word_ter_not_detected_as_einheit(self, recognizer):
+        # "Ter" alone is a fragment — must not produce an EINHEIT entity
+        entities = _entities_of_type(recognizer, "Ter", EntityType.EINHEIT)
+        assert len(entities) == 0
+
+    def test_single_word_inf_not_detected_as_einheit(self, recognizer):
+        entities = _entities_of_type(recognizer, "Inf", EntityType.EINHEIT)
+        assert len(entities) == 0
+
 
 class TestFunctionDetection:
     def test_kdt_detected(self, recognizer):

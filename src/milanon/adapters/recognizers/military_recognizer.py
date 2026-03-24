@@ -98,14 +98,21 @@ class MilitaryRecognizer:
     # ------------------------------------------------------------------
 
     def _detect_units(self, text: str) -> list[DetectedEntity]:
-        """Detect unit designations like 'Inf Bat 56', 'Inf Kp 56/1', 'Ter Div 2'."""
+        """Detect unit designations like 'Inf Bat 56', 'Inf Kp 56/1', 'Ter Div 2'.
+
+        Normalizes matched values (collapses newlines/whitespace) and skips
+        single-word fragments (e.g. bare "Ter" or "Inf") that are not units.
+        """
         entities: list[DetectedEntity] = []
         for pattern in (UNIT_PATTERN, TER_DIV_PATTERN):
             for match in pattern.finditer(text):
+                normalized = re.sub(r"\s+", " ", match.group(0).strip())
+                if len(normalized.split()) < 2:
+                    continue
                 entities.append(
                     DetectedEntity(
                         entity_type=EntityType.EINHEIT,
-                        original_value=match.group(0),
+                        original_value=normalized,
                         start_offset=match.start(),
                         end_offset=match.end(),
                         confidence=1.0,

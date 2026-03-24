@@ -55,6 +55,18 @@ class TestGetOrCreatePlaceholder:
         second = service.get_or_create_placeholder(EntityType.PERSON, "  Hans Muster  ")
         assert first == second
 
+    def test_mapping_service_normalizes_internal_whitespace(self, service: MappingService):
+        # Newline inside value (PDF line-break) must map to same placeholder as space version
+        first = service.get_or_create_placeholder(EntityType.EINHEIT, "Inf Bat 56")
+        second = service.get_or_create_placeholder(EntityType.EINHEIT, "Inf\nBat 56")
+        assert first == second
+
+    def test_duplicate_einheit_not_created(self, service: MappingService):
+        # Multiple-space variant must not produce a second mapping
+        first = service.get_or_create_placeholder(EntityType.EINHEIT, "Inf Bat 56")
+        second = service.get_or_create_placeholder(EntityType.EINHEIT, "Inf  Bat  56")
+        assert first == second
+
 
 class TestResolvePlaceholder:
     def test_resolve_existing_placeholder(self, service: MappingService):

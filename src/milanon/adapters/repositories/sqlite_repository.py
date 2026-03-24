@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -83,8 +84,12 @@ CREATE INDEX IF NOT EXISTS idx_tracking_path
 
 
 def _normalize(value: str) -> str:
-    """Normalize a value for case-insensitive matching."""
-    return value.strip().lower()
+    """Normalize a value for case-insensitive, whitespace-insensitive matching.
+
+    Collapses all internal whitespace (newlines, tabs, multiple spaces) to a
+    single space so that 'Inf\\nBat 56' and 'Inf Bat 56' map to the same entry.
+    """
+    return re.sub(r"\s+", " ", value.strip()).lower()
 
 
 def _now_iso() -> str:
