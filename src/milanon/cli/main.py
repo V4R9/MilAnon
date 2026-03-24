@@ -404,15 +404,21 @@ def context(unit_name: str | None, output_path: str) -> None:
 @cli.command()
 @click.argument("input_path", type=click.Path(exists=True))
 @click.option("--template", "-t", "template_name", default="frei", help="Template name (frei, obsidian-notes, befehl-entwurf, analyse).")
+@click.option("--workflow", default=None, help="Workflow name: analyse, ei-bf, wachtdienst, bdl, entschluss.")
+@click.option("--mode", default=None, help="Mode: berrm or adf (default from config or 'berrm').")
+@click.option("--step", default=None, type=int, help="5+2 step number (1-5).")
 @click.option("--unit", "user_unit", default="", help='Your unit, e.g. "Inf Kp 56/1".')
 @click.option("--prompt", "user_prompt", default="", help="Custom prompt text (used with template 'frei').")
-@click.option("--context", "context_path", default=None, type=click.Path(), help="Path to CONTEXT.md (auto-detected if omitted).")
+@click.option("--context", "context_path", default=None, type=click.Path(), help="Path to CONTEXT.md or previous step outputs.")
 @click.option("--output", "-o", "output_path", default=None, type=click.Path(), help="Write pack to this file in addition to clipboard.")
 @click.option("--no-clipboard", is_flag=True, help="Do not copy to clipboard.")
 @click.option("--list-templates", "list_templates_flag", is_flag=True, help="Show available templates and exit.")
 def pack(
     input_path: str,
     template_name: str,
+    workflow: str | None,
+    mode: str | None,
+    step: int | None,
     user_unit: str,
     user_prompt: str,
     context_path: str | None,
@@ -433,21 +439,48 @@ def pack(
         return
 
     repo = _make_repo()
-    use_case = PackUseCase(repo)
 
-    try:
-        _, result = use_case.execute(
-            Path(input_path),
-            template_name=template_name,
-            user_prompt=user_prompt,
-            user_unit=user_unit,
-            context_path=Path(context_path) if context_path else None,
-            output_path=Path(output_path) if output_path else None,
-            copy_clipboard=not no_clipboard,
-        )
-    except ValueError as exc:
-        click.echo(f"Error: {exc}", err=True)
-        sys.exit(1)
+    if workflow:
+        # Workflow mode — use WorkflowPackUseCase (5-layer doctrine-aware prompts)
+        from milanon.usecases.generate_context import GenerateContextUseCase
+        from milanon.usecases.workflow_pack import WorkflowPackUseCase
+
+        ctx_gen = GenerateContextUseCase(repo)
+        use_case = WorkflowPackUseCase(repo, ctx_gen)
+
+        resolved_mode = mode or _get_config_value("mode") or "berrm"
+
+        try:
+            _, result = use_case.execute(
+                workflow=workflow,
+                mode=resolved_mode,
+                step=step,
+                input_path=Path(input_path),
+                unit=user_unit,
+                context_path=Path(context_path) if context_path else None,
+                output_path=Path(output_path) if output_path else None,
+                copy_clipboard=not no_clipboard,
+            )
+        except ValueError as exc:
+            click.echo(f"Error: {exc}", err=True)
+            sys.exit(1)
+    else:
+        # Classic mode — use PackUseCase (backward compatible)
+        use_case = PackUseCase(repo)
+
+        try:
+            _, result = use_case.execute(
+                Path(input_path),
+                template_name=template_name,
+                user_prompt=user_prompt,
+                user_unit=user_unit,
+                context_path=Path(context_path) if context_path else None,
+                output_path=Path(output_path) if output_path else None,
+                copy_clipboard=not no_clipboard,
+            )
+        except ValueError as exc:
+            click.echo(f"Error: {exc}", err=True)
+            sys.exit(1)
 
     click.echo(click.style(f"Template:    {result.template_used}", fg="cyan"))
     click.echo(click.style(f"Context:     {'yes' if result.context_included else 'no'}", fg="cyan"))
@@ -569,6 +602,112 @@ def review(input_path: str, auto_add: bool, dry_run: bool) -> None:
         count = use_case.add_confirmed_candidates(confirmed)
         click.echo(click.style(f"Added {count} new entities to database.", fg="green", bold=True))
 
+
+# ---------------------------------------------------------------------------
+# doctrine command group (wired from doctrine_commands.py)
+# ---------------------------------------------------------------------------
+
+from milanon.cli.doctrine_commands import doctrine  # noqa: E402
+
+cli.add_command(doctrine)
+
+
+# ---------------------------------------------------------------------------
+# export command
+# ---------------------------------------------------------------------------
+
+@cli.command()
+@click.argument("input_path", type=click.Path(exists=True))
+@click.option("--docx", is_flag=True, help="Export as DOCX.")
+@click.option("--template", "template_path", default=None, type=click.Path(), help="DOCX template file (default: bundled befehl_vorlage.docx).")
+@click.option("--deanonymize", is_flag=True, help="Replace placeholders with real values.")
+@click.option("--output", "-o", default=None, type=click.Path(), help="Output file path.")
+def export(input_path: str, docx: bool, template_path: str | None, deanonymize: bool, output: str | None) -> None:
+    """Export Markdown to DOCX with optional de-anonymization."""
+    if not docx:
+        click.echo("Error: specify --docx for export format.", err=True)
+        sys.exit(1)
+
+    from milanon.adapters.writers.docx_befehl_writer import DocxBefehlWriter
+    from milanon.usecases.export_docx import ExportDocxUseCase
+
+    repo = _make_repo()
+    writer = DocxBefehlWriter()
+    use_case = ExportDocxUseCase(repo, writer)
+
+    in_path = Path(input_path)
+    tpl_path = Path(template_path) if template_path else _DATA_DIR / "templates" / "docx" / "befehl_vorlage.docx"
+    out_path = Path(output) if output else in_path.with_suffix(".docx")
+
+    if not tpl_path.exists():
+        click.echo(f"Template not found: {tpl_path}", err=True)
+        sys.exit(1)
+
+    result_path = use_case.execute(in_path, out_path, tpl_path, deanonymize=deanonymize)
+    click.echo(f"Exported: {result_path}")
+    if deanonymize:
+        click.echo("De-anonymization applied.")
+
+
+# ---------------------------------------------------------------------------
+# config command group
+# ---------------------------------------------------------------------------
+
+_CONFIG_PATH = Path.home() / ".milanon" / "config.json"
+
+
+def _load_config() -> dict:
+    """Load project config from ~/.milanon/config.json."""
+    import json
+
+    if _CONFIG_PATH.exists():
+        return json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
+    return {}
+
+
+def _save_config(data: dict) -> None:
+    """Save project config to ~/.milanon/config.json."""
+    import json
+
+    _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _CONFIG_PATH.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def _get_config_value(key: str) -> str | None:
+    """Get a single config value by key."""
+    return _load_config().get(key)
+
+
+@cli.group()
+def config() -> None:
+    """Manage project configuration."""
+
+
+@config.command("set")
+@click.argument("key")
+@click.argument("value")
+def config_set(key: str, value: str) -> None:
+    """Set a config value (e.g. mode, unit)."""
+    data = _load_config()
+    data[key] = value
+    _save_config(data)
+    click.echo(f"{key} = {value}")
+
+
+@config.command("get")
+@click.argument("key")
+def config_get(key: str) -> None:
+    """Get a config value."""
+    value = _get_config_value(key)
+    if value is None:
+        click.echo(f"{key}: (not set)")
+    else:
+        click.echo(f"{key} = {value}")
+
+
+# ---------------------------------------------------------------------------
+# gui command
+# ---------------------------------------------------------------------------
 
 @cli.command()
 @click.option("--port", default=8501, help="Port to run the Streamlit server on.")
