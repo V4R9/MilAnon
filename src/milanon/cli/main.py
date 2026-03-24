@@ -97,6 +97,7 @@ def anonymize(
         recursive=recursive,
         force=force,
         dry_run=dry_run,
+        embed_images=embed_images,
     )
 
     mode = "[dry-run] " if dry_run else ""
@@ -108,11 +109,17 @@ def anonymize(
     click.echo(f"{mode}Entities:  {result.entities_found}")
 
     if result.visual_page_count > 0:
-        click.echo(
-            f"⚠ {result.visual_page_count} visual page(s) detected (WAP/schedules — "
-            "not extractable as text). Use --embed-images to include as PNG.",
-            err=True,
-        )
+        if embed_images:
+            click.echo(
+                f"⚠ {result.visual_page_count} visual page(s) embedded as PNG images (NOT anonymized).",
+                err=True,
+            )
+        else:
+            click.echo(
+                f"⚠ {result.visual_page_count} visual page(s) detected (WAP/schedules — "
+                "not extractable as text). Use --embed-images to include as PNG.",
+                err=True,
+            )
 
     for warning in result.warnings:
         click.echo(f"  WARNING: {warning}", err=True)

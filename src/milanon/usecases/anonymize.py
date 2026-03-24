@@ -7,6 +7,18 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# Marker text inserted by PdfParser for visual/WAP pages (must match pdf_parser._VISUAL_PAGE_MARKER)
+_VISUAL_SKIP_MARKER = (
+    "\n\n⚠ **Page {page_num}: Visual layout (WAP/schedule) — "
+    "not extractable as text. See original PDF.**\n\n"
+)
+_VISUAL_EMBED_MARKER = (
+    "\n\n⚠ **Page {page_num}: Visual layout (WAP/schedule) — "
+    "embedded as image. NOT ANONYMIZED.**\n\n"
+    "![Page {page_num}]({png_name})\n\n"
+)
+_EMBED_DPI = 200
+
 from milanon.adapters.parsers import get_parser
 from milanon.adapters.writers.csv_writer import CsvWriter
 from milanon.adapters.writers.docx_writer import DocxWriter
@@ -51,6 +63,51 @@ def _output_path(source: Path, input_root: Path, output_dir: Path, ext: str) -> 
     return output_dir / rel.with_suffix(ext)
 
 
+def _embed_visual_pages(source_pdf: Path, visual_pages: list[int], out_md: Path) -> None:
+    """Rasterize visual PDF pages and replace their skip markers with image embeds.
+
+    For each page number in visual_pages:
+    - Converts the page to a PNG at 200 DPI next to out_md.
+    - Replaces the ⚠ skip marker in out_md with an image embed marker.
+
+    Silently skips pages that fail to rasterize (e.g. poppler not installed).
+    """
+    try:
+        import pdf2image as _pdf2image
+    except ImportError:
+        logger.warning("pdf2image not installed — cannot embed visual pages as images")
+        return
+
+    content = out_md.read_text(encoding="utf-8")
+    changed = False
+
+    for page_num in visual_pages:
+        png_name = f"{out_md.stem}_page_{page_num}.png"
+        png_path = out_md.parent / png_name
+        try:
+            images = _pdf2image.convert_from_path(
+                str(source_pdf),
+                first_page=page_num,
+                last_page=page_num,
+                dpi=_EMBED_DPI,
+            )
+            if images:
+                images[0].save(str(png_path))
+                logger.info("Embedded page %d as %s", page_num, png_name)
+        except Exception as exc:
+            logger.warning("Could not rasterize page %d of %s: %s", page_num, source_pdf.name, exc)
+            continue
+
+        skip = _VISUAL_SKIP_MARKER.format(page_num=page_num)
+        embed = _VISUAL_EMBED_MARKER.format(page_num=page_num, png_name=png_name)
+        if skip in content:
+            content = content.replace(skip, embed)
+            changed = True
+
+    if changed:
+        out_md.write_text(content, encoding="utf-8")
+
+
 class AnonymizeUseCase:
     """Anonymizes all supported documents in a directory (incremental by default).
 
@@ -74,6 +131,7 @@ class AnonymizeUseCase:
         recursive: bool = False,
         force: bool = False,
         dry_run: bool = False,
+        embed_images: bool = False,
     ) -> AnonymizeResult:
         """Anonymize documents in input_path.
 
@@ -105,7 +163,7 @@ class AnonymizeUseCase:
         for file_path in files:
             try:
                 self._process_file(
-                    file_path, input_root, output_dir, force, dry_run, result
+                    file_path, input_root, output_dir, force, dry_run, embed_images, result
                 )
             except Exception as exc:
                 logger.error("Error processing %s: %s", file_path, exc)
@@ -121,6 +179,7 @@ class AnonymizeUseCase:
         output_dir: Path,
         force: bool,
         dry_run: bool,
+        embed_images: bool,
         result: AnonymizeResult,
     ) -> None:
         current_hash = _sha256(file_path)
@@ -167,6 +226,10 @@ class AnonymizeUseCase:
         ext = writer.default_extension()
         out_path = _output_path(file_path, input_root, output_dir, ext)
         writer.write(anon_doc, out_path)
+
+        # Embed visual pages as PNG if requested (PDFs only)
+        if embed_images and getattr(document, "visual_pages", []):
+            _embed_visual_pages(file_path, document.visual_pages, out_path)
 
         # Track
         self._repository.upsert_file_tracking(

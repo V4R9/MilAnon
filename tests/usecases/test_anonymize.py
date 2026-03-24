@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -13,7 +14,7 @@ from milanon.adapters.repositories.sqlite_repository import SqliteMappingReposit
 from milanon.domain.anonymizer import Anonymizer
 from milanon.domain.mapping_service import MappingService
 from milanon.domain.recognition import RecognitionPipeline
-from milanon.usecases.anonymize import AnonymizeUseCase
+from milanon.usecases.anonymize import AnonymizeUseCase, _embed_visual_pages
 
 
 @pytest.fixture
@@ -101,6 +102,69 @@ class TestIncrementalProcessing:
         out_dir = tmp_path / "out"
         use_case.execute(src, out_dir, dry_run=True)
         assert not any(out_dir.rglob("*"))
+
+
+class TestEmbedVisualPages:
+    """Unit tests for _embed_visual_pages — mocks convert_from_path to avoid poppler dep."""
+
+    def _write_md_with_marker(self, path: Path, page_num: int) -> Path:
+        marker = (
+            f"\n\n⚠ **Page {page_num}: Visual layout (WAP/schedule) — "
+            f"not extractable as text. See original PDF.**\n\n"
+        )
+        path.write_text(f"# Doc\n{marker}End.", encoding="utf-8")
+        return path
+
+    def test_embed_creates_png_file(self, tmp_path):
+        md = self._write_md_with_marker(tmp_path / "doc.md", 3)
+        fake_image = MagicMock()
+        with patch("pdf2image.convert_from_path", return_value=[fake_image]):
+            _embed_visual_pages(tmp_path / "source.pdf", [3], md)
+        fake_image.save.assert_called_once_with(str(tmp_path / "doc_page_3.png"))
+
+    def test_embed_replaces_skip_marker_with_image_embed(self, tmp_path):
+        md = self._write_md_with_marker(tmp_path / "doc.md", 3)
+        fake_image = MagicMock()
+        with patch("pdf2image.convert_from_path", return_value=[fake_image]):
+            _embed_visual_pages(tmp_path / "source.pdf", [3], md)
+        content = md.read_text(encoding="utf-8")
+        assert "not extractable as text" not in content
+        assert "embedded as image. NOT ANONYMIZED." in content
+        assert "![Page 3](doc_page_3.png)" in content
+
+    def test_embed_handles_multiple_visual_pages(self, tmp_path):
+        content = (
+            "\n\n⚠ **Page 2: Visual layout (WAP/schedule) — "
+            "not extractable as text. See original PDF.**\n\n"
+            "\n\n⚠ **Page 5: Visual layout (WAP/schedule) — "
+            "not extractable as text. See original PDF.**\n\n"
+        )
+        md = tmp_path / "doc.md"
+        md.write_text(content, encoding="utf-8")
+        fake_image = MagicMock()
+        with patch("pdf2image.convert_from_path", return_value=[fake_image]):
+            _embed_visual_pages(tmp_path / "source.pdf", [2, 5], md)
+        result = md.read_text(encoding="utf-8")
+        assert "![Page 2](doc_page_2.png)" in result
+        assert "![Page 5](doc_page_5.png)" in result
+
+    def test_embed_skips_page_when_rasterization_fails(self, tmp_path):
+        md = self._write_md_with_marker(tmp_path / "doc.md", 3)
+        with patch(
+            "pdf2image.convert_from_path", side_effect=Exception("poppler missing")
+        ):
+            _embed_visual_pages(tmp_path / "source.pdf", [3], md)
+        # Marker should remain unchanged — no crash
+        content = md.read_text(encoding="utf-8")
+        assert "not extractable as text" in content
+
+    def test_no_embed_when_embed_images_false(self, use_case, tmp_path):
+        # When embed_images=False, use case should NOT call convert_from_path
+        src = _write(tmp_path / "in" / "data.csv", "AHV\n756.1234.5678.97\n")
+        out_dir = tmp_path / "out"
+        with patch("pdf2image.convert_from_path") as mock_conv:
+            use_case.execute(src, out_dir, embed_images=False)
+        mock_conv.assert_not_called()
 
 
 class TestDirectoryProcessing:
