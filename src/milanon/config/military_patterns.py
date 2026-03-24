@@ -6,7 +6,9 @@ All patterns are compiled once at import time.
 
 from __future__ import annotations
 
+import csv
 import re
+from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Structured PII patterns — used by PatternRecognizer
@@ -52,10 +54,10 @@ ADRESSE_PATTERN: re.Pattern[str] = re.compile(
 )
 
 # ---------------------------------------------------------------------------
-# Military domain — rank abbreviations (longest-first to avoid partial matches)
+# Hardcoded fallback lists — used when CSV is unavailable
 # ---------------------------------------------------------------------------
 
-RANK_ABBREVIATIONS: list[str] = [
+_FALLBACK_RANKS: list[str] = [
     "Oberstlt i Gst",  # 3-word rank — must precede "Oberstlt"
     "Adj Uof",         # 2-word rank — must precede "Adj"
     "Adj",             # standalone — must follow "Adj Uof" (longest match first)
@@ -84,11 +86,7 @@ RANK_ABBREVIATIONS: list[str] = [
     "Lt",
 ]
 
-# ---------------------------------------------------------------------------
-# Military domain — function abbreviations (longest-first)
-# ---------------------------------------------------------------------------
-
-FUNCTION_ABBREVIATIONS: list[str] = [
+_FALLBACK_FUNCTIONS: list[str] = [
     "Bat Kdt Stv",
     "Einh Kdt",
     "Einh Fw",
@@ -101,11 +99,7 @@ FUNCTION_ABBREVIATIONS: list[str] = [
     "Kdt",
 ]
 
-# ---------------------------------------------------------------------------
-# Military domain — branch abbreviations (Truppengattungen)
-# ---------------------------------------------------------------------------
-
-BRANCH_ABBREVIATIONS: list[str] = [
+_FALLBACK_BRANCHES: list[str] = [
     "ABC Abw",
     "Mil Sich",
     "Mil ND",
@@ -121,6 +115,60 @@ BRANCH_ABBREVIATIONS: list[str] = [
     "AS",
     "G",
 ]
+
+# ---------------------------------------------------------------------------
+# CSV loader — reads rank/branch/function lists from military_units.csv
+# ---------------------------------------------------------------------------
+
+_DATA_DIR = Path(__file__).parent.parent.parent.parent / "data"
+_MILITARY_UNITS_CSV = _DATA_DIR / "military_units.csv"
+
+
+def _load_abbreviations_from_csv() -> tuple[list[str], list[str], list[str]]:
+    """Load rank, branch, function abbreviation lists from military_units.csv.
+
+    Returns (ranks, branches, functions) — each sorted longest-first
+    to ensure longest-match-first behavior in regex compilation.
+    Falls back to hardcoded defaults if CSV is not found.
+    """
+    ranks: list[str] = []
+    functions: list[str] = []
+    branches: list[str] = []
+
+    if not _MILITARY_UNITS_CSV.exists():
+        return _FALLBACK_RANKS, _FALLBACK_BRANCHES, _FALLBACK_FUNCTIONS
+
+    with _MILITARY_UNITS_CSV.open(encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            row_type = row.get("type", "").strip()
+            abbrev = row.get("abbreviation", "").strip()
+            if not abbrev:
+                continue
+            if row_type == "rank":
+                ranks.append(abbrev)
+            elif row_type == "function":
+                functions.append(abbrev)
+            elif row_type == "branch":
+                branches.append(abbrev)
+
+    # Sort longest-first for regex (avoids "Adj" matching before "Adj Uof")
+    ranks.sort(key=len, reverse=True)
+    functions.sort(key=len, reverse=True)
+    branches.sort(key=len, reverse=True)
+
+    # Fall back if CSV was empty or malformed
+    if not ranks:
+        return _FALLBACK_RANKS, _FALLBACK_BRANCHES, _FALLBACK_FUNCTIONS
+
+    return ranks, branches, functions
+
+
+# ---------------------------------------------------------------------------
+# Military domain — load from CSV (falls back to hardcoded if CSV missing)
+# ---------------------------------------------------------------------------
+
+RANK_ABBREVIATIONS, BRANCH_ABBREVIATIONS, FUNCTION_ABBREVIATIONS = _load_abbreviations_from_csv()
 
 # ---------------------------------------------------------------------------
 # Compiled unit-designation pattern
