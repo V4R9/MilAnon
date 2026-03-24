@@ -1,0 +1,20 @@
+From: sender@example.com
+To: recipient@example.com
+Subject: Mail mit Anhang
+Date: Mon, 23 Mar 2026 12:00:00 +0100
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="----=_boundary_attach"
+
+------=_boundary_attach
+Content-Type: text/plain; charset=utf-8
+
+Bitte finden Sie im Anhang die angeforderten Dokumente.
+
+------=_boundary_attach
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="dossier.pdf"
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQKdGVzdA==
+
+------=_boundary_attach--

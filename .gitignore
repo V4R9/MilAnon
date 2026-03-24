@@ -1,0 +1,122 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# mypy / pytype / pyre
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# pdm / poetry
+.pdm.toml
+__pypackages__/
+
+# ============================================
+# PROJECT-SPECIFIC: MilAnon
+# ============================================
+
+# CRITICAL: Never commit the mapping database — it contains PII
+*.db
+*.sqlite
+*.sqlite3
+mapping_db/
+~/.milanon/
+
+# Never commit real documents used for testing
+test_documents/
+test_output/
+input/
+output/
+
+# Never commit EML files or any mail exports
+*.eml
+*.msg
+
+# Allow synthetic test fixtures (no real PII)
+!tests/e2e/fixtures/*.eml
+
+# Never commit MilOffice / PISA exports
+miloffice_export*.csv
+miloffice_export*.xlsx
+aw_106f_*.csv
+
+# Never commit anonymized output
+*.anon.md
+demo_output/
+demo_anon/
+
+# Claude Code (local context files — not needed by collaborators)
+.claude/
+CLAUDE.md
+
+# OS files
+.DS_Store
+Thumbs.db

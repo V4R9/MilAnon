@@ -1,0 +1,19 @@
+From: sender@example.com
+To: recipient@example.com
+Subject: Multipart Test
+Date: Mon, 23 Mar 2026 10:00:00 +0100
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="----=_boundary_001"
+
+------=_boundary_001
+Content-Type: text/plain; charset=utf-8
+
+Plaintext body content here.
+This is the preferred part for entity extraction.
+
+------=_boundary_001
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>HTML body content here. This should not appear as HTML.</p></body></html>
+
+------=_boundary_001--
