@@ -49,7 +49,9 @@ class AnonymizeResult:
     files_changed: int = 0
     files_skipped: int = 0
     files_error: int = 0
+    files_cleaned: int = 0
     entities_found: int = 0
+    entities_total: int = 0
     visual_page_count: int = 0
     warnings: list[str] = field(default_factory=list)
 
@@ -132,6 +134,7 @@ class AnonymizeUseCase:
         force: bool = False,
         dry_run: bool = False,
         embed_images: bool = False,
+        clean: bool = False,
     ) -> AnonymizeResult:
         """Anonymize documents in input_path.
 
@@ -142,6 +145,7 @@ class AnonymizeUseCase:
             force: If True, reprocess all files regardless of hash.
             dry_run: If True, report what would be done without writing.
             embed_images: If True, rasterize visual PDF pages and embed as PNG.
+            clean: If True, remove output files with no corresponding input file.
 
         Returns:
             AnonymizeResult with processing statistics.
@@ -170,6 +174,24 @@ class AnonymizeUseCase:
                 result.files_error += 1
                 result.warnings.append(f"{file_path.name}: {exc}")
 
+        # B-019: Remove orphaned output files
+        if clean and not dry_run:
+            result.files_cleaned = self._clean_orphaned_outputs(
+                input_path, output_dir, files, input_root
+            )
+
+        # B-020: Total entity count across all tracked files
+        try:
+            tracked_counts = []
+            for f in files:
+                rel_path = str(f.relative_to(input_root))
+                tracking = self._repository.get_file_tracking(rel_path, "anonymize")
+                if tracking:
+                    tracked_counts.append(tracking.get("entity_count", 0))
+            result.entities_total = sum(tracked_counts)
+        except Exception:
+            result.entities_total = result.entities_found
+
         return result
 
     def _process_file(
@@ -188,6 +210,27 @@ class AnonymizeUseCase:
             if tracking and tracking["content_hash"] == current_hash:
                 result.files_skipped += 1
                 logger.info("Skipping %s (unchanged)", file_path.name)
+                return
+
+            # B-021: Renamed file detection — same hash, different path
+            existing_by_hash = self._find_tracking_by_hash(current_hash, "anonymize")
+            if existing_by_hash and existing_by_hash["file_path"] != rel_path:
+                logger.info(
+                    "Detected renamed file: %s → %s (same content hash)",
+                    existing_by_hash["file_path"],
+                    rel_path,
+                )
+                # TECH DEBT: Accesses repository._conn directly. Should be a proper
+                # repository method (get_tracking_by_hash). Deferred to avoid parallel
+                # session conflict. See Code Review.
+                self._repository.upsert_file_tracking(
+                    rel_path,
+                    current_hash,
+                    "anonymize",
+                    output_path=existing_by_hash.get("output_path", ""),
+                    entity_count=existing_by_hash.get("entity_count", 0),
+                )
+                result.files_skipped += 1
                 return
 
         is_new = self._repository.get_file_tracking(rel_path, "anonymize") is None
@@ -244,3 +287,70 @@ class AnonymizeUseCase:
             out_path.name,
             len(entities),
         )
+
+    def _find_tracking_by_hash(self, content_hash: str, operation: str) -> dict | None:
+        """Find a file tracking record by content hash (for rename detection).
+
+        Returns the first matching record dict, or None.
+        """
+        try:
+            # TECH DEBT: Accesses repository._conn directly. Should be a proper
+            # repository method (get_tracking_by_hash). Deferred to avoid parallel
+            # session conflict. See Code Review.
+            conn = self._repository._conn
+            row = conn.execute(
+                "SELECT * FROM file_tracking WHERE content_hash = ? AND operation = ? LIMIT 1",
+                (content_hash, operation),
+            ).fetchone()
+            return dict(row) if row else None
+        except Exception:
+            return None
+
+    def _clean_orphaned_outputs(
+        self,
+        input_path: Path,
+        output_dir: Path,
+        processed_files: list[Path],
+        input_root: Path,
+    ) -> int:
+        """Remove output files that no longer have a corresponding input file.
+
+        Compares output directory contents against input file list.
+        Only removes files with extensions that MilAnon produces (.md, .eml, .csv, .docx, .txt).
+        Returns count of removed files.
+        """
+        if not output_dir.exists():
+            return 0
+
+        _ext_map = {
+            ".eml": ".eml",
+            ".pdf": ".md",
+            ".docx": ".docx",
+            ".xlsx": ".csv",
+            ".csv": ".csv",
+            ".md": ".md",
+            ".txt": ".txt",
+        }
+
+        expected_outputs: set[str] = set()
+        for f in processed_files:
+            rel = f.relative_to(input_root)
+            out_ext = _ext_map.get(f.suffix.lower(), ".md")
+            expected_outputs.add(str(rel.with_suffix(out_ext)))
+
+        _output_extensions = {".md", ".eml", ".csv", ".docx", ".txt"}
+        removed = 0
+        for out_file in output_dir.glob("**/*"):
+            if not out_file.is_file():
+                continue
+            if out_file.suffix.lower() not in _output_extensions:
+                continue
+            if out_file.name == "CONTEXT.md":
+                continue
+            rel_out = str(out_file.relative_to(output_dir))
+            if rel_out not in expected_outputs:
+                out_file.unlink()
+                logger.info("Cleaned orphaned output: %s", rel_out)
+                removed += 1
+
+        return removed

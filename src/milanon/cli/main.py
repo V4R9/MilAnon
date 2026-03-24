@@ -82,9 +82,10 @@ def cli() -> None:
     is_flag=True,
     help="Embed visual PDF pages (WAP/schedules) as PNG images in the output (NOT anonymized).",
 )
+@click.option("--clean", is_flag=True, help="Remove output files that no longer have a corresponding input file.")
 def anonymize(
     input_path: str, output: str, recursive: bool, force: bool, dry_run: bool,
-    embed_images: bool,
+    embed_images: bool, clean: bool,
 ) -> None:
     """Anonymize documents by replacing sensitive entities with placeholders."""
     logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -98,6 +99,7 @@ def anonymize(
         force=force,
         dry_run=dry_run,
         embed_images=embed_images,
+        clean=clean,
     )
 
     mode = "[dry-run] " if dry_run else ""
@@ -110,6 +112,10 @@ def anonymize(
     else:
         click.echo(click.style(f"{mode}Errors:    {result.files_error}", fg="green"))
     click.echo(click.style(f"{mode}Entities:  {result.entities_found}", fg="cyan", bold=True))
+    if result.entities_total > result.entities_found:
+        click.echo(click.style(f"{mode}Total:     {result.entities_total} (across all tracked files)", fg="cyan"))
+    if result.files_cleaned > 0:
+        click.echo(click.style(f"{mode}Cleaned:   {result.files_cleaned} orphaned output(s)", fg="yellow"))
 
     if result.visual_page_count > 0:
         if embed_images:

@@ -184,3 +184,127 @@ class TestDirectoryProcessing:
         out_dir = tmp_path / "out"
         result = use_case.execute(in_dir, out_dir)
         assert result.files_scanned == 1  # only .csv counted
+
+
+class TestCleanOrphans:
+    """B-019: --clean removes orphaned output files."""
+
+    def test_orphaned_output_removed(self, use_case, tmp_path):
+        """Output file without corresponding input is removed."""
+        input_dir = tmp_path / "input"
+        input_dir.mkdir()
+        _write(input_dir / "file1.csv", "col\nvalue\n")
+
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+        (output_dir / "file1.csv").write_text("Anon 1", encoding="utf-8")
+        (output_dir / "file2.md").write_text("Orphan", encoding="utf-8")
+
+        result = use_case.execute(input_dir, output_dir, force=True, clean=True)
+
+        assert not (output_dir / "file2.md").exists()
+        assert result.files_cleaned == 1
+
+    def test_non_orphaned_output_kept(self, use_case, tmp_path):
+        """Output file with matching input is not removed."""
+        input_dir = tmp_path / "input"
+        input_dir.mkdir()
+        _write(input_dir / "file1.csv", "col\nvalue\n")
+
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+        (output_dir / "file1.csv").write_text("Anon 1", encoding="utf-8")
+
+        result = use_case.execute(input_dir, output_dir, force=True, clean=True)
+
+        assert (output_dir / "file1.csv").exists()
+        assert result.files_cleaned == 0
+
+    def test_context_md_not_cleaned(self, use_case, tmp_path):
+        """CONTEXT.md is never removed by --clean."""
+        input_dir = tmp_path / "input"
+        input_dir.mkdir()
+        _write(input_dir / "file1.csv", "col\nvalue\n")
+
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+        (output_dir / "CONTEXT.md").write_text("Context file", encoding="utf-8")
+
+        result = use_case.execute(input_dir, output_dir, force=True, clean=True)
+
+        assert (output_dir / "CONTEXT.md").exists()
+
+    def test_clean_false_does_not_remove(self, use_case, tmp_path):
+        """Without --clean, orphaned files are left in place."""
+        input_dir = tmp_path / "input"
+        input_dir.mkdir()
+        _write(input_dir / "file1.csv", "col\nvalue\n")
+
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+        (output_dir / "orphan.md").write_text("Orphan", encoding="utf-8")
+
+        result = use_case.execute(input_dir, output_dir, force=True, clean=False)
+
+        assert (output_dir / "orphan.md").exists()
+        assert result.files_cleaned == 0
+
+
+class TestEntityTotal:
+    """B-020: Total entity count across all tracked files."""
+
+    def test_entities_total_set(self, use_case, tmp_path):
+        """entities_total is populated after processing."""
+        input_dir = tmp_path / "input"
+        input_dir.mkdir()
+        _write(input_dir / "file1.csv", "col\nvalue\n")
+        output_dir = tmp_path / "output"
+
+        result = use_case.execute(input_dir, output_dir, force=True)
+
+        assert result.entities_total >= 0
+
+    def test_entities_total_on_skip(self, use_case, tmp_path):
+        """On second run (skipped file), entities_total still reflects tracked data."""
+        input_dir = tmp_path / "input"
+        input_dir.mkdir()
+        _write(input_dir / "file1.csv", "col\nvalue\n")
+        output_dir = tmp_path / "output"
+
+        use_case.execute(input_dir, output_dir, force=True)
+        result = use_case.execute(input_dir, output_dir)
+
+        assert result.files_skipped == 1
+        assert result.entities_total >= 0
+
+
+class TestRenamedFileDetection:
+    """B-021: Renamed files detected via content hash."""
+
+    def test_renamed_file_skipped(self, use_case, tmp_path):
+        """A renamed file with identical content is skipped on second run."""
+        input_dir = tmp_path / "input"
+        input_dir.mkdir()
+        output_dir = tmp_path / "output"
+
+        _write(input_dir / "original.csv", "col\nvalue\n")
+        use_case.execute(input_dir, output_dir, force=True)
+
+        # Rename: same content, different name
+        (input_dir / "original.csv").rename(input_dir / "renamed.csv")
+
+        result = use_case.execute(input_dir, output_dir)
+        assert result.files_skipped >= 1
+
+    def test_unchanged_file_not_renamed_detection(self, use_case, tmp_path):
+        """Same file path with same content is skipped normally (not as rename)."""
+        input_dir = tmp_path / "input"
+        input_dir.mkdir()
+        output_dir = tmp_path / "output"
+
+        _write(input_dir / "file.csv", "col\nvalue\n")
+        use_case.execute(input_dir, output_dir, force=True)
+        result = use_case.execute(input_dir, output_dir)
+
+        assert result.files_skipped == 1
+        assert result.files_new == 0

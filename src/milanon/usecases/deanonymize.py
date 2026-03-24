@@ -129,6 +129,32 @@ class DeAnonymizeUseCase:
                 result.files_skipped += 1
                 return
 
+            # B-021: Renamed file detection — same hash, different path
+            try:
+                # TECH DEBT: Accesses repository._conn directly. Should be a proper
+                # repository method (get_tracking_by_hash). Deferred to avoid parallel
+                # session conflict. See Code Review.
+                conn = self._repository._conn
+                row = conn.execute(
+                    "SELECT * FROM file_tracking"
+                    " WHERE content_hash = ? AND operation = 'deanonymize' LIMIT 1",
+                    (current_hash,),
+                ).fetchone()
+                if row and row["file_path"] != rel_path:
+                    logger.info(
+                        "Detected renamed file: %s → %s",
+                        row["file_path"],
+                        rel_path,
+                    )
+                    out = row["output_path"] if "output_path" in row.keys() else ""
+                    self._repository.upsert_file_tracking(
+                        rel_path, current_hash, "deanonymize", output_path=out
+                    )
+                    result.files_skipped += 1
+                    return
+            except Exception:
+                pass  # Fall through to normal processing
+
         is_new = self._repository.get_file_tracking(rel_path, "deanonymize") is None
         if is_new:
             result.files_new += 1
