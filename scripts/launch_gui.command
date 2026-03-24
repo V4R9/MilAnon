@@ -10,11 +10,11 @@ cd /Users/sd/Documents/GitHub/Anonymizer_Tool_Army
 lsof -ti:8501 | xargs kill 2>/dev/null
 
 # Use the venv Python directly (more reliable than source activate)
-.venv/bin/python -m streamlit run src/milanon/gui/app.py --server.port 8501 &
+.venv/bin/python -m streamlit run src/milanon/gui/app.py \
+  --server.port 8501 \
+  --server.headless true \
+  --server.runOnSave true &
 
 # Wait for server to start, then open browser
 sleep 3
 open http://localhost:8501
-
-# Keep terminal open
-wait
