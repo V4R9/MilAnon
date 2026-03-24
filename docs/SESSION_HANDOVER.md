@@ -3,6 +3,8 @@
 Last updated: 2026-03-25 (Design Session: 5+2 + Doctrine + Berrm + Template + Strategy)
 Version: 0.3.0 (code unchanged this session — pure design + documentation)
 
+**ALL 10 DESIGN DECISIONS RESOLVED. READY FOR IMPLEMENTATION.**
+
 ---
 
 ## Project Status
@@ -57,12 +59,29 @@ MilAnon is a local Python CLI+GUI tool for Swiss Army unit commanders to securel
 - Prioritized: what must work Day 1, Week 1-2, and what can wait
 - Updated with Berrm paradigm context
 
-### 7. Architecture Decisions
+### 7. Architecture Decisions (5 ADRs)
 - ADR-009: 5+2 as central concept
 - ADR-010: Universal 5-Punkte-Befehl with mode markers
 - ADR-011: Local DOCX generation pipeline
 - ADR-012: 5-Layer System Prompt architecture
 - ADR-013: Doctrine chapter extraction
+
+### 8. Design Decisions Resolved (10/10)
+
+| # | Decision | Choice |
+|---|---|---|
+| D-001 | Context Window Budget | ✅ Passt (25% bei vollem Dossier, 34% kumulativ) |
+| D-002 | Kumulative Context-Kette | ✅ Passt (kein Summarization nötig) |
+| D-003 | Prompt-Sprache | Layer 1+5 English, Layer 3+4 Deutsch, Output Deutsch |
+| D-004 | Default Mode | Konfigurierbar pro Projekt via `milanon config` |
+| D-005 | Vault-Struktur | Nach Dokumenttyp: Planung/, Dossier/, Personelles/ |
+| D-006 | DOCX-Handling | Diff-Import: Änderungen erkennen + selektiv zurückspielen (P2) |
+| D-007 | User ↔ Claude | Copy-Paste Default, API später optional |
+| D-008 | Lizenz | MIT — Repo vorerst privat, bei Bedarf mit MIT öffnen |
+| D-009 | Karten im PDF | Karten sind Sache des Kdt (manuell interpretieren) |
+| D-010 | Doctrine Extracts | Semi-automatisch: Script + Human Review (~3-4h) |
+
+Full documentation: [OPEN_DECISIONS.md](OPEN_DECISIONS.md)
 
 ---
 
@@ -84,6 +103,7 @@ MilAnon is a local Python CLI+GUI tool for Swiss Army unit commanders to securel
 | `data/doctrine/skeletons/500_einsatzbefehl_berrm.md` | Berrm-specific skeleton (superseded by universal) |
 | `data/doctrine/skeletons/README.md` | Skeleton architecture + DOCX style mapping |
 | `data/doctrine/paradigmenwechsel_berrm.md` | Bereitschaftsraum paradigm reference |
+| `docs/OPEN_DECISIONS.md` | All 10 design decisions documented + 4 implicit assumptions |
 
 ### Updated Files
 | File | What changed |
