@@ -101,12 +101,15 @@ def anonymize(
     )
 
     mode = "[dry-run] " if dry_run else ""
-    click.echo(f"{mode}Scanned:   {result.files_scanned}")
-    click.echo(f"{mode}New:       {result.files_new}")
-    click.echo(f"{mode}Changed:   {result.files_changed}")
-    click.echo(f"{mode}Skipped:   {result.files_skipped}")
-    click.echo(f"{mode}Errors:    {result.files_error}")
-    click.echo(f"{mode}Entities:  {result.entities_found}")
+    click.echo(click.style(f"{mode}Scanned:   {result.files_scanned}", fg="cyan"))
+    click.echo(click.style(f"{mode}New:       {result.files_new}", fg="green"))
+    click.echo(click.style(f"{mode}Changed:   {result.files_changed}", fg="yellow"))
+    click.echo(click.style(f"{mode}Skipped:   {result.files_skipped}", fg="white"))
+    if result.files_error > 0:
+        click.echo(click.style(f"{mode}Errors:    {result.files_error}", fg="red", bold=True))
+    else:
+        click.echo(click.style(f"{mode}Errors:    {result.files_error}", fg="green"))
+    click.echo(click.style(f"{mode}Entities:  {result.entities_found}", fg="cyan", bold=True))
 
     if result.visual_page_count > 0:
         if embed_images:
@@ -147,12 +150,15 @@ def deanonymize(input_path: str, output: str, force: bool, dry_run: bool) -> Non
     )
 
     mode = "[dry-run] " if dry_run else ""
-    click.echo(f"{mode}Scanned:    {result.files_scanned}")
-    click.echo(f"{mode}New:        {result.files_new}")
-    click.echo(f"{mode}Changed:    {result.files_changed}")
-    click.echo(f"{mode}Skipped:    {result.files_skipped}")
-    click.echo(f"{mode}Errors:     {result.files_error}")
-    click.echo(f"{mode}Resolved:   {result.placeholders_resolved}")
+    click.echo(click.style(f"{mode}Scanned:    {result.files_scanned}", fg="cyan"))
+    click.echo(click.style(f"{mode}New:        {result.files_new}", fg="green"))
+    click.echo(click.style(f"{mode}Changed:    {result.files_changed}", fg="yellow"))
+    click.echo(click.style(f"{mode}Skipped:    {result.files_skipped}", fg="white"))
+    if result.files_error > 0:
+        click.echo(click.style(f"{mode}Errors:     {result.files_error}", fg="red", bold=True))
+    else:
+        click.echo(click.style(f"{mode}Errors:     {result.files_error}", fg="green"))
+    click.echo(click.style(f"{mode}Resolved:   {result.placeholders_resolved}", fg="cyan", bold=True))
 
     for warning in result.warnings:
         click.echo(f"  WARNING: {warning}", err=True)
@@ -321,6 +327,10 @@ def db_stats() -> None:
             click.echo(f"  {entity_type:<25} {count}")
     else:
         click.echo("Database is empty.")
+    click.echo("")
+    click.echo("Reference data:")
+    click.echo(f"  Municipalities:    {repo.get_ref_municipality_count()}")
+    click.echo(f"  Military units:    {repo.get_ref_military_unit_count()}")
 
 
 @cli.command()
