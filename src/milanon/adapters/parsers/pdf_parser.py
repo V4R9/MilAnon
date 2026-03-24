@@ -23,6 +23,11 @@ _OCR_LANG = "deu"
 _VISUAL_TABLE_MAX_COLS = 20
 _VISUAL_TABLE_EMPTY_THRESHOLD = 0.70
 
+# Mega-cell detection: a single cell with more characters than this threshold
+# indicates an organigramm/gliederung page where pdfplumber mashes all visual
+# boxes into one giant cell.
+_MEGA_CELL_CHAR_THRESHOLD = 500
+
 # Markers for visual/schedule pages — exported so anonymize.py can reference them.
 VISUAL_PAGE_SKIP_MARKER = (
     "\n\n⚠ **Page {page_num}: Visual layout (WAP/schedule) — "
@@ -44,6 +49,26 @@ def _tesseract_available() -> bool:
         return False
 
 
+def _remove_empty_columns(table: list[list]) -> list[list]:
+    """Remove columns that are empty (or whitespace-only) in ALL rows including header."""
+    if not table or not table[0]:
+        return table
+    num_cols = max(len(row) for row in table)
+    keep = [
+        col_idx for col_idx in range(num_cols)
+        if any(
+            col_idx < len(row) and (row[col_idx] or "").strip()
+            for row in table
+        )
+    ]
+    if len(keep) == num_cols:
+        return table
+    return [
+        [row[col_idx] if col_idx < len(row) else "" for col_idx in keep]
+        for row in table
+    ]
+
+
 def _table_to_markdown(table: list[list]) -> str:
     """Convert a pdfplumber table (list of rows) to a Markdown table string.
 
@@ -52,6 +77,7 @@ def _table_to_markdown(table: list[list]) -> str:
     """
     if not table or not table[0]:
         return ""
+    table = _remove_empty_columns(table)
     rows = [
         [(cell or "").replace("\n", " ").replace("|", "\\|").strip() for cell in row]
         for row in table
@@ -189,6 +215,19 @@ class PdfParser:
             )
             if empty_cells / total_cells > _VISUAL_TABLE_EMPTY_THRESHOLD:
                 return True
+
+        # Condition B: Mega-cell — any single cell with excessive content.
+        # Catches organigramm/gliederung pages where pdfplumber mashes
+        # all visual boxes into one giant cell.
+        for table in tables:
+            data = table.extract()
+            if not data:
+                continue
+            for row in data:
+                for cell in row:
+                    if cell and len(cell.strip()) > _MEGA_CELL_CHAR_THRESHOLD:
+                        return True
+
         return False
 
     def _extract_with_tables(self, page, tables) -> str:

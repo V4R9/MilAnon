@@ -7,9 +7,11 @@ import pytest
 
 from milanon.adapters.parsers.pdf_parser import (
     PdfParser,
+    _MEGA_CELL_CHAR_THRESHOLD,
     _OCR_CHAR_THRESHOLD,
     _VISUAL_TABLE_MAX_COLS,
     _VISUAL_TABLE_EMPTY_THRESHOLD,
+    _remove_empty_columns,
 )
 from milanon.domain.entities import DocumentFormat
 from milanon.domain.protocols import DocumentParser
@@ -328,3 +330,65 @@ class TestPdfParserVisualLayout:
             doc = pdf_parser.parse(simple_pdf_path)
 
         assert 1 in doc.visual_pages
+
+
+class TestMegaCellDetection:
+    """B-013: Mega-cell visual detection."""
+
+    class MockTable:
+        def __init__(self, data):
+            self._data = data
+            self.bbox = (0, 0, 100, 100)
+
+        def extract(self):
+            return self._data
+
+    def test_mega_cell_detected_as_visual(self):
+        """A table with a single cell >500 chars should be detected as visual."""
+        parser = PdfParser()
+        long_content = "A" * (_MEGA_CELL_CHAR_THRESHOLD + 100)
+        table = self.MockTable([["Header", "", ""], [long_content, "", ""]])
+        assert parser._is_visual_layout([table]) is True
+
+    def test_normal_table_not_mega_cell(self):
+        """A table with short cells should NOT be detected as visual."""
+        parser = PdfParser()
+        table = self.MockTable([["Name", "Rank", "Unit"], ["Müller", "Hptm", "Inf Kp 56/1"]])
+        assert parser._is_visual_layout([table]) is False
+
+    def test_existing_wide_sparse_still_detected(self):
+        """The existing WAP/Picasso detection (>20 cols, >70% empty) still works."""
+        parser = PdfParser()
+        row = [""] * 25
+        row[0] = "Data"
+        table = self.MockTable([row] * 5)
+        assert parser._is_visual_layout([table]) is True
+
+
+class TestRemoveEmptyColumns:
+    """B-014: Empty column stripping."""
+
+    def test_removes_empty_columns(self):
+        table = [["A", "", "B", "", "C"], ["1", "", "2", "", "3"]]
+        result = _remove_empty_columns(table)
+        assert result == [["A", "B", "C"], ["1", "2", "3"]]
+
+    def test_preserves_all_when_no_empty(self):
+        table = [["A", "B"], ["1", "2"]]
+        result = _remove_empty_columns(table)
+        assert result == [["A", "B"], ["1", "2"]]
+
+    def test_empty_table_unchanged(self):
+        assert _remove_empty_columns([]) == []
+        assert _remove_empty_columns([[]]) == [[]]
+
+    def test_preserves_column_with_single_value(self):
+        """A column with content in only one row should be kept."""
+        table = [["A", "", "C"], ["1", "X", "3"], ["2", "", "4"]]
+        result = _remove_empty_columns(table)
+        assert result == [["A", "", "C"], ["1", "X", "3"], ["2", "", "4"]]
+
+    def test_whitespace_only_treated_as_empty(self):
+        table = [["A", "  ", "C"], ["1", "  ", "3"]]
+        result = _remove_empty_columns(table)
+        assert result == [["A", "C"], ["1", "3"]]
