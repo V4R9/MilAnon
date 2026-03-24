@@ -145,7 +145,7 @@ class TestCrossSourceOrtConsistency:
         in_dir.mkdir()
         (in_dir / "report.csv").write_text("Ort\nBasel\n", encoding="utf-8")
         out_dir = tmp_path / "output"
-        anonymize_uc.execute(in_dir, out_dir)
+        anonymize_uc.execute(in_dir, out_dir, include_spreadsheets=True)
 
         # The placeholder used in the document must be the same as from init
         ph_from_service = service.get_or_create_placeholder(EntityType.ORT, "Basel")

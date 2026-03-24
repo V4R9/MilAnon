@@ -132,7 +132,7 @@ class TestFullPipelineMixedFolder:
         _write(in_dir / "b.csv", "Email\nuser@test.ch\n")
         anon_dir = tmp_path / "anon"
 
-        result = anonymize_uc.execute(in_dir, anon_dir)
+        result = anonymize_uc.execute(in_dir, anon_dir, include_spreadsheets=True)
         assert result.files_scanned == 2
         assert result.files_new == 2
         assert result.files_error == 0
@@ -143,8 +143,8 @@ class TestFullPipelineMixedFolder:
         _write(in_dir / "notes.txt", "Some text 756.1111.1111.11")
         anon_dir = tmp_path / "anon"
 
-        result = anonymize_uc.execute(in_dir, anon_dir)
-        assert result.files_scanned == 1  # only csv
+        result = anonymize_uc.execute(in_dir, anon_dir, include_spreadsheets=True)
+        assert result.files_scanned == 1  # only csv, not txt
 
     def test_incremental_second_run_skips_unchanged(self, anonymize_uc, tmp_path):
         src = _write(tmp_path / "in" / "data.csv", "AHV\n756.1111.1111.11\n")

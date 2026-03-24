@@ -83,9 +83,10 @@ def cli() -> None:
     help="Embed visual PDF pages (WAP/schedules) as PNG images in the output (NOT anonymized).",
 )
 @click.option("--clean", is_flag=True, help="Remove output files that no longer have a corresponding input file.")
+@click.option("--include-spreadsheets", "include_spreadsheets", is_flag=True, help="Also process .csv and .xlsx files (skipped by default — use 'milanon db import' for PISA/name-list CSVs).")
 def anonymize(
     input_path: str, output: str, recursive: bool, force: bool, dry_run: bool,
-    embed_images: bool, clean: bool,
+    embed_images: bool, clean: bool, include_spreadsheets: bool,
 ) -> None:
     """Anonymize documents by replacing sensitive entities with placeholders."""
     logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -100,6 +101,7 @@ def anonymize(
         dry_run=dry_run,
         embed_images=embed_images,
         clean=clean,
+        include_spreadsheets=include_spreadsheets,
     )
 
     mode = "[dry-run] " if dry_run else ""

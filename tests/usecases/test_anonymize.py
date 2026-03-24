@@ -45,7 +45,7 @@ class TestAnonymizeUseCaseSingleFile:
             "Name;AHV\nMarco BERNASCONI;756.1234.5678.97\n",
         )
         out_dir = tmp_path / "output"
-        result = use_case.execute(src, out_dir)
+        result = use_case.execute(src, out_dir, include_spreadsheets=True)
         assert result.files_scanned == 1
         assert result.files_new == 1
         assert result.files_error == 0
@@ -53,13 +53,13 @@ class TestAnonymizeUseCaseSingleFile:
     def test_output_file_created(self, use_case, tmp_path):
         src = _write(tmp_path / "input" / "data.csv", "Name;AHV\nBERNASCONI;756.1234.5678.97\n")
         out_dir = tmp_path / "output"
-        use_case.execute(src, out_dir)
+        use_case.execute(src, out_dir, include_spreadsheets=True)
         assert any(out_dir.rglob("*.csv"))
 
     def test_ahv_replaced_in_output(self, use_case, tmp_path):
         src = _write(tmp_path / "in" / "doc.csv", "AHV;Name\n756.1234.5678.97;BERNASCONI\n")
         out_dir = tmp_path / "out"
-        use_case.execute(src, out_dir)
+        use_case.execute(src, out_dir, include_spreadsheets=True)
         out_file = next(out_dir.rglob("*.csv"))
         content = out_file.read_text(encoding="utf-8")
         assert "756.1234.5678.97" not in content
@@ -71,36 +71,36 @@ class TestIncrementalProcessing:
         src = _write(tmp_path / "in" / "data.csv", "AHV\n756.1234.5678.97\n")
         out_dir = tmp_path / "out"
         # First run
-        r1 = use_case.execute(src, out_dir)
+        r1 = use_case.execute(src, out_dir, include_spreadsheets=True)
         assert r1.files_new == 1
         assert r1.files_skipped == 0
         # Second run — same content
-        r2 = use_case.execute(src, out_dir)
+        r2 = use_case.execute(src, out_dir, include_spreadsheets=True)
         assert r2.files_skipped == 1
         assert r2.files_new == 0
 
     def test_changed_file_reprocessed(self, use_case, tmp_path):
         src = _write(tmp_path / "in" / "data.csv", "AHV\n756.1234.5678.97\n")
         out_dir = tmp_path / "out"
-        use_case.execute(src, out_dir)
+        use_case.execute(src, out_dir, include_spreadsheets=True)
         # Modify the file
         src.write_text("AHV\n756.9876.5432.10\n", encoding="utf-8")
-        r2 = use_case.execute(src, out_dir)
+        r2 = use_case.execute(src, out_dir, include_spreadsheets=True)
         assert r2.files_changed == 1
         assert r2.files_skipped == 0
 
     def test_force_flag_reprocesses_unchanged(self, use_case, tmp_path):
         src = _write(tmp_path / "in" / "data.csv", "AHV\n756.1234.5678.97\n")
         out_dir = tmp_path / "out"
-        use_case.execute(src, out_dir)
-        r2 = use_case.execute(src, out_dir, force=True)
+        use_case.execute(src, out_dir, include_spreadsheets=True)
+        r2 = use_case.execute(src, out_dir, force=True, include_spreadsheets=True)
         assert r2.files_skipped == 0
         assert r2.files_changed == 1
 
     def test_dry_run_does_not_write_files(self, use_case, tmp_path):
         src = _write(tmp_path / "in" / "data.csv", "AHV\n756.1234.5678.97\n")
         out_dir = tmp_path / "out"
-        use_case.execute(src, out_dir, dry_run=True)
+        use_case.execute(src, out_dir, dry_run=True, include_spreadsheets=True)
         assert not any(out_dir.rglob("*"))
 
 
@@ -163,8 +163,37 @@ class TestEmbedVisualPages:
         src = _write(tmp_path / "in" / "data.csv", "AHV\n756.1234.5678.97\n")
         out_dir = tmp_path / "out"
         with patch("pdf2image.convert_from_path") as mock_conv:
-            use_case.execute(src, out_dir, embed_images=False)
+            use_case.execute(src, out_dir, embed_images=False, include_spreadsheets=True)
         mock_conv.assert_not_called()
+
+
+class TestCsvExclusion:
+    """Bug 3 fix: CSV/XLSX excluded from anonymize by default."""
+
+    def test_csv_excluded_by_default(self, use_case, tmp_path):
+        """CSV files are skipped unless --include-spreadsheets is set."""
+        in_dir = tmp_path / "in"
+        _write(in_dir / "data.csv", "AHV\n756.1234.5678.97\n")
+        out_dir = tmp_path / "out"
+        result = use_case.execute(in_dir, out_dir)
+        assert result.files_scanned == 0
+
+    def test_xlsx_excluded_by_default(self, use_case, tmp_path):
+        """XLSX files are skipped unless --include-spreadsheets is set."""
+        in_dir = tmp_path / "in"
+        _write(in_dir / "data.xlsx", "not a real xlsx")
+        out_dir = tmp_path / "out"
+        result = use_case.execute(in_dir, out_dir)
+        assert result.files_scanned == 0
+
+    def test_csv_included_with_flag(self, use_case, tmp_path):
+        """CSV files are processed when include_spreadsheets=True."""
+        in_dir = tmp_path / "in"
+        _write(in_dir / "data.csv", "AHV\n756.1234.5678.97\n")
+        out_dir = tmp_path / "out"
+        result = use_case.execute(in_dir, out_dir, include_spreadsheets=True)
+        assert result.files_scanned == 1
+        assert result.files_new == 1
 
 
 class TestDirectoryProcessing:
@@ -173,17 +202,17 @@ class TestDirectoryProcessing:
         _write(in_dir / "a.csv", "AHV\n756.1111.1111.11\n")
         _write(in_dir / "b.csv", "AHV\n756.2222.2222.22\n")
         out_dir = tmp_path / "out"
-        result = use_case.execute(in_dir, out_dir)
+        result = use_case.execute(in_dir, out_dir, include_spreadsheets=True)
         assert result.files_scanned == 2
         assert result.files_new == 2
 
     def test_unsupported_files_ignored(self, use_case, tmp_path):
+        """TXT files are not in _SUPPORTED_EXTENSIONS and are ignored."""
         in_dir = tmp_path / "in"
-        _write(in_dir / "file.csv", "AHV\n756.1111.1111.11\n")
         _write(in_dir / "readme.txt", "Not a supported format")
         out_dir = tmp_path / "out"
         result = use_case.execute(in_dir, out_dir)
-        assert result.files_scanned == 1  # only .csv counted
+        assert result.files_scanned == 0  # .txt is not supported
 
 
 class TestCleanOrphans:
@@ -200,7 +229,7 @@ class TestCleanOrphans:
         (output_dir / "file1.csv").write_text("Anon 1", encoding="utf-8")
         (output_dir / "file2.md").write_text("Orphan", encoding="utf-8")
 
-        result = use_case.execute(input_dir, output_dir, force=True, clean=True)
+        result = use_case.execute(input_dir, output_dir, force=True, clean=True, include_spreadsheets=True)
 
         assert not (output_dir / "file2.md").exists()
         assert result.files_cleaned == 1
@@ -215,7 +244,7 @@ class TestCleanOrphans:
         output_dir.mkdir()
         (output_dir / "file1.csv").write_text("Anon 1", encoding="utf-8")
 
-        result = use_case.execute(input_dir, output_dir, force=True, clean=True)
+        result = use_case.execute(input_dir, output_dir, force=True, clean=True, include_spreadsheets=True)
 
         assert (output_dir / "file1.csv").exists()
         assert result.files_cleaned == 0
@@ -230,7 +259,7 @@ class TestCleanOrphans:
         output_dir.mkdir()
         (output_dir / "CONTEXT.md").write_text("Context file", encoding="utf-8")
 
-        result = use_case.execute(input_dir, output_dir, force=True, clean=True)
+        result = use_case.execute(input_dir, output_dir, force=True, clean=True, include_spreadsheets=True)
 
         assert (output_dir / "CONTEXT.md").exists()
 
@@ -244,7 +273,7 @@ class TestCleanOrphans:
         output_dir.mkdir()
         (output_dir / "orphan.md").write_text("Orphan", encoding="utf-8")
 
-        result = use_case.execute(input_dir, output_dir, force=True, clean=False)
+        result = use_case.execute(input_dir, output_dir, force=True, clean=False, include_spreadsheets=True)
 
         assert (output_dir / "orphan.md").exists()
         assert result.files_cleaned == 0
@@ -260,7 +289,7 @@ class TestEntityTotal:
         _write(input_dir / "file1.csv", "col\nvalue\n")
         output_dir = tmp_path / "output"
 
-        result = use_case.execute(input_dir, output_dir, force=True)
+        result = use_case.execute(input_dir, output_dir, force=True, include_spreadsheets=True)
 
         assert result.entities_total >= 0
 
@@ -271,8 +300,8 @@ class TestEntityTotal:
         _write(input_dir / "file1.csv", "col\nvalue\n")
         output_dir = tmp_path / "output"
 
-        use_case.execute(input_dir, output_dir, force=True)
-        result = use_case.execute(input_dir, output_dir)
+        use_case.execute(input_dir, output_dir, force=True, include_spreadsheets=True)
+        result = use_case.execute(input_dir, output_dir, include_spreadsheets=True)
 
         assert result.files_skipped == 1
         assert result.entities_total >= 0
@@ -288,12 +317,12 @@ class TestRenamedFileDetection:
         output_dir = tmp_path / "output"
 
         _write(input_dir / "original.csv", "col\nvalue\n")
-        use_case.execute(input_dir, output_dir, force=True)
+        use_case.execute(input_dir, output_dir, force=True, include_spreadsheets=True)
 
         # Rename: same content, different name
         (input_dir / "original.csv").rename(input_dir / "renamed.csv")
 
-        result = use_case.execute(input_dir, output_dir)
+        result = use_case.execute(input_dir, output_dir, include_spreadsheets=True)
         assert result.files_skipped >= 1
 
     def test_unchanged_file_not_renamed_detection(self, use_case, tmp_path):
@@ -303,8 +332,8 @@ class TestRenamedFileDetection:
         output_dir = tmp_path / "output"
 
         _write(input_dir / "file.csv", "col\nvalue\n")
-        use_case.execute(input_dir, output_dir, force=True)
-        result = use_case.execute(input_dir, output_dir)
+        use_case.execute(input_dir, output_dir, force=True, include_spreadsheets=True)
+        result = use_case.execute(input_dir, output_dir, include_spreadsheets=True)
 
         assert result.files_skipped == 1
         assert result.files_new == 0

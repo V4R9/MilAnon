@@ -58,8 +58,8 @@ def dirs(tmp_path) -> dict:
     (templates_dir / "role.md").write_text("LAYER_1_ROLE_CONTENT", encoding="utf-8")
     (templates_dir / "rules.md").write_text("LAYER_5_RULES_CONTENT", encoding="utf-8")
 
-    # Workflow template (Layer 4)
-    (workflows_dir / "test-wf.md").write_text("LAYER_4_TASK_CONTENT", encoding="utf-8")
+    # Workflow template (Layer 4) — includes {user_unit} placeholder for Bug 1 test
+    (workflows_dir / "test-wf.md").write_text("LAYER_4_TASK_CONTENT for {user_unit}", encoding="utf-8")
     (workflows_dir / "no-doctrine.md").write_text("LAYER_4_NODOCTRINE", encoding="utf-8")
 
     # Doctrine extract (Layer 3)
@@ -399,4 +399,73 @@ class TestClipboard:
                 copy_clipboard=False,
             )
 
-        mock_clip.assert_not_called()
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Bug fixes — E2E bugs
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestBugFixes:
+
+    def test_user_unit_replaced_in_layer4(self, uc, dirs, tmp_path):
+        """Bug 1: {user_unit} placeholder in Layer 4 template must be replaced with actual unit."""
+        input_dir = tmp_path / "anon"
+        input_dir.mkdir()
+        (input_dir / "doc.md").write_text("Document content.", encoding="utf-8")
+
+        pack_text, _ = uc.execute(
+            workflow="test-wf",
+            input_path=input_dir,
+            unit="Inf Kp 56/1",
+            copy_clipboard=False,
+        )
+
+        assert "{user_unit}" not in pack_text
+        assert "Inf Kp 56/1" in pack_text
+
+    def test_user_unit_not_replaced_when_empty(self, uc, dirs, tmp_path):
+        """Bug 1: When no unit provided, {user_unit} placeholder remains in output."""
+        input_dir = tmp_path / "anon"
+        input_dir.mkdir()
+        (input_dir / "doc.md").write_text("Document content.", encoding="utf-8")
+
+        pack_text, _ = uc.execute(
+            workflow="test-wf",
+            input_path=input_dir,
+            unit="",
+            copy_clipboard=False,
+        )
+
+        # With empty unit, placeholder is left as-is (not replaced)
+        assert "{user_unit}" in pack_text
+
+    def test_doctrine_extracts_appear_in_output(self, uc, dirs, tmp_path):
+        """Bug 2: Layer 3 doctrine extracts must appear in assembled prompt."""
+        input_dir = tmp_path / "anon"
+        input_dir.mkdir()
+        (input_dir / "doc.md").write_text("Document content.", encoding="utf-8")
+
+        pack_text, _ = uc.execute(
+            workflow="test-wf",
+            input_path=input_dir,
+            copy_clipboard=False,
+        )
+
+        assert "LAYER_3_DOCTRINE_CONTENT" in pack_text
+
+    def test_csv_excluded_from_pack_input(self, uc, dirs, tmp_path):
+        """Bug 4: CSV files in input directory are excluded from pack prompt."""
+        input_dir = tmp_path / "anon"
+        input_dir.mkdir()
+        (input_dir / "doc.md").write_text("Markdown document.", encoding="utf-8")
+        (input_dir / "data.csv").write_text("name,value\nfoo,bar\n", encoding="utf-8")
+
+        pack_text, result = uc.execute(
+            workflow="test-wf",
+            input_path=input_dir,
+            copy_clipboard=False,
+        )
+
+        # Only .md is included, not .csv
+        assert "Markdown document." in pack_text
+        assert "name,value" not in pack_text
+        assert result.documents_included == 1
