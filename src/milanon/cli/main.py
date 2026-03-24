@@ -650,6 +650,32 @@ def export(input_path: str, docx: bool, template_path: str | None, deanonymize: 
 
 
 # ---------------------------------------------------------------------------
+# project command group
+# ---------------------------------------------------------------------------
+
+@cli.group()
+def project() -> None:
+    """Manage Claude.ai Project generation."""
+
+
+@project.command("generate")
+@click.option("--unit", required=True, help='Your unit, e.g. "Inf Kp 56/1".')
+@click.option("--output", "-o", required=True, type=click.Path(), help="Output directory for the project folder.")
+def project_generate(unit: str, output: str) -> None:
+    """Generate a ready-to-import Claude.ai Project folder."""
+    from milanon.usecases.generate_project import GenerateProjectUseCase
+
+    use_case = GenerateProjectUseCase(_DATA_DIR)
+    result = use_case.execute(unit, Path(output))
+
+    click.echo(click.style(f"Project generated for: {result.unit}", fg="green", bold=True))
+    click.echo(f"Output: {result.output_dir}")
+    click.echo(f"Files:  {len(result.files_created)}")
+    for f in result.files_created:
+        click.echo(f"  → {f}")
+
+
+# ---------------------------------------------------------------------------
 # config command group
 # ---------------------------------------------------------------------------
 
