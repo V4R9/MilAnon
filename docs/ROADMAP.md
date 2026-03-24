@@ -32,34 +32,34 @@
 |---|---|---|---|---|
 | US-14.1 | Store 11 doctrine files as .md in data/doctrine/ | S | P0 | ✅ Done |
 | US-14.2 | INDEX.yaml with workflow→chapter→mode mapping | M | P0 | ✅ Done |
-| US-14.3 | Chapter extraction engine (full .md → relevant sections) | L | P0 | Open |
-| US-14.4 | `milanon doctrine list` CLI | S | P2 | Open |
-| US-14.5 | `milanon doctrine extract --workflow analyse` preview | M | P2 | Open |
+| US-14.3 | Chapter extraction engine (full .md → relevant sections) | L | P0 | ✅ Done |
+| US-14.4 | `milanon doctrine list` CLI | S | P2 | ✅ Done |
+| US-14.5 | `milanon doctrine extract --workflow analyse` preview | M | P2 | ✅ Done |
 | US-14.6 | Paradigmenwechsel Berrm document in doctrine KB | S | P0 | ✅ Done |
 
 ### Epic E15: 5+2 Command Workflows
 
 **Infrastructure (must-have for ANY workflow):**
 
-| ID | Story | Size | Prio |
-|---|---|---|---|
-| US-15.I1 | `--workflow` flag on `milanon pack` — reads INDEX.yaml, assembles 5-layer prompt | L | **P0** |
-| US-15.I2 | 5-Layer System Prompt assembly engine (Role+Context+Doctrine+Task+Rules) | L | **P0** |
-| US-15.I3 | `--context` flag — include Vault files from previous steps as additional input | M | **P0** |
-| US-15.I4 | `--mode berrm\|adf` flag — selects skeleton mode markers + doctrine chapters | M | **P0** |
-| US-15.I5 | `--step 1-5` flag — selects which 5+2 step to execute | S | **P0** |
-| US-15.I6 | Layer 1 template: `templates/role.md` (static, with TF 17 taktische Kompetenz) | M | **P0** |
-| US-15.I7 | Layer 5 template: `templates/rules.md` (static, placeholder + KDT ENTSCHEID rules) | S | **P0** |
+| ID | Story | Size | Prio | Status |
+|---|---|---|---|---|
+| US-15.I1 | `--workflow` flag on `milanon pack` — reads INDEX.yaml, assembles 5-layer prompt | L | **P0** | ✅ Done |
+| US-15.I2 | 5-Layer System Prompt assembly engine (Role+Context+Doctrine+Task+Rules) | L | **P0** | ✅ Done |
+| US-15.I3 | `--context` flag — include Vault files from previous steps as additional input | M | **P0** | ✅ Done |
+| US-15.I4 | `--mode berrm\|adf` flag — selects skeleton mode markers + doctrine chapters | M | **P0** | ✅ Done |
+| US-15.I5 | `--step 1-5` flag — selects which 5+2 step to execute | S | **P0** | ✅ Done |
+| US-15.I6 | Layer 1 template: `templates/role.md` (static, with TF 17 taktische Kompetenz) | M | **P0** | ✅ Done |
+| US-15.I7 | Layer 5 template: `templates/rules.md` (static, placeholder + KDT ENTSCHEID rules) | S | **P0** | ✅ Done |
 
 **Workflows (content — each is a Layer 4 template):**
 
-| ID | Story | 5+2 Step | Size | Prio |
-|---|---|---|---|---|
-| US-15.W1 | **Analyse** — 4-Farben-Initialisierung + Problemerfassung + SOMA + Zeitplan | Step 1 | L | **P0** |
-| US-15.W2 | **BdL** — AUGEZ-Analyse mit AEK, Konsequenzen ROT/BLAU | Step 2 | L | P1 |
-| US-15.W3 | **Entschluss** — Varianten (ROS), Einsatzgrundsätze-Bewertung, Absicht+Aufträge | Step 3 | L | P1 |
-| US-15.W4 | **Ei Bf** — 5-Punkte-Befehl aus allen Produkten (universal, mode-aware) | Step 5 | L | **P0** |
-| US-15.W5 | **Wachtdienst** — WAT-konformer Befehl (Berrm: taktische Sicherung) | Full cycle | L | **P0** |
+| ID | Story | 5+2 Step | Size | Prio | Status |
+|---|---|---|---|---|---|
+| US-15.W1 | **Analyse** — 4-Farben-Initialisierung + Problemerfassung + SOMA + Zeitplan | Step 1 | L | **P0** | ✅ Done |
+| US-15.W2 | **BdL** — AUGEZ-Analyse mit AEK, Konsequenzen ROT/BLAU | Step 2 | L | P1 | Open |
+| US-15.W3 | **Entschluss** — Varianten (ROS), Einsatzgrundsätze-Bewertung, Absicht+Aufträge | Step 3 | L | P1 | Open |
+| US-15.W4 | **Ei Bf** — 5-Punkte-Befehl aus allen Produkten (universal, mode-aware) | Step 5 | L | **P0** | ✅ Done |
+| US-15.W5 | **Wachtdienst** — WAT-konformer Befehl (Berrm: taktische Sicherung) | Full cycle | L | **P0** | ✅ Done |
 | US-15.W6 | **EP Halten** — Eventualplanung Halten Standort | Sub-product | M | P1 |
 | US-15.W7 | **EP Interessenraum** — Eventualplanung Kampf im Interessenraum | Sub-product | M | P1 |
 | US-15.W8 | Dienstbetrieb (Erg Bf im Berrm, Grundbefehl im ADF) | Full cycle | M | P2 |
@@ -81,13 +81,13 @@
 
 ### Epic E17: Local DOCX Generation (ADR-011)
 
-| ID | Story | Size | Prio |
-|---|---|---|---|
-| US-17.1 | `milanon export vault/befehl.md --docx --template befehl_vorlage.docx` | L | P1 |
-| US-17.2 | Markdown→DOCX style mapping engine (### → "1. Main title", etc.) | L | P1 |
-| US-17.3 | Aufträge-Tabelle: Nx2 DOCX table (links=Einheit, rechts=Bullet List) | M | P1 |
-| US-17.4 | `--deanonymize` flag on export — replace [PLACEHOLDER] → cleartext in DOCX | M | P1 |
-| US-17.5 | Combined: `milanon export --docx --deanonymize` in one step | S | P1 |
+| ID | Story | Size | Prio | Status |
+|---|---|---|---|---|
+| US-17.1 | `milanon export vault/befehl.md --docx --template befehl_vorlage.docx` | L | P1 | ✅ Done |
+| US-17.2 | Markdown→DOCX style mapping engine (### → "1. Main title", etc.) | L | P1 | ✅ Done |
+| US-17.3 | Aufträge-Tabelle: Nx2 DOCX table (links=Einheit, rechts=Bullet List) | M | P1 | ✅ Done |
+| US-17.4 | `--deanonymize` flag on export — replace [PLACEHOLDER] → cleartext in DOCX | M | P1 | ✅ Done |
+| US-17.5 | Combined: `milanon export --docx --deanonymize` in one step | S | P1 | ✅ Done |
 | US-17.6 | XLSX export for WAP/Personalplanung/Synchronisationsmatrix | M | P2 |
 | US-17.7 | Dossier assembly: `milanon dossier assemble` — all docs, numbered, as ZIP | L | P2 |
 

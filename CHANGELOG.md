@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] — 2026-03-25 — 5+2 Workflow Engine + Doctrine KB + DOCX Pipeline
+
+### Features
+
+- **5-Layer Workflow Pack Engine** (`milanon pack --workflow <name> --mode berrm|adf --context <path> --step <n>`): assembles context-aware 5-layer system prompts for each step of the 5+2 Aktionsplanungsprozess (E15.I1-I7).
+- **Doctrine Chapter Extraction Engine**: 14 chapter-level extracts from 11 Swiss Army regulation files (~3 MB → 5-30 KB per workflow step) for token-efficient prompting (E14.3).
+- **Local DOCX Export Pipeline**: `milanon export <file> --docx [--deanonymize]` — Markdown → DOCX via python-docx, with optional in-place de-anonymization (never touches the cloud) (E17.1-5).
+- **New CLI commands**: `doctrine list`, `doctrine extract`, `export --docx [--deanonymize]`, `config set <key> <value>`, `config get <key>`.
+- **3 workflow Layer 4 templates**: `analyse.md` (Problemerfassung + SOMA + Zeitplan), `ei-bf.md` (5-Punkte-Befehl, mode-aware), `wachtdienst.md` (WAT-conform, Berrm: taktische Sicherung) (E15.W1, W4, W5).
+- **Layer 1 template** (`data/templates/role.md`): static LLM role definition with full TF 17 tactical competence — 10 Einsatzgrundsätze, Taktische Grundsätze, Taktische Aufgaben, Raumordnung, Auftragstaktik (E15.I6).
+- **Layer 5 template** (`data/templates/rules.md`): static output rules — placeholder preservation, KDT ENTSCHEID markers, Swiss High German language rules, doctrine citation format, quality standards (E15.I7).
+- **Universal 5-Punkte-Befehl skeleton** (`data/doctrine/skeletons/5_punkte_befehl_universal.md`) with ADF and Berrm mode markers — one skeleton, two modes (ADR-010, E15.S1).
+
+### Documentation
+
+- 5 Architecture Decision Records: ADR-009 (5+2 central concept), ADR-010 (universal skeleton), ADR-011 (local DOCX pipeline), ADR-012 (5-layer system prompt), ADR-013 (doctrine extraction).
+- Product Design v3.1: `PRODUCT_DESIGN_COMMAND_ASSISTANT.md` (735 lines) + `PRODUCT_DESIGN_TF17_APPENDIX.md` (tactical knowledge base).
+- Strategic Analysis: Rumelt, PESTEL, VRIO, Sweet Spot applied to MilAnon (`STRATEGIC_ANALYSIS.md`).
+- User Journey WK2026: 13-step walkthrough with gap analysis and Berrm context.
+- All 10 design decisions resolved (`OPEN_DECISIONS.md`).
+
+### Tests
+
+- **649 tests** passing (up from 505 at v0.3.0).
+
+---
+
 ## [0.3.0] — 2026-03-25 — Iterations 2-2c + Code Review + GUI Overhaul
 
 ### Iteration 2: External Personnel Import
