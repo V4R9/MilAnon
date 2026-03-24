@@ -396,6 +396,175 @@ def context(unit_name: str | None, output_path: str) -> None:
 
 
 @cli.command()
+@click.argument("input_path", type=click.Path(exists=True))
+@click.option("--template", "-t", "template_name", default="frei", help="Template name (frei, obsidian-notes, befehl-entwurf, analyse).")
+@click.option("--unit", "user_unit", default="", help='Your unit, e.g. "Inf Kp 56/1".')
+@click.option("--prompt", "user_prompt", default="", help="Custom prompt text (used with template 'frei').")
+@click.option("--context", "context_path", default=None, type=click.Path(), help="Path to CONTEXT.md (auto-detected if omitted).")
+@click.option("--output", "-o", "output_path", default=None, type=click.Path(), help="Write pack to this file in addition to clipboard.")
+@click.option("--no-clipboard", is_flag=True, help="Do not copy to clipboard.")
+@click.option("--list-templates", "list_templates_flag", is_flag=True, help="Show available templates and exit.")
+def pack(
+    input_path: str,
+    template_name: str,
+    user_unit: str,
+    user_prompt: str,
+    context_path: str | None,
+    output_path: str | None,
+    no_clipboard: bool,
+    list_templates_flag: bool,
+) -> None:
+    """Build a prompt pack (context + template + docs) and copy to clipboard."""
+    from milanon.usecases.pack import PackUseCase, list_templates
+
+    if list_templates_flag:
+        templates = list_templates()
+        if not templates:
+            click.echo("No templates found.")
+            return
+        for t in templates:
+            click.echo(f"  {t['name']:<25} [{t['source']}]  {t['description']}")
+        return
+
+    repo = _make_repo()
+    use_case = PackUseCase(repo)
+
+    try:
+        _, result = use_case.execute(
+            Path(input_path),
+            template_name=template_name,
+            user_prompt=user_prompt,
+            user_unit=user_unit,
+            context_path=Path(context_path) if context_path else None,
+            output_path=Path(output_path) if output_path else None,
+            copy_clipboard=not no_clipboard,
+        )
+    except ValueError as exc:
+        click.echo(f"Error: {exc}", err=True)
+        sys.exit(1)
+
+    click.echo(click.style(f"Template:    {result.template_used}", fg="cyan"))
+    click.echo(click.style(f"Context:     {'yes' if result.context_included else 'no'}", fg="cyan"))
+    click.echo(click.style(f"Documents:   {result.documents_included}", fg="green"))
+    click.echo(click.style(f"Total chars: {result.total_chars}", fg="cyan"))
+    if result.copied_to_clipboard:
+        click.echo(click.style("Copied to clipboard.", fg="green", bold=True))
+    elif not no_clipboard:
+        click.echo("Note: Could not copy to clipboard.", err=True)
+    if result.output_path:
+        click.echo(f"Written to:  {result.output_path}")
+
+
+@cli.command()
+@click.option("--output", "-o", "output_dir", required=True, type=click.Path(), help="Output directory for de-anonymized files.")
+@click.option("--clipboard", "from_clipboard", is_flag=True, help="Read LLM output from system clipboard.")
+@click.option("--input", "input_file", default=None, type=click.Path(exists=True), help="Read LLM output from a file.")
+@click.option("--split", "split_sections", is_flag=True, help="Split on --- separators and write separate files.")
+@click.option("--in-place", "in_place", is_flag=True, help="Overwrite the input file in-place (requires --input).")
+def unpack(
+    output_dir: str,
+    from_clipboard: bool,
+    input_file: str | None,
+    split_sections: bool,
+    in_place: bool,
+) -> None:
+    """De-anonymize LLM output from clipboard or file."""
+    if not from_clipboard and not input_file:
+        click.echo("Error: one of --clipboard or --input is required.", err=True)
+        sys.exit(1)
+
+    if in_place and not input_file:
+        click.echo("Error: --in-place requires --input.", err=True)
+        sys.exit(1)
+
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    repo = _make_repo()
+
+    from milanon.domain.deanonymizer import DeAnonymizer
+    from milanon.domain.mapping_service import MappingService
+    from milanon.usecases.unpack import UnpackUseCase
+
+    service = MappingService(repo)
+    deanonymizer = DeAnonymizer(service)
+    use_case = UnpackUseCase(deanonymizer)
+
+    result = use_case.execute(
+        Path(output_dir),
+        input_file=Path(input_file) if input_file else None,
+        from_clipboard=from_clipboard,
+        split_sections=split_sections,
+        in_place=in_place,
+    )
+
+    click.echo(click.style(f"Source:        {result.source}", fg="cyan"))
+    click.echo(click.style(f"Resolved:      {result.placeholders_resolved}", fg="green", bold=True))
+    click.echo(click.style(f"Files written: {result.files_written}", fg="green"))
+    for f in result.output_files:
+        click.echo(f"  → {f}")
+    for warning in result.warnings:
+        click.echo(f"  WARNING: {warning}", err=True)
+
+    if result.files_written == 0 and not result.warnings:
+        sys.exit(0)
+
+
+@cli.command()
+@click.argument("input_path", type=click.Path(exists=True))
+@click.option("--auto-add", is_flag=True, help="Automatically add all candidates to the database without confirmation.")
+@click.option("--dry-run", is_flag=True, help="Show candidates without adding to database.")
+def review(input_path: str, auto_add: bool, dry_run: bool) -> None:
+    """Scan anonymized output for potential name leaks and add confirmed candidates to DB."""
+    from milanon.domain.mapping_service import MappingService
+    from milanon.usecases.review_candidates import ReviewCandidatesUseCase
+
+    repo = _make_repo()
+    service = MappingService(repo)
+    use_case = ReviewCandidatesUseCase(service)
+
+    result = use_case.scan(Path(input_path))
+
+    click.echo(f"Scanned {result.files_scanned} file(s). Found {len(result.candidates)} candidate(s).")
+
+    if not result.candidates:
+        click.echo("No undetected names found.")
+        return
+
+    for i, c in enumerate(result.candidates, 1):
+        flag = "  ⚠ near personnel context" if c.near_personnel_context else ""
+        click.echo(f"  {i:2}. [{c.candidate_type}] {c.value} ({c.occurrences}x){flag}")
+        for snippet in c.context_snippets[:1]:
+            click.echo(f"       {snippet}")
+
+    if dry_run:
+        click.echo("[dry-run] No changes made.")
+        return
+
+    if auto_add:
+        count = use_case.add_confirmed_candidates(result.candidates)
+        click.echo(click.style(f"Added {count} new entities to database.", fg="green", bold=True))
+    else:
+        click.echo("")
+        click.echo("Enter numbers to confirm (e.g. '1 3 5'), 'all', or press Enter to skip:")
+        choice = click.prompt("Your choice", default="")
+        if not choice.strip():
+            click.echo("No changes made.")
+            return
+
+        if choice.strip().lower() == "all":
+            confirmed = result.candidates
+        else:
+            try:
+                indices = [int(x) - 1 for x in choice.split()]
+                confirmed = [result.candidates[i] for i in indices if 0 <= i < len(result.candidates)]
+            except ValueError:
+                click.echo("Invalid input. No changes made.", err=True)
+                return
+
+        count = use_case.add_confirmed_candidates(confirmed)
+        click.echo(click.style(f"Added {count} new entities to database.", fg="green", bold=True))
+
+
+@cli.command()
 @click.option("--port", default=8501, help="Port to run the Streamlit server on.")
 def gui(port: int) -> None:
     """Launch the Streamlit web interface in the browser."""

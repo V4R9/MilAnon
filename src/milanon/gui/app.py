@@ -307,6 +307,76 @@ elif page == "LLM Workflow":
                 except Exception as exc:
                     st.error(f"Error generating context: {exc}")
 
+        # -------------------------------------------------------------------
+        # Pack Builder
+        # -------------------------------------------------------------------
+        st.divider()
+        st.subheader("Pack Builder")
+        st.markdown(
+            "Assemble context + template + anonymized documents into a single clipboard-ready prompt."
+        )
+
+        from milanon.usecases.pack import PackUseCase, list_templates as _list_templates
+
+        pack_templates = _list_templates()
+        template_options = [t["name"] for t in pack_templates] if pack_templates else ["frei"]
+
+        pack_col1, pack_col2 = st.columns(2)
+        with pack_col1:
+            pack_input = st.text_input(
+                "Anonymized documents folder",
+                placeholder="/path/to/anon/output",
+                key="pack_input",
+                help="Folder with anonymized .md/.txt files.",
+            )
+        with pack_col2:
+            pack_template = st.selectbox(
+                "Template",
+                options=template_options,
+                key="pack_template",
+            )
+
+        pack_unit = st.text_input(
+            "Your unit (optional)",
+            placeholder='e.g. "Inf Kp 56/1"',
+            key="pack_unit",
+        )
+        pack_prompt = st.text_area(
+            "Custom prompt (optional, used with template 'frei')",
+            height=80,
+            key="pack_prompt",
+        )
+        pack_output = st.text_input(
+            "Save pack to file (optional)",
+            placeholder="/path/to/pack.md",
+            key="pack_output",
+        )
+
+        if st.button("Build Pack & Copy to Clipboard", type="primary", key="btn_pack", disabled=not pack_input):
+            try:
+                repo_pack = _make_repo()
+                pack_uc = PackUseCase(repo_pack)
+                _, pack_result = pack_uc.execute(
+                    Path(_clean_path(pack_input)),
+                    template_name=pack_template,
+                    user_unit=pack_unit.strip(),
+                    user_prompt=pack_prompt.strip(),
+                    output_path=Path(_clean_path(pack_output)) if pack_output.strip() else None,
+                    copy_clipboard=True,
+                )
+                msg = (
+                    f"Pack built — {pack_result.documents_included} doc(s), "
+                    f"{pack_result.total_chars} chars."
+                )
+                if pack_result.copied_to_clipboard:
+                    st.success(msg + " Copied to clipboard.")
+                else:
+                    st.warning(msg + " Could not copy to clipboard (macOS/Linux only).")
+                if pack_result.output_path:
+                    st.info(f"Pack saved to `{pack_result.output_path}`")
+            except Exception as exc:
+                st.error(f"Error building pack: {exc}")
+
     # -------------------------------------------------------------------
     # Tab 2 — Send to LLM
     # -------------------------------------------------------------------
@@ -315,16 +385,16 @@ elif page == "LLM Workflow":
         st.markdown(
             """
 **Steps:**
-1. Generate your context file (Tab 1) and copy its content.
+1. Generate your context file (Tab 1) — or use Pack Builder to assemble everything at once.
 2. Open [Claude.ai](https://claude.ai) in your browser.
-3. Paste the context, then paste your anonymized document.
+3. Paste the pack (or context + anonymized document) into the prompt.
 4. Work with Claude — ask it to create notes, analyze, draft orders.
 5. Copy Claude's response and paste it in Tab 3 to restore real names.
             """
         )
         st.info(
-            "💡 Tip: The Pack feature (coming soon) will automate steps 1–3 "
-            "into a single clipboard action."
+            "💡 Tip: Use Pack Builder in Tab 1 to assemble context + template + documents "
+            "into a single clipboard-ready prompt."
         )
 
     # -------------------------------------------------------------------
@@ -342,44 +412,49 @@ elif page == "LLM Workflow":
             placeholder="Paste the LLM response here…",
         )
 
-        save_path = st.text_input(
-            "Save de-anonymized text to file",
-            placeholder="/path/to/obsidian/vault/response.md",
-        )
+        unpack_col1, unpack_col2 = st.columns(2)
+        with unpack_col1:
+            save_path = st.text_input(
+                "Output folder",
+                placeholder="/path/to/obsidian/vault/",
+                help="Folder where de-anonymized file(s) will be written.",
+            )
+        with unpack_col2:
+            split_sections = st.checkbox(
+                "Split on --- separators (write separate files)",
+                help="When enabled, splits on --- and writes one file per section.",
+            )
 
         can_run = bool(llm_output.strip() and save_path.strip())
         if st.button("De-Anonymize & Save", type="primary", disabled=not can_run):
             try:
                 from milanon.domain.deanonymizer import DeAnonymizer
                 from milanon.domain.mapping_service import MappingService
+                from milanon.usecases.unpack import UnpackUseCase
 
                 repo_da = _make_repo()
                 service = MappingService(repo_da)
                 deanonymizer = DeAnonymizer(service)
+                unpack_uc = UnpackUseCase(deanonymizer)
 
-                restored, warnings = deanonymizer.deanonymize(llm_output)
-
-                out_p = Path(_clean_path(save_path))
-                out_p.parent.mkdir(parents=True, exist_ok=True)
-                out_p.write_text(restored, encoding="utf-8")
-
-                placeholder_count = len(deanonymizer.find_placeholders(llm_output))
-                unresolved = len(warnings)
-                resolved = placeholder_count - unresolved
-                st.success(
-                    f"Saved to `{out_p}`. "
-                    f"Resolved {resolved}/{placeholder_count} placeholder(s)."
+                unpack_result = unpack_uc.execute(
+                    Path(_clean_path(save_path)),
+                    input_text=llm_output,
+                    split_sections=split_sections,
                 )
-                if warnings:
-                    with st.expander(f"⚠️ {unresolved} unresolved placeholder(s)"):
-                        for w in warnings:
+
+                st.success(
+                    f"Saved {unpack_result.files_written} file(s). "
+                    f"Resolved {unpack_result.placeholders_resolved} placeholder(s)."
+                )
+                for f in unpack_result.output_files:
+                    st.caption(f"→ `{f}`")
+                if unpack_result.warnings:
+                    with st.expander(f"⚠️ {len(unpack_result.warnings)} unresolved placeholder(s)"):
+                        for w in unpack_result.warnings:
                             st.warning(w)
             except Exception as exc:
                 st.error(f"Error: {exc}")
-
-        st.caption(
-            "🔮 Coming soon: Clipboard integration, multi-file splitting, in-place mode."
-        )
 
 
 # ---------------------------------------------------------------------------
