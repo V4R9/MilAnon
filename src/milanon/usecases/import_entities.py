@@ -10,12 +10,15 @@ from pathlib import Path
 
 
 def _detect_delimiter(text: str) -> str:
-    """Auto-detect CSV delimiter via Sniffer. Falls back to ';' then ','."""
+    """Auto-detect CSV delimiter via Sniffer. Falls back to first-line counting."""
     try:
-        dialect = csv.Sniffer().sniff(text[:2048])
+        dialect = csv.Sniffer().sniff(text[:4096], delimiters=";,\t")
         return dialect.delimiter
     except csv.Error:
-        return ";" if ";" in text[:2048] else ","
+        first_line = text.split("\n")[0]
+        if first_line.count(";") > first_line.count(","):
+            return ";"
+        return ","
 
 from milanon.domain.entities import EntityType
 from milanon.domain.mapping_service import MappingService

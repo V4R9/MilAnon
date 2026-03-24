@@ -122,6 +122,12 @@ class TestImportNamesDelimiterDetection:
         use_case.execute(csv_path)
         assert repo.get_mapping(EntityType.PERSON, "Roger SIEGRIST") is not None
 
+    def test_import_names_tab_delimiter(self, use_case, repo, tmp_path):
+        # Tab-delimited export (some tools default to TSV)
+        csv_path = _csv(tmp_path, "Grad\tVorname\tNachname\nMaj\tRoger\tSiegrist\n")
+        use_case.execute(csv_path)
+        assert repo.get_mapping(EntityType.PERSON, "Roger SIEGRIST") is not None
+
     def test_import_names_quoted_values_with_comma(self, use_case, repo, tmp_path):
         # Real MilOffice export: comma delimiter, combined Name/Vorname column,
         # values quoted because the Nachname itself contains a comma

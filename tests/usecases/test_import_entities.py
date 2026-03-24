@@ -226,3 +226,23 @@ class TestImportEntitiesEdgeCases:
         )
         result = use_case.execute(csv_path)
         assert result.rows_processed == 2
+
+
+class TestImportEntitiesDelimiterDetection:
+    def test_pisa_import_semicolon_delimiter(self, use_case, repo, tmp_path):
+        # Standard PISA export uses semicolons — must still work
+        csv_path = _write_csv(
+            tmp_path / "pisa.csv",
+            [_TITLE_ROW, _HEADER_ROW, _make_pisa_row(nachname="BERNASCONI", vorname="Marco")],
+        )
+        use_case.execute(csv_path)
+        assert repo.get_mapping(EntityType.PERSON, "Marco BERNASCONI") is not None
+
+    def test_pisa_import_comma_delimiter(self, use_case, repo, tmp_path):
+        # Excel on English-locale systems exports comma-delimited PISA CSVs
+        rows = [_TITLE_ROW, _HEADER_ROW, _make_pisa_row(nachname="MUELLER", vorname="Hans")]
+        content = "\n".join(",".join(r) for r in rows) + "\n"
+        p = tmp_path / "pisa_comma.csv"
+        p.write_text(content, encoding="utf-8")
+        use_case.execute(p)
+        assert repo.get_mapping(EntityType.PERSON, "Hans MUELLER") is not None
