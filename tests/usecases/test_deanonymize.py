@@ -131,3 +131,56 @@ class TestDeAnonymizeDirectoryProcessing:
         out_dir = tmp_path / "out"
         result = use_case.execute(in_dir, out_dir)
         assert result.files_scanned == 1
+
+
+class TestFilenameDeanonymization:
+    """B-023: Placeholder filenames are resolved."""
+
+    def test_placeholder_filename_resolved(self, tmp_path):
+        """[PERSON_001].md → Wegmüller_Thomas.md"""
+        from milanon.adapters.repositories.sqlite_repository import SqliteMappingRepository
+        from milanon.domain.entities import EntityType
+        from milanon.domain.mapping_service import MappingService
+        from milanon.domain.deanonymizer import DeAnonymizer
+        from milanon.usecases.deanonymize import DeAnonymizeUseCase
+
+        repo = SqliteMappingRepository(":memory:")
+        repo.create_mapping(EntityType.PERSON, "Thomas WEGMÜLLER")
+        service = MappingService(repo)
+        da = DeAnonymizer(service)
+        uc = DeAnonymizeUseCase(da, repo)
+
+        input_dir = tmp_path / "input"
+        input_dir.mkdir()
+        input_file = input_dir / "[PERSON_001].md"
+        input_file.write_text("# [PERSON_001]\nSome content about [PERSON_001].", encoding="utf-8")
+
+        output_dir = tmp_path / "output"
+        result = uc.execute(input_dir, output_dir)
+
+        assert (output_dir / "Wegmüller_Thomas.md").exists()
+        assert not (output_dir / "[PERSON_001].md").exists()
+
+        content = (output_dir / "Wegmüller_Thomas.md").read_text(encoding="utf-8")
+        assert "Thomas WEGMÜLLER" in content
+
+    def test_normal_filename_unchanged(self, tmp_path):
+        """dashboard.md stays dashboard.md."""
+        from milanon.adapters.repositories.sqlite_repository import SqliteMappingRepository
+        from milanon.domain.mapping_service import MappingService
+        from milanon.domain.deanonymizer import DeAnonymizer
+        from milanon.usecases.deanonymize import DeAnonymizeUseCase
+
+        repo = SqliteMappingRepository(":memory:")
+        service = MappingService(repo)
+        da = DeAnonymizer(service)
+        uc = DeAnonymizeUseCase(da, repo)
+
+        input_dir = tmp_path / "input"
+        input_dir.mkdir()
+        (input_dir / "dashboard.md").write_text("# Dashboard", encoding="utf-8")
+
+        output_dir = tmp_path / "output"
+        result = uc.execute(input_dir, output_dir)
+
+        assert (output_dir / "dashboard.md").exists()

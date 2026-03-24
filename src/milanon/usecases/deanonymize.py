@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from milanon.adapters.writers.markdown_writer import MarkdownWriter
-from milanon.domain.deanonymizer import DeAnonymizer
+from milanon.domain.deanonymizer import DeAnonymizer, _to_obsidian_filename
 from milanon.domain.entities import AnonymizedDocument, DocumentFormat
+
+_FILENAME_PLACEHOLDER_RE = re.compile(r"\[([A-Z_]+)_(\d{3})\]")
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +40,21 @@ class DeAnonymizeUseCase:
     def __init__(self, deanonymizer: DeAnonymizer, repository) -> None:
         self._deanonymizer = deanonymizer
         self._repository = repository
+
+    def _deanonymize_filename(self, filename: str) -> str:
+        """Replace placeholders in a filename with resolved, filesystem-safe values.
+
+        '[PERSON_005].md' → 'Brüngger_Xenia.md'
+        'dashboard.md' → 'dashboard.md' (unchanged)
+        """
+        def _resolve_in_filename(match: re.Match[str]) -> str:
+            placeholder = match.group(0)
+            original = self._deanonymizer.resolve_placeholder(placeholder)
+            if original:
+                return _to_obsidian_filename(original)
+            return match.group(0)
+
+        return _FILENAME_PLACEHOLDER_RE.sub(_resolve_in_filename, filename)
 
     def execute(
         self,
@@ -105,6 +123,16 @@ class DeAnonymizeUseCase:
         out_path = output_dir / file_path.relative_to(input_root)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(restored, encoding="utf-8")
+
+        # De-anonymize filename if it contains placeholders
+        original_name = out_path.name
+        new_name = self._deanonymize_filename(original_name)
+        if new_name != original_name:
+            new_path = out_path.parent / new_name
+            if out_path.exists():
+                out_path.rename(new_path)
+            logger.info("Renamed %s → %s", original_name, new_name)
+            out_path = new_path
 
         self._repository.upsert_file_tracking(
             rel_path, current_hash, "deanonymize", output_path=str(out_path)

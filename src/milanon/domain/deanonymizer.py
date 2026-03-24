@@ -10,8 +10,20 @@ from milanon.domain.mapping_service import MappingService
 
 logger = logging.getLogger(__name__)
 
+# Obsidian wiki-link with placeholder: [[ENTITY_TYPE_NNN]]
+# Must be processed BEFORE regular placeholders to prevent bracket destruction.
+_OBSIDIAN_LINK_RE = re.compile(r"\[\[([A-Z_]+_\d{3})\]\]")
+
 # Matches any placeholder of the form [ENTITY_TYPE_NNN]
 _PLACEHOLDER_RE = re.compile(r"\[([A-Z_]+)_(\d{3})\]")
+
+
+def _to_obsidian_filename(original: str) -> str:
+    """Convert 'Vorname NACHNAME' to 'Nachname_Vorname' for Obsidian filenames."""
+    parts = original.split()
+    if len(parts) == 2:
+        return f"{parts[1].title()}_{parts[0]}"
+    return original.replace(" ", "_")
 
 
 class DeAnonymizer:
@@ -41,6 +53,23 @@ class DeAnonymizer:
         resolved: set[str] = set()
         unresolved: set[str] = set()
 
+        # Step 1: Handle Obsidian wiki-links [[PLACEHOLDER]] FIRST.
+        # Must run before regular placeholder replacement to prevent
+        # the inner brackets from being consumed by _PLACEHOLDER_RE.
+        def _replace_obsidian_link(match: re.Match[str]) -> str:
+            placeholder = f"[{match.group(1)}]"
+            original = self._mapping_service.resolve_placeholder(placeholder)
+            if original is not None:
+                resolved.add(placeholder)
+                link_target = _to_obsidian_filename(original)
+                return f"[[{link_target}|{original}]]"
+            unresolved.add(placeholder)
+            logger.warning("Unresolved Obsidian link placeholder: %s", placeholder)
+            return match.group(0)
+
+        text = _OBSIDIAN_LINK_RE.sub(_replace_obsidian_link, text)
+
+        # Step 2: Regular placeholders.
         def _replace(match: re.Match[str]) -> str:
             placeholder = match.group(0)
             original = self._mapping_service.resolve_placeholder(placeholder)

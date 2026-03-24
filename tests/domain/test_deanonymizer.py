@@ -117,3 +117,65 @@ class TestFindPlaceholders:
         text = "[PERSON_001] [PERSON_001]"
         found = deanonymizer.find_placeholders(text)
         assert len(found) == 2
+
+
+
+class TestObsidianWikiLinks:
+    """B-024: Obsidian wiki-link de-anonymization."""
+
+    def test_obsidian_link_with_alias(self):
+        """[[PERSON_001]] → [[Wegmüller_Thomas|Thomas WEGMÜLLER]]"""
+        repo = SqliteMappingRepository(":memory:")
+        repo.create_mapping(EntityType.PERSON, "Thomas WEGMÜLLER")
+        service = MappingService(repo)
+        da = DeAnonymizer(service)
+
+        text = "See [[PERSON_001]] for details"
+        restored, warnings = da.deanonymize(text)
+        assert "[[Wegmüller_Thomas|Thomas WEGMÜLLER]]" in restored
+        assert warnings == []
+
+    def test_obsidian_link_unresolved(self):
+        """Unresolved [[PERSON_999]] stays unchanged."""
+        repo = SqliteMappingRepository(":memory:")
+        service = MappingService(repo)
+        da = DeAnonymizer(service)
+
+        text = "See [[PERSON_999]]"
+        restored, warnings = da.deanonymize(text)
+        assert "[[PERSON_999]]" in restored
+        assert len(warnings) == 1
+
+    def test_regular_placeholder_still_works(self):
+        """[PERSON_001] (single bracket) → plain text replacement."""
+        repo = SqliteMappingRepository(":memory:")
+        repo.create_mapping(EntityType.PERSON, "Thomas WEGMÜLLER")
+        service = MappingService(repo)
+        da = DeAnonymizer(service)
+
+        text = "Name: [PERSON_001]"
+        restored, _ = da.deanonymize(text)
+        assert "Name: Thomas WEGMÜLLER" in restored
+
+    def test_mixed_obsidian_and_regular(self):
+        """Both [[PERSON_001]] and [PERSON_001] in same text."""
+        repo = SqliteMappingRepository(":memory:")
+        repo.create_mapping(EntityType.PERSON, "Thomas WEGMÜLLER")
+        service = MappingService(repo)
+        da = DeAnonymizer(service)
+
+        text = "Link: [[PERSON_001]], plain: [PERSON_001]"
+        restored, _ = da.deanonymize(text)
+        assert "[[Wegmüller_Thomas|Thomas WEGMÜLLER]]" in restored
+        assert "plain: Thomas WEGMÜLLER" in restored
+
+    def test_obsidian_link_with_ort(self):
+        """[[ORT_001]] → [[Zürich|Zürich]] (single-word: filename = value)."""
+        repo = SqliteMappingRepository(":memory:")
+        repo.create_mapping(EntityType.ORT, "Zürich")
+        service = MappingService(repo)
+        da = DeAnonymizer(service)
+
+        text = "Located in [[ORT_001]]"
+        restored, _ = da.deanonymize(text)
+        assert "[[Zürich|Zürich]]" in restored
