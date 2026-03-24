@@ -13,22 +13,68 @@ from milanon.usecases.import_entities import ImportResult
 
 logger = logging.getLogger(__name__)
 
+# Column name variants for the combined "Name / Vorname" field
+_COMBINED_NAME_VARIANTS: frozenset[str] = frozenset(
+    {"name / vorname", "name, vorname", "name/vorname"}
+)
+
+# Column name variants for the rank field
+_GRAD_VARIANTS: frozenset[str] = frozenset({"grad", "grad kurzform"})
+
+
+def _normalise_header(name: str) -> str:
+    return name.strip().lower()
+
+
+def _detect_combined_col(fieldnames: list[str]) -> str | None:
+    """Return the actual column name if a combined Name/Vorname column is present."""
+    for fn in fieldnames:
+        if _normalise_header(fn) in _COMBINED_NAME_VARIANTS:
+            return fn
+    return None
+
+
+def _detect_grad_col(fieldnames: list[str]) -> str | None:
+    """Return the actual column name for the rank field (any known variant)."""
+    for fn in fieldnames:
+        if _normalise_header(fn) in _GRAD_VARIANTS:
+            return fn
+    return None
+
+
+def _split_combined(value: str) -> tuple[str, str]:
+    """Split 'Nachname, Vorname' at the first comma.
+
+    Returns (nachname, vorname).  If no comma is present the whole value is
+    treated as the Nachname and Vorname is returned empty.
+    """
+    if "," in value:
+        nachname, _, vorname = value.partition(",")
+        return nachname.strip(), vorname.strip()
+    return value.strip(), ""
+
 
 class ImportNamesUseCase:
-    """Imports entities from a simple 3-column name CSV.
+    """Imports entities from a simple name CSV.
 
-    Expected format (semicolon-delimited, UTF-8, with header row):
+    Supported formats (semicolon-delimited, UTF-8, header row required):
+
+    Format A — separate columns (existing behaviour):
         Grad;Vorname;Nachname
         Hptm;Thomas;Wegmüller
-        Oberstlt i Gst;Simon;Kohler
 
-    The "Grad" column is optional — files without it are also accepted.
+    Format B — combined Name/Vorname column (auto-detected):
+        Grad Kurzform;Name / Vorname
+        Hptm;von Gunten, Jürg
+
+    The format is detected automatically from the header row.
+    "Grad Kurzform" is treated identically to "Grad".
 
     Per row, creates mappings for:
-    - PERSON  = "Vorname NACHNAME"
-    - VORNAME = Vorname
+    - PERSON  = "Vorname NACHNAME"  (only if both present)
+    - VORNAME = Vorname             (only if present)
     - NACHNAME = Nachname
-    - GRAD_FUNKTION = Grad (only when the column is present and non-empty)
+    - GRAD_FUNKTION = Grad          (only when the column is present and non-empty)
 
     Duplicates are silently skipped via MappingService.get_or_create_placeholder().
     """
@@ -41,17 +87,29 @@ class ImportNamesUseCase:
         text = csv_path.read_text(encoding="utf-8-sig")
         reader = csv.DictReader(io.StringIO(text), delimiter=";")
 
+        fieldnames: list[str] = list(reader.fieldnames or [])
+        combined_col = _detect_combined_col(fieldnames)
+        grad_col = _detect_grad_col(fieldnames)
+
         result = ImportResult()
 
         for row in reader:
-            vorname = (row.get("Vorname") or "").strip()
-            nachname = (row.get("Nachname") or "").strip()
+            if combined_col is not None:
+                raw = (row.get(combined_col) or "").strip()
+                if not raw:
+                    result.rows_skipped += 1
+                    continue
+                nachname, vorname = _split_combined(raw)
+            else:
+                vorname = (row.get("Vorname") or "").strip()
+                nachname = (row.get("Nachname") or "").strip()
 
             if not vorname and not nachname:
                 result.rows_skipped += 1
                 continue
 
-            grad = (row.get("Grad") or "").strip()
+            grad = (row.get(grad_col) or "").strip() if grad_col else ""
+
             result.entities_imported += self._import_person(
                 vorname, nachname, grad, source_document
             )

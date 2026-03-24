@@ -71,3 +71,39 @@ class TestImportNamesBasic:
         mapping = repo.get_mapping(EntityType.PERSON, "Roger SIEGRIST")
         assert mapping is not None
         assert "SIEGRIST" in mapping.original_value
+
+
+class TestImportNamesCombinedFormat:
+    def test_import_combined_name_vorname_column(self, use_case, repo, tmp_path):
+        csv_path = _csv(tmp_path, "Grad;Name / Vorname\nHptm;Egger, Pascal\n")
+        use_case.execute(csv_path)
+        assert repo.get_mapping(EntityType.NACHNAME, "Egger") is not None
+        assert repo.get_mapping(EntityType.VORNAME, "Pascal") is not None
+        assert repo.get_mapping(EntityType.PERSON, "Pascal EGGER") is not None
+
+    def test_import_grad_kurzform_column(self, use_case, repo, tmp_path):
+        csv_path = _csv(tmp_path, "Grad Kurzform;Vorname;Nachname\nMaj;Roger;Siegrist\n")
+        use_case.execute(csv_path)
+        assert repo.get_mapping(EntityType.GRAD_FUNKTION, "Maj") is not None
+
+    def test_import_combined_name_without_comma(self, use_case, repo, tmp_path):
+        # No comma → entire value becomes Nachname, Vorname is empty
+        csv_path = _csv(tmp_path, "Grad;Name / Vorname\nHptm;Muster\n")
+        use_case.execute(csv_path)
+        assert repo.get_mapping(EntityType.NACHNAME, "Muster") is not None
+        # PERSON requires both vorname+nachname → should not be created
+        assert repo.get_mapping(EntityType.PERSON, "MUSTER") is None
+
+    def test_import_separate_columns_still_works(self, use_case, repo, tmp_path):
+        csv_path = _csv(tmp_path, "Grad;Vorname;Nachname\nHptm;Thomas;Wegmüller\n")
+        use_case.execute(csv_path)
+        assert repo.get_mapping(EntityType.PERSON, "Thomas WEGMÜLLER") is not None
+
+    def test_import_von_gunten_split_correctly(self, use_case, repo, tmp_path):
+        # Multi-word Nachname with comma separator
+        csv_path = _csv(tmp_path, "Grad;Name / Vorname\nOberstlt i Gst;von Gunten, Jürg\n")
+        use_case.execute(csv_path)
+        assert repo.get_mapping(EntityType.NACHNAME, "von Gunten") is not None
+        assert repo.get_mapping(EntityType.VORNAME, "Jürg") is not None
+        assert repo.get_mapping(EntityType.PERSON, "Jürg VON GUNTEN") is not None
+        assert repo.get_mapping(EntityType.GRAD_FUNKTION, "Oberstlt i Gst") is not None
