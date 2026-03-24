@@ -232,9 +232,20 @@ elif page == "De-Anonymize":
 elif page == "DB Import":
     st.title("Import Personnel Data")
     st.markdown(
-        "Upload a **PISA 410 / MilOffice CSV export** to pre-populate the mapping database. "
+        "Upload a CSV file to pre-populate the mapping database. "
         "Known entities will be detected more accurately during anonymization."
     )
+
+    import_format = st.radio(
+        "Import Format",
+        ["PISA 410 / MilOffice", "Simple Name List (Grad;Vorname;Nachname)"],
+        horizontal=True,
+    )
+
+    if import_format == "PISA 410 / MilOffice":
+        st.caption("PISA 410 format: row 1 = title, row 2 = headers, rows 3+ = data. Semicolon-delimited.")
+    else:
+        st.caption("Simple format: header row `Grad;Vorname;Nachname`, one person per row. Grad is optional.")
 
     uploaded = st.file_uploader("Choose a CSV file", type=["csv"])
 
@@ -246,11 +257,17 @@ elif page == "DB Import":
 
             with st.spinner("Importing…"):
                 from milanon.domain.mapping_service import MappingService
-                from milanon.usecases.import_entities import ImportEntitiesUseCase
 
                 repo = _make_repo()
                 service = MappingService(repo)
-                uc = ImportEntitiesUseCase(service)
+
+                if import_format == "Simple Name List (Grad;Vorname;Nachname)":
+                    from milanon.usecases.import_names import ImportNamesUseCase
+                    uc = ImportNamesUseCase(service)
+                else:
+                    from milanon.usecases.import_entities import ImportEntitiesUseCase
+                    uc = ImportEntitiesUseCase(service)
+
                 result = uc.execute(tmp_path, source_document=uploaded.name)
 
             tmp_path.unlink(missing_ok=True)

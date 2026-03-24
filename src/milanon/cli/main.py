@@ -231,18 +231,24 @@ def db_reset(include_ref_data: bool) -> None:
 @click.option(
     "--format",
     "import_format",
-    type=click.Choice(["miloffice", "generic"]),
-    default="miloffice",
-    help="CSV format to import.",
+    type=click.Choice(["pisa", "names", "miloffice"]),
+    default="pisa",
+    help="CSV format: 'pisa' = PISA 410 / MilOffice export; 'names' = simple Grad;Vorname;Nachname list. 'miloffice' is an alias for 'pisa'.",
 )
 def db_import(csv_path: str, import_format: str) -> None:
-    """Import entities from a MilOffice/Ada CSV export."""
+    """Import entities from a CSV file (PISA 410 or simple name list)."""
     from milanon.domain.mapping_service import MappingService
-    from milanon.usecases.import_entities import ImportEntitiesUseCase
 
     repo = _make_repo()
     service = MappingService(repo)
-    use_case = ImportEntitiesUseCase(service)
+
+    if import_format == "names":
+        from milanon.usecases.import_names import ImportNamesUseCase
+        use_case = ImportNamesUseCase(service)
+    else:
+        # "pisa" and legacy "miloffice" both use ImportEntitiesUseCase
+        from milanon.usecases.import_entities import ImportEntitiesUseCase
+        use_case = ImportEntitiesUseCase(service)
 
     result = use_case.execute(Path(csv_path), source_document=csv_path)
 
