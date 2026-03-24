@@ -69,6 +69,36 @@ class PatternRecognizer:
                     )
                 )
         entities.extend(self._match_birthdates(text))
+        entities.extend(self._match_display_names(document))
+        return entities
+
+    def _match_display_names(self, document: ExtractedDocument) -> list[DetectedEntity]:
+        """Detect display names extracted from EML headers.
+
+        Uses metadata["display_names"] populated by EmlParser. Each name
+        is searched in the document text with word boundaries and flagged
+        as PERSON with confidence 0.85 (we KNOW it's a name because the
+        EML header format guarantees it).
+        """
+        display_names = document.metadata.get("display_names", [])
+        if not display_names:
+            return []
+
+        entities: list[DetectedEntity] = []
+        text = document.text_content
+        for name in display_names:
+            pattern = re.compile(r"(?<!\w)" + re.escape(name) + r"(?!\w)")
+            for match in pattern.finditer(text):
+                entities.append(
+                    DetectedEntity(
+                        entity_type=EntityType.PERSON,
+                        original_value=match.group(0),
+                        start_offset=match.start(),
+                        end_offset=match.end(),
+                        confidence=0.85,
+                        source="pattern",
+                    )
+                )
         return entities
 
     def _match_birthdates(self, text: str) -> list[DetectedEntity]:

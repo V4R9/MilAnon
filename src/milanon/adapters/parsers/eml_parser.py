@@ -5,6 +5,7 @@ from __future__ import annotations
 import email
 import email.header
 import email.message
+import email.utils
 import re
 from pathlib import Path
 
@@ -31,6 +32,9 @@ class EmlParser:
         msg = email.message_from_bytes(raw)
 
         headers = self._extract_headers(msg)
+        display_names = self._extract_display_names(msg)
+        if display_names:
+            headers["display_names"] = display_names
         body, image_count = self._extract_body(msg)
         text_content = self._build_text_content(headers, body)
 
@@ -46,6 +50,27 @@ class EmlParser:
         """Return file extensions this parser handles."""
         return [".eml"]
 
+    def _extract_display_names(self, msg: email.message.Message) -> list[str]:
+        """Extract person display names from From/To/Cc/Bcc headers.
+
+        Uses email.utils.getaddresses() to parse RFC 2822 address fields.
+        Only includes names that look like person names (contain a space,
+        i.e. firstname + lastname). Single-word names (likely company names
+        like "Swisscom") are excluded.
+        """
+        names: list[str] = []
+        for field in ("from", "to", "cc", "bcc"):
+            raw = msg.get(field)
+            if not raw:
+                continue
+            decoded = self._decode_header_value(raw)
+            for display_name, addr in email.utils.getaddresses([decoded]):
+                display_name = display_name.strip()
+                if display_name and display_name != addr and " " in display_name:
+                    if display_name not in names:
+                        names.append(display_name)
+        return names
+
     def _extract_headers(self, msg: email.message.Message) -> dict:
         """Extract and decode standard RFC 2822 header fields."""
         result: dict[str, str] = {}
@@ -60,7 +85,11 @@ class EmlParser:
         parts: list[str] = []
         for chunk, charset in email.header.decode_header(raw_value):
             if isinstance(chunk, bytes):
-                parts.append(chunk.decode(charset or "utf-8", errors="replace"))
+                # Fall back to utf-8 for unknown/missing charset labels
+                effective_charset = charset or "utf-8"
+                if effective_charset.lower() in ("unknown-8bit", "unknown"):
+                    effective_charset = "utf-8"
+                parts.append(chunk.decode(effective_charset, errors="replace"))
             else:
                 parts.append(str(chunk))
         return "".join(parts)

@@ -270,3 +270,44 @@ class TestMultipleEntitiesInDocument:
         entities = recognizer.recognize(_doc(text))
         ahv = next(e for e in entities if e.entity_type == EntityType.AHV_NR)
         assert text[ahv.start_offset:ahv.end_offset] == ahv.original_value
+
+
+class TestDisplayNameRecognition:
+    """B-022: Display names detected as PERSON entities."""
+
+    def test_display_name_detected(self):
+        doc = ExtractedDocument(
+            source_path="test.eml",
+            format=DocumentFormat.EML,
+            text_content="From: Thomas Müller <thomas@example.com>\n\nHallo Thomas Müller,\nDanke.",
+            metadata={"display_names": ["Thomas Müller"]},
+        )
+
+        recognizer = PatternRecognizer()
+        entities = recognizer.recognize(doc)
+
+        person_entities = [e for e in entities if e.entity_type == EntityType.PERSON]
+        assert len(person_entities) >= 1
+        assert any(e.original_value == "Thomas Müller" for e in person_entities)
+        assert all(
+            e.confidence == 0.85
+            for e in person_entities
+            if e.original_value == "Thomas Müller"
+        )
+
+    def test_no_display_names_no_detection(self):
+        doc = ExtractedDocument(
+            source_path="test.pdf",
+            format=DocumentFormat.PDF,
+            text_content="Some text without display names.",
+            metadata={},
+        )
+
+        recognizer = PatternRecognizer()
+        entities = recognizer.recognize(doc)
+
+        person_entities = [
+            e for e in entities
+            if e.entity_type == EntityType.PERSON and e.confidence == 0.85
+        ]
+        assert len(person_entities) == 0

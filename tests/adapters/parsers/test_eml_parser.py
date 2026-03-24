@@ -178,3 +178,77 @@ class TestEmlParserSignature:
     ):
         doc = eml_parser.parse(sample_signature_eml_path)
         assert "Hptm Hans Muster" in doc.text_content
+
+
+class TestDisplayNameExtraction:
+    """B-022: Display names extracted from EML headers."""
+
+    def test_display_name_from_from_header(self, tmp_path):
+        eml = (
+            "From: Thomas Müller <thomas@example.com>\r\n"
+            "To: info@test.com\r\n"
+            "Subject: Test\r\n"
+            "Date: Mon, 1 Jan 2026 10:00:00 +0100\r\n"
+            "\r\n"
+            "Body text.\r\n"
+        )
+        eml_path = tmp_path / "test.eml"
+        eml_path.write_bytes(eml.encode("utf-8"))
+
+        from milanon.adapters.parsers.eml_parser import EmlParser
+        doc = EmlParser().parse(eml_path)
+        assert "display_names" in doc.metadata
+        assert "Thomas Müller" in doc.metadata["display_names"]
+
+    def test_multiple_display_names_in_to(self, tmp_path):
+        eml = (
+            "From: sender@test.com\r\n"
+            "To: Hans Muster <hans@ex.com>, Anna Keller <anna@ex.com>\r\n"
+            "Subject: Test\r\n"
+            "Date: Mon, 1 Jan 2026 10:00:00 +0100\r\n"
+            "\r\n"
+            "Body.\r\n"
+        )
+        eml_path = tmp_path / "test.eml"
+        eml_path.write_bytes(eml.encode("utf-8"))
+
+        from milanon.adapters.parsers.eml_parser import EmlParser
+        doc = EmlParser().parse(eml_path)
+        names = doc.metadata.get("display_names", [])
+        assert "Hans Muster" in names
+        assert "Anna Keller" in names
+
+    def test_no_display_name_when_email_only(self, tmp_path):
+        eml = (
+            "From: info@company.com\r\n"
+            "To: test@test.com\r\n"
+            "Subject: Test\r\n"
+            "Date: Mon, 1 Jan 2026 10:00:00 +0100\r\n"
+            "\r\n"
+            "Body.\r\n"
+        )
+        eml_path = tmp_path / "test.eml"
+        eml_path.write_bytes(eml.encode("utf-8"))
+
+        from milanon.adapters.parsers.eml_parser import EmlParser
+        doc = EmlParser().parse(eml_path)
+        names = doc.metadata.get("display_names", [])
+        assert len(names) == 0
+
+    def test_single_word_name_excluded(self, tmp_path):
+        """Single-word display names (likely companies) are excluded."""
+        eml = (
+            "From: Swisscom <info@swisscom.ch>\r\n"
+            "To: test@test.com\r\n"
+            "Subject: Test\r\n"
+            "Date: Mon, 1 Jan 2026 10:00:00 +0100\r\n"
+            "\r\n"
+            "Body.\r\n"
+        )
+        eml_path = tmp_path / "test.eml"
+        eml_path.write_bytes(eml.encode("utf-8"))
+
+        from milanon.adapters.parsers.eml_parser import EmlParser
+        doc = EmlParser().parse(eml_path)
+        names = doc.metadata.get("display_names", [])
+        assert "Swisscom" not in names
