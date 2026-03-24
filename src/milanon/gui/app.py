@@ -8,6 +8,9 @@ from pathlib import Path
 
 import streamlit as st
 
+# Path to bundled reference data
+_DATA_DIR = Path(__file__).parent.parent.parent.parent / "data"
+
 
 def _clean_path(raw: str) -> str:
     """Strip surrounding whitespace and single/double quotes from a path input."""
@@ -38,8 +41,7 @@ def _make_repo():
 
 
 def _load_municipalities() -> list[str]:
-    data_dir = Path(__file__).parent.parent.parent.parent / "data"
-    csv_path = data_dir / "swiss_municipalities.csv"
+    csv_path = _DATA_DIR / "swiss_municipalities.csv"
     if not csv_path.exists():
         return []
     names: set[str] = set()
@@ -77,6 +79,12 @@ def _make_deanonymize_uc(repo):
     service = MappingService(repo)
     deanonymizer = DeAnonymizer(service)
     return DeAnonymizeUseCase(deanonymizer, repo)
+
+
+def _init_reference_data(repo):
+    """Initialize reference data (municipalities + military units) and return result."""
+    from milanon.usecases.init_reference_data import InitReferenceDataUseCase
+    return InitReferenceDataUseCase(repo, _DATA_DIR).execute()
 
 
 # ---------------------------------------------------------------------------
@@ -332,7 +340,6 @@ elif page == "DB Import":
                     count += 1
                 label = f"{qa_grad_v} {full_name}".strip() if qa_grad_v else full_name
                 st.success(f"Added: {label} ({count} entities)")
-                # Clear fields via session state
                 st.session_state["qa_grad"] = ""
                 st.session_state["qa_vorname"] = ""
                 st.session_state["qa_nachname"] = ""
@@ -348,6 +355,24 @@ elif page == "DB Stats":
     st.markdown(f"Database: `{Path.home() / '.milanon' / 'milanon.db'}`")
 
     repo = _make_repo()
+
+    # Check if reference data is loaded
+    ref_muni_count = repo.get_ref_municipality_count()
+    ref_mil_count = repo.get_ref_military_unit_count()
+
+    if ref_muni_count == 0 or ref_mil_count == 0:
+        st.warning("⚠️ Reference data not loaded (municipalities and/or military units missing).")
+        if st.button("🔄 Initialize Reference Data", type="primary"):
+            with st.spinner("Loading reference data…"):
+                init_result = _init_reference_data(repo)
+            st.success(
+                f"✅ Initialized: {init_result.municipalities_loaded} municipalities, "
+                f"{init_result.military_units_loaded} military units."
+            )
+            st.rerun()
+    else:
+        st.caption(f"Reference data: {ref_muni_count} municipalities, {ref_mil_count} military units ✅")
+
     total = repo.get_total_mapping_count()
     by_type = repo.get_mapping_count_by_type()
 
@@ -362,7 +387,6 @@ elif page == "DB Stats":
             hide_index=True,
         )
 
-        # Bar chart
         import pandas as pd
         df = pd.DataFrame(rows, columns=["Type", "Count"]).set_index("Type")
         st.bar_chart(df)
@@ -393,12 +417,10 @@ elif page == "DB Stats":
         confirm_full = st.checkbox("I confirm: delete everything including reference data", key="confirm_full")
         if st.button("Reset Everything", disabled=not confirm_full, key="btn_full_reset"):
             counts = repo.reset_everything()
-            total = sum(counts.values())
-            from milanon.usecases.init_reference_data import InitReferenceDataUseCase
-            data_dir = Path(__file__).parent.parent.parent.parent / "data"
-            init_result = InitReferenceDataUseCase(repo, data_dir).execute()
+            total_deleted = sum(counts.values())
+            init_result = _init_reference_data(repo)
             st.success(
-                f"Full reset complete. {total} rows deleted. "
+                f"Full reset complete. {total_deleted} rows deleted. "
                 f"Re-initialized: {init_result.municipalities_loaded} municipalities, "
                 f"{init_result.military_units_loaded} military units."
             )
