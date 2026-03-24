@@ -278,6 +278,59 @@ elif page == "DB Import":
             col2.metric("Rows skipped", result.rows_skipped)
             col3.metric("Entities imported", result.entities_imported)
 
+    # -----------------------------------------------------------------------
+    # Quick Add — Single Person
+    # -----------------------------------------------------------------------
+    st.divider()
+    st.subheader("Quick Add — Single Person")
+    st.caption("Add one person directly without a CSV file.")
+
+    qa_col1, qa_col2, qa_col3 = st.columns(3)
+    with qa_col1:
+        qa_grad = st.text_input("Grad", placeholder="z.B. Hptm", key="qa_grad")
+    with qa_col2:
+        qa_vorname = st.text_input("Vorname", placeholder="z.B. Thomas", key="qa_vorname")
+    with qa_col3:
+        qa_nachname = st.text_input("Nachname", placeholder="z.B. Wegmüller", key="qa_nachname")
+
+    if st.button("Add Person", key="qa_add"):
+        qa_vorname_v = qa_vorname.strip()
+        qa_nachname_v = qa_nachname.strip()
+        qa_grad_v = qa_grad.strip()
+
+        if not qa_vorname_v or not qa_nachname_v:
+            st.warning("Vorname and Nachname are required.")
+        else:
+            from milanon.domain.entities import EntityType
+            from milanon.domain.mapping_service import MappingService
+
+            repo = _make_repo()
+            service = MappingService(repo)
+
+            full_name = f"{qa_vorname_v} {qa_nachname_v.upper()}"
+            already_exists = repo.get_mapping(EntityType.PERSON, full_name) is not None
+
+            if already_exists:
+                st.info(f"Already exists in database: {full_name}")
+            else:
+                count = 0
+                service.get_or_create_placeholder(EntityType.PERSON, full_name)
+                count += 1
+                service.get_or_create_placeholder(EntityType.VORNAME, qa_vorname_v)
+                count += 1
+                service.get_or_create_placeholder(EntityType.NACHNAME, qa_nachname_v)
+                count += 1
+                if qa_grad_v:
+                    service.get_or_create_placeholder(EntityType.GRAD_FUNKTION, qa_grad_v)
+                    count += 1
+                label = f"{qa_grad_v} {full_name}".strip() if qa_grad_v else full_name
+                st.success(f"Added: {label} ({count} entities)")
+                # Clear fields via session state
+                st.session_state["qa_grad"] = ""
+                st.session_state["qa_vorname"] = ""
+                st.session_state["qa_nachname"] = ""
+                st.rerun()
+
 
 # ---------------------------------------------------------------------------
 # DB Stats page
