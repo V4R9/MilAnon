@@ -92,6 +92,8 @@ class DeAnonymizeUseCase:
         if dry_run:
             return
 
+        logger.info("Processing %s…", file_path.name)
+
         content = file_path.read_text(encoding="utf-8")
         restored, warnings = self._deanonymizer.deanonymize(content)
         result.warnings.extend(warnings)

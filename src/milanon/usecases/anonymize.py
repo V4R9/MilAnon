@@ -143,6 +143,8 @@ class AnonymizeUseCase:
             logger.info("[dry-run] Would process: %s", file_path.name)
             return
 
+        logger.info("Processing %s…", file_path.name)
+
         # Parse
         parser = get_parser(file_path)
         document = parser.parse(file_path)

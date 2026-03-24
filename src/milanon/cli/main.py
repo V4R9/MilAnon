@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 
@@ -86,6 +87,7 @@ def anonymize(
     embed_images: bool,
 ) -> None:
     """Anonymize documents by replacing sensitive entities with placeholders."""
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     repo = _make_repo()
     use_case = _make_anonymize_use_case(repo)
 
@@ -126,6 +128,7 @@ def anonymize(
 @click.option("--dry-run", is_flag=True, help="Show what would be processed without doing it.")
 def deanonymize(input_path: str, output: str, force: bool, dry_run: bool) -> None:
     """De-anonymize LLM outputs by restoring original entity values."""
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     repo = _make_repo()
     use_case = _make_deanonymize_use_case(repo)
 
