@@ -5,7 +5,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from milanon.adapters.parsers.pdf_parser import PdfParser, _OCR_CHAR_THRESHOLD
+from milanon.adapters.parsers.pdf_parser import (
+    PdfParser,
+    _OCR_CHAR_THRESHOLD,
+    _VISUAL_TABLE_MAX_COLS,
+    _VISUAL_TABLE_EMPTY_THRESHOLD,
+)
 from milanon.domain.entities import DocumentFormat
 from milanon.domain.protocols import DocumentParser
 
@@ -256,3 +261,63 @@ class TestPdfParserTableExtraction:
         doc = pdf_parser.parse(simple_pdf_path)
         assert "Hptm Marco BERNASCONI" in doc.text_content
         assert "|" not in doc.text_content
+
+
+class TestPdfParserVisualLayout:
+    def _make_table_mock(self, num_cols: int, empty_fraction: float):
+        """Build a mock pdfplumber Table with the given column count and empty ratio."""
+        total_cells = num_cols * 3  # 3 rows
+        empty_count = int(total_cells * empty_fraction)
+        filled_count = total_cells - empty_count
+        flat = ["data"] * filled_count + [""] * empty_count
+        # Distribute into rows
+        rows = [flat[i * num_cols:(i + 1) * num_cols] for i in range(3)]
+        table = MagicMock()
+        table.extract.return_value = rows
+        return table
+
+    def test_visual_layout_detection_many_columns(self, pdf_parser: PdfParser):
+        table = self._make_table_mock(_VISUAL_TABLE_MAX_COLS + 1, 0.0)
+        assert pdf_parser._is_visual_layout([table]) is True
+
+    def test_visual_layout_detection_mostly_empty(self, pdf_parser: PdfParser):
+        table = self._make_table_mock(5, _VISUAL_TABLE_EMPTY_THRESHOLD + 0.05)
+        assert pdf_parser._is_visual_layout([table]) is True
+
+    def test_normal_table_not_detected_as_visual(self, pdf_parser: PdfParser):
+        table = self._make_table_mock(5, 0.10)
+        assert pdf_parser._is_visual_layout([table]) is False
+
+    def test_visual_page_marker_in_output(self, pdf_parser: PdfParser, simple_pdf_path: Path):
+        """A page whose tables are visual must produce the warning marker."""
+        visual_table = self._make_table_mock(_VISUAL_TABLE_MAX_COLS + 5, 0.0)
+        with patch("milanon.adapters.parsers.pdf_parser.pdfplumber") as mock_pdfplumber:
+            mock_page = MagicMock()
+            mock_page.find_tables.return_value = [visual_table]
+            mock_page.images = []
+            mock_pdf = MagicMock()
+            mock_pdf.pages = [mock_page]
+            mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
+            mock_pdf.__exit__ = MagicMock(return_value=False)
+            mock_pdfplumber.open.return_value = mock_pdf
+
+            doc = pdf_parser.parse(simple_pdf_path)
+
+        assert "Visual layout" in doc.text_content
+        assert "not extractable as text" in doc.text_content
+
+    def test_visual_pages_list_populated(self, pdf_parser: PdfParser, simple_pdf_path: Path):
+        visual_table = self._make_table_mock(_VISUAL_TABLE_MAX_COLS + 5, 0.0)
+        with patch("milanon.adapters.parsers.pdf_parser.pdfplumber") as mock_pdfplumber:
+            mock_page = MagicMock()
+            mock_page.find_tables.return_value = [visual_table]
+            mock_page.images = []
+            mock_pdf = MagicMock()
+            mock_pdf.pages = [mock_page]
+            mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
+            mock_pdf.__exit__ = MagicMock(return_value=False)
+            mock_pdfplumber.open.return_value = mock_pdf
+
+            doc = pdf_parser.parse(simple_pdf_path)
+
+        assert 1 in doc.visual_pages

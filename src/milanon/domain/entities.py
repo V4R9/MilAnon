@@ -121,6 +121,7 @@ class ExtractedDocument:
     structured_content: dict | None = None
     metadata: dict = field(default_factory=dict)
     embedded_image_count: int = 0
+    visual_pages: list[int] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if not self.source_path:

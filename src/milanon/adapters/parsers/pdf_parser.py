@@ -18,6 +18,17 @@ _OCR_CHAR_THRESHOLD = 50
 _OCR_DPI = 300
 _OCR_LANG = "deu"
 
+# Visual layout detection: tables with too many columns or mostly-empty cells
+# are WAP/schedule grids — not meaningful data tables.
+_VISUAL_TABLE_MAX_COLS = 20
+_VISUAL_TABLE_EMPTY_THRESHOLD = 0.70
+
+# Marker inserted in place of a visual/schedule page
+_VISUAL_PAGE_MARKER = (
+    "\n\n⚠ **Page {page_num}: Visual layout (WAP/schedule) — "
+    "not extractable as text. See original PDF.**\n\n"
+)
+
 
 def _tesseract_available() -> bool:
     """Return True if the Tesseract binary is accessible on this system."""
@@ -68,19 +79,24 @@ class PdfParser:
         page_texts: list[str] = []
         total_images = 0
         ocr_pages: list[int] = []
+        visual_pages: list[int] = []
 
         with pdfplumber.open(str(path)) as pdf:
             for page_num, page in enumerate(pdf.pages, start=1):
-                text, used_ocr = self._extract_page_text(path, page, page_num)
+                text, used_ocr, is_visual = self._extract_page_text(path, page, page_num)
                 page_texts.append(text.strip())
                 total_images += len(page.images)
                 if used_ocr:
                     ocr_pages.append(page_num)
+                if is_visual:
+                    visual_pages.append(page_num)
 
         text_content = "\n\n---\n\n".join(page_texts)
         metadata: dict[str, str] = {"page_count": str(len(page_texts))}
         if ocr_pages:
             metadata["ocr_pages"] = ", ".join(str(p) for p in ocr_pages)
+        if visual_pages:
+            metadata["visual_pages"] = ", ".join(str(p) for p in visual_pages)
 
         return ExtractedDocument(
             source_path=str(path),
@@ -89,6 +105,7 @@ class PdfParser:
             structured_content={"pages": page_texts} if len(page_texts) > 1 else None,
             metadata=metadata,
             embedded_image_count=total_images,
+            visual_pages=visual_pages,
         )
 
     def supported_extensions(self) -> list[str]:
@@ -101,28 +118,36 @@ class PdfParser:
 
     def _extract_page_text(
         self, path: Path, page, page_num: int
-    ) -> tuple[str, bool]:
-        """Extract text from one page. Returns (text, used_ocr).
+    ) -> tuple[str, bool, bool]:
+        """Extract text from one page. Returns (text, used_ocr, is_visual).
 
         When tables are detected, renders them as Markdown and interleaves
         with surrounding text. Falls back to plain text + OCR for table-free pages
         or when table extraction produces insufficient content.
+
+        Visual layout pages (WAP/schedule grids) are replaced with a marker
+        and flagged via is_visual=True.
         """
         tables = page.find_tables()
         if tables:
+            if self._is_visual_layout(tables):
+                logger.info("Page %d: visual layout detected — skipping table extraction", page_num)
+                marker = _VISUAL_PAGE_MARKER.format(page_num=page_num)
+                return marker, False, True
+
             content = self._extract_with_tables(page, tables)
             if len(content.strip()) >= _OCR_CHAR_THRESHOLD:
-                return content, False
+                return content, False, False
 
         # No tables (or too little content after table extraction) — plain text + OCR
         text = page.extract_text() or ""
         if len(text.strip()) >= _OCR_CHAR_THRESHOLD:
-            return text, False
+            return text, False, False
 
         ocr_text = self._try_ocr(path, page_num)
         if ocr_text:
             logger.info("Page %d: OCR fallback used (%d chars)", page_num, len(ocr_text))
-            return ocr_text, True
+            return ocr_text, True, False
 
         # OCR unavailable or failed — keep original short text
         if text.strip():
@@ -131,7 +156,32 @@ class PdfParser:
                 page_num,
                 len(text.strip()),
             )
-        return text, False
+        return text, False, False
+
+    def _is_visual_layout(self, tables) -> bool:
+        """Return True if any table looks like a visual/schedule grid.
+
+        Heuristics (either condition triggers):
+        - A table has more than _VISUAL_TABLE_MAX_COLS columns → WAP-style grid.
+        - A table has more than _VISUAL_TABLE_EMPTY_THRESHOLD fraction of empty
+          cells → schedule/timetable with mostly blank slots.
+        """
+        for table in tables:
+            data = table.extract()
+            if not data:
+                continue
+            num_cols = max(len(row) for row in data)
+            if num_cols > _VISUAL_TABLE_MAX_COLS:
+                return True
+            total_cells = sum(len(row) for row in data)
+            if total_cells == 0:
+                continue
+            empty_cells = sum(
+                1 for row in data for cell in row if not (cell or "").strip()
+            )
+            if empty_cells / total_cells > _VISUAL_TABLE_EMPTY_THRESHOLD:
+                return True
+        return False
 
     def _extract_with_tables(self, page, tables) -> str:
         """Extract page content with tables rendered as Markdown, in reading order.

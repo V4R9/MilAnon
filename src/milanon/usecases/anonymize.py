@@ -38,6 +38,7 @@ class AnonymizeResult:
     files_skipped: int = 0
     files_error: int = 0
     entities_found: int = 0
+    visual_page_count: int = 0
     warnings: list[str] = field(default_factory=list)
 
 
@@ -145,6 +146,9 @@ class AnonymizeUseCase:
         # Parse
         parser = get_parser(file_path)
         document = parser.parse(file_path)
+
+        # Track visual pages (PDF WAP/schedule grids)
+        result.visual_page_count += len(getattr(document, "visual_pages", []))
 
         # Recognize
         entities = self._pipeline.recognize(document)

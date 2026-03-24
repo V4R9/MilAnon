@@ -159,6 +159,13 @@ if page == "Anonymize":
                     for w in result.warnings:
                         st.warning(w)
 
+            if result.visual_page_count > 0:
+                st.warning(
+                    f"⚠ {result.visual_page_count} visual page(s) detected "
+                    "(WAP/schedules). These are not extractable as text and have been "
+                    "replaced with a placeholder marker in the output."
+                )
+
             if dry_run:
                 st.info("Dry run — no files were written.")
 

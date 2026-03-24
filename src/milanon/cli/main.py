@@ -76,8 +76,14 @@ def cli() -> None:
 @click.option("--recursive", "-r", is_flag=True, help="Process subfolders recursively.")
 @click.option("--force", is_flag=True, help="Reprocess all files, ignoring cache.")
 @click.option("--dry-run", is_flag=True, help="Show what would be processed without doing it.")
+@click.option(
+    "--embed-images",
+    is_flag=True,
+    help="Embed visual PDF pages (WAP/schedules) as PNG images in the output (NOT anonymized).",
+)
 def anonymize(
-    input_path: str, output: str, recursive: bool, force: bool, dry_run: bool
+    input_path: str, output: str, recursive: bool, force: bool, dry_run: bool,
+    embed_images: bool,
 ) -> None:
     """Anonymize documents by replacing sensitive entities with placeholders."""
     repo = _make_repo()
@@ -98,6 +104,13 @@ def anonymize(
     click.echo(f"{mode}Skipped:   {result.files_skipped}")
     click.echo(f"{mode}Errors:    {result.files_error}")
     click.echo(f"{mode}Entities:  {result.entities_found}")
+
+    if result.visual_page_count > 0:
+        click.echo(
+            f"⚠ {result.visual_page_count} visual page(s) detected (WAP/schedules — "
+            "not extractable as text). Use --embed-images to include as PNG.",
+            err=True,
+        )
 
     for warning in result.warnings:
         click.echo(f"  WARNING: {warning}", err=True)
