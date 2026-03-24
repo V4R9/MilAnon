@@ -1,252 +1,149 @@
-# MilAnon — Swiss Military Document Anonymizer
+# MilAnon — Secure AI Command Assistant for the Swiss Army
 
-Local-only CLI + GUI tool for Swiss Army company commanders to anonymize sensitive documents before using public LLMs, and de-anonymize the LLM outputs afterward. **No data ever leaves your machine.**
+> Local anonymization + doctrine-aware AI workflows + DOCX generation.
+> From 70-page battalion dossier to print-ready company order in hours, not weeks.
 
----
-
-## Features
-
-- Detects and replaces: AHV numbers, phone numbers, email addresses, names, ranks, units, addresses, dates of birth
-- Bundled reference data: 3958 Swiss municipalities + complete rank/unit taxonomy
-- Incremental processing — unchanged files are skipped automatically (SHA-256 hashing)
-- Full round-trip: anonymize → send to LLM → de-anonymize → restore originals
-- Supports: CSV, XLSX, DOCX, PDF (with OCR fallback), EML
-- Cross-source consistency: "Basel" from PISA import, municipality DB, and documents = same placeholder
-- Persistent mapping database (`~/.milanon/milanon.db`) — consistent placeholders across runs
-- PDF table extraction as Markdown pipe-syntax tables
-- Visual PDF page detection (WAP/Picasso schedules) — warns instead of producing garbled output
-- Generic name CSV import (`Grad;Vorname;Nachname`) + combined `Name / Vorname` column auto-detection
-- Quick-add single person via GUI
-- LLM Context Generator (`milanon context`) — produces `CONTEXT.md` with unit hierarchy and filtering instructions
-- GUI with LLM Workflow page (Pack → Work → Unpack)
-- Optional PNG embedding for visual PDF pages (`--embed-images`)
-- Word-boundary-safe entity matching (Unicode-aware, prevents substring false positives)
-- Streamlit GUI for non-CLI users (`milanon gui`)
-- **5+2 Workflow System** — doctrine-aware prompt assembly for Swiss Army Aktionsplanungsprozess
-- **DOCX Export** — local Markdown→DOCX generation with de-anonymization (`milanon export --docx --deanonymize`)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+![Tests: 672 passing](https://img.shields.io/badge/tests-672%20passing-brightgreen)
+![Version: 0.5.0](https://img.shields.io/badge/version-0.5.0-orange)
 
 ---
 
-## Prerequisites
+## The Problem
 
-| Requirement | Install |
-|---|---|
-| Python 3.11+ | [python.org](https://www.python.org/downloads/) |
-| Tesseract OCR (for scanned PDFs) | `brew install tesseract tesseract-lang` |
-| Poppler (for PDF rendering) | `brew install poppler` |
+Swiss Army company commanders (Miliz) receive a 70-page battalion dossier and must create a complete company command dossier — 16 interconnected documents, all doctrine-compliant — in their spare time. No staff, no templates, no prior experience.
 
----
+Public LLMs (ChatGPT, Claude) could help, but classified military documents cannot be uploaded to cloud services.
 
-## Installation
+## The Solution
 
-```bash
-# Clone the repository
-git clone https://github.com/V4R9/MilAnon.git
-cd Anonymizer_Tool_Army
+MilAnon solves this with three steps:
 
-# Create virtual environment
-python3 -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+1. **Anonymize** — Replace all names, units, locations with `[PLACEHOLDER]` tokens locally
+2. **AI-Assisted Creation** — Claude writes doctrine-compliant orders using the 5+2 process
+3. **De-anonymize + Export** — Restore real names and generate print-ready DOCX
 
-# Install (includes all dependencies including Streamlit)
-pip install -e ".[dev]"
-
-# Verify
-milanon --version
-```
+No classified data ever leaves your machine.
 
 ---
 
 ## Quick Start
 
+### Installation
+
 ```bash
-# 1. Initialize reference data (Swiss municipalities + military units)
+git clone https://github.com/V4R9/MilAnon.git
+cd Anonymizer_Tool_Army
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+milanon --version
+```
+
+**System dependencies** (macOS):
+```bash
+brew install tesseract tesseract-lang poppler
+```
+
+### Basic Flow
+
+```bash
+# 1. Import your personnel data
 milanon db init
+milanon db import pisa_410.csv
 
-# 2. Import personnel from MilOffice/PISA 410 export
-milanon db import personalbestand.csv
+# 2. Anonymize the battalion dossier
+milanon anonymize bat_dossier/ --output anon/ --recursive
 
-# 3. Anonymize documents
-milanon anonymize ./dossier/ --output ./anon/
+# 3. Generate a doctrine-aware prompt (copies to clipboard)
+milanon pack --workflow analyse --mode berrm --input anon/ --unit "Inf Kp 56/1"
 
-# 4. (Send ./anon/ to your LLM — Claude, ChatGPT, etc.)
+# 4. Paste in Claude.ai → Get your analysis → Copy Claude's response
 
-# 5. De-anonymize LLM output
-milanon deanonymize ./llm_output/ --output ./restored/
-```
+# 5. De-anonymize and save to your vault
+milanon unpack --clipboard --output vault/Planung/ --split
 
----
-
-## Usage
-
-### Initialize reference data (first run)
-
-```bash
-milanon db init           # Load municipalities + military units
-milanon db init --force   # Force reload (replaces existing data)
-```
-
-### Anonymize documents
-
-```bash
-# Single file
-milanon anonymize report.docx --output ./anonymized/
-
-# Folder (non-recursive)
-milanon anonymize ./input/ --output ./anonymized/
-
-# Recursive — include subfolders
-milanon anonymize ./input/ --output ./anonymized/ --recursive
-
-# Force reprocess all (ignore cache)
-milanon anonymize ./input/ --output ./anonymized/ --force
-
-# Dry run — show what would be processed without writing
-milanon anonymize ./input/ --output ./anonymized/ --dry-run
-
-# Embed visual PDF pages (WAP/schedules) as PNG — NOT anonymized
-milanon anonymize ./input/ --output ./anonymized/ --embed-images
-```
-
-Output:
-```
-Scanned:   3
-New:       2
-Changed:   1
-Skipped:   0
-Errors:    0
-Entities:  47
-```
-
-### De-anonymize LLM output
-
-```bash
-milanon deanonymize ./llm_output/ --output ./restored/
-milanon deanonymize ./llm_output/ --output ./restored/ --force
-milanon deanonymize ./llm_output/ --output ./restored/ --dry-run
-```
-
-### Validate placeholder integrity
-
-```bash
-milanon validate llm_output.md
-```
-
-Output:
-```
-File:         llm_output.md
-Placeholders: 12
-Resolved:     12
-Unresolved:   0
-OK
-```
-
-### Import external personnel (Bat Stab, Div Stab)
-
-```bash
-milanon db import bat_stab.csv --format names
-```
-
-### Generate LLM context
-
-```bash
-# For a specific unit
-milanon context --unit "Inf Kp 56/1" --output CONTEXT.md
-
-# Interactive unit selection (lists all known units)
-milanon context --output CONTEXT.md
-```
-
-Generates a `CONTEXT.md` with the organizational hierarchy, filtering instructions, and all `[EINHEIT_NNN]` placeholders — paste it before your anonymized document when prompting an LLM.
-
-### Database management
-
-```bash
-# Initialize reference data
-milanon db init
-
-# Import personnel from PISA 410 / MilOffice CSV
-milanon db import personnel_export.csv
-
-# Import from simple name list (Grad;Vorname;Nachname or combined Name/Vorname column)
-milanon db import bat_stab.csv --format names
-
-# List entities (optionally filtered)
-milanon db list
-milanon db list --type PERSON
-milanon db list --type AHV_NR --limit 20
-
-# Statistics
-milanon db stats
-
-# Reset mappings (keep reference data)
-milanon db reset
-
-# Full reset (includes municipalities, military units — re-run db init afterward)
-milanon db reset --include-ref-data
-```
-
-Entity types: `PERSON`, `VORNAME`, `NACHNAME`, `EMAIL`, `TELEFON`, `AHV_NR`, `GEBURTSDATUM`, `ORT`, `ADRESSE`, `ARBEITGEBER`, `EINHEIT`, `FUNKTION`, `GRAD_FUNKTION`
-
-### Streamlit GUI
-
-```bash
-milanon gui              # Opens http://localhost:8501
-milanon gui --port 8502  # Custom port
-```
-
-The GUI offers 5 pages:
-- **Anonymize** — folder pickers, options, progress bar, entity count summary; warns on visual PDF pages
-- **De-Anonymize** — restore LLM output files; paste text area for direct LLM output
-- **LLM Workflow** — 3-tab workflow: Pack for LLM, Work with LLM, Unpack Response; includes Context Generator with unit dropdown and preview
-- **DB Import** — upload PISA 410 or simple name list CSV; format selector; Quick-Add single person form
-- **DB Stats** — entity counts per type with bar chart; Reset Mappings / Reset Everything buttons; Initialize Reference Data button
-
-> **Tip:** When entering paths in the GUI, quotes are stripped automatically. You can paste paths from Finder (with or without quotes).
-
----
-
-## 5+2 Workflow System
-
-MilAnon v0.5.0 adds doctrine-aware prompt assembly for the Swiss Army 5+2 Aktionsplanungsprozess (BFE 52.080 Kap 5).
-
-```bash
-# Assemble a prompt for Step 1 (Analyse) in Bereitschaftsraum mode
-milanon pack --workflow analyse --mode berrm --context ./vault/ --step 1
-
-# Assemble a prompt for Einsatzbefehl (Step 5), including prior products as context
-milanon pack --workflow ei-bf --mode adf --context ./vault/ --step 5
-
-# List available doctrine files
-milanon doctrine list
-
-# Extract chapter-level doctrine snippets for token-efficient prompting
-milanon doctrine extract --all
-```
-
-The assembled prompt contains 5 layers: role definition, unit context + placeholders, relevant doctrine chapters, task template, and output rules. Paste the result into Claude.ai (or any LLM), then de-anonymize the response locally.
-
-### DOCX Export
-
-```bash
-# Convert de-anonymized LLM output to CH Armee DOCX format
+# 6. Export as print-ready DOCX with real names
 milanon export vault/befehl.md --docx --deanonymize
 ```
 
-Produces a ready-to-distribute DOCX using the official CH Armee Befehl template. De-anonymization happens locally — no cleartext ever leaves your machine.
+### For Non-Technical Users: Claude Project
+
+```bash
+# Generate a ready-to-use Claude.ai Project
+milanon project generate --unit "Inf Kp 56/1" --output ~/claude_project/
+# → Upload to Claude.ai → Done. No terminal needed after this.
+```
 
 ---
 
-## Typical Workflow
+## Features
+
+### Core Engine (v0.3.0)
+
+- **Document parsing:** PDF (with OCR fallback), DOCX, EML, XLSX/CSV
+- **Entity recognition:** Names, AHV numbers, phone, email, addresses, military units
+- **Bidirectional mapping:** Anonymize <-> De-anonymize with consistent placeholders
+- **Round-trip workflow:** Edit in Obsidian -> Re-anonymize -> Update via LLM -> De-anonymize
+- **Incremental processing:** SHA-256 hashing, only new/changed files are processed
+- **Cross-source consistency:** "Basel" from PISA import, municipality DB, and documents = same placeholder
+
+### 5+2 Command Workflows (v0.5.0)
+
+- **Doctrine Knowledge Base:** 11 Swiss Army regulations indexed with chapter-level extraction
+- **5-Layer Prompt Assembly:** Role + Context + Doctrine + Task + Rules
+- **Mode Support:** Bereitschaftsraum (Berrm) and classical ADF
+- **3 Workflows:** Analyse (Problemerfassung), Einsatzbefehl, Wachtdienstbefehl
+- **DOCX Export:** Markdown -> Armee-formatted DOCX with de-anonymization
+- **Claude Project Generator:** One-click setup for non-technical commanders
+
+---
+
+## Supported Workflows
+
+| Workflow | What it does | 5+2 Step |
+|---|---|---|
+| `analyse` | 4-color marking + problem decomposition + SOMA + timeline | Step 1 |
+| `ei-bf` | Complete 5-point order from all planning products | Step 5 |
+| `wachtdienst` | WAT-compliant guard duty order | Full cycle |
+| `bdl` | AUGEZ factor analysis with AEK method | Step 2 |
+| `entschluss` | Variant generation + evaluation + decision | Step 3 |
+
+---
+
+## Architecture
 
 ```
-1. Initialize (once):         milanon db init
-2. Import personnel (once):   milanon db import personalbestand.csv
-3. Anonymize:                 milanon anonymize ./vertraulich/ --output ./anon/
-4. Work with LLM (Claude, ChatGPT, etc.) — use content from ./anon/
-5. Validate LLM output:       milanon validate llm_response.md
-6. De-anonymize:              milanon deanonymize ./llm_output/ --output ./restored/
+┌──────────────────────────────────────────────────────┐
+│  Your Machine (100% local)                           │
+│                                                      │
+│  PDF/DOCX ──> Anonymize ──> [PLACEHOLDER] text       │
+│                                    │                  │
+│                                    v                  │
+│                          ┌─────────────────┐          │
+│                          │  Claude.ai      │  Cloud   │
+│                          │  (sees only     │          │
+│                          │  placeholders)  │          │
+│                          └────────┬────────┘          │
+│                                   │                   │
+│                                   v                   │
+│  Vault <── De-anonymize <── [PLACEHOLDER] response   │
+│    │                                                  │
+│    v                                                  │
+│  DOCX Export (real names, Armee formatting)           │
+└──────────────────────────────────────────────────────┘
 ```
+
+### Clean Architecture (4 Layers)
+
+```
+Layer 1 (Domain):    entities, protocols, mapping_service, recognition, anonymizer, deanonymizer
+Layer 2 (Use Cases): anonymize, deanonymize, import, validate, context, pack, doctrine, export
+Layer 3 (Adapters):  parsers/, recognizers/, writers/, repositories/, cli/
+Layer 4 (Infra):     SQLite, Tesseract, File System, Streamlit
+```
+
+Dependencies point inward only. The domain layer has zero external dependencies.
 
 ---
 
@@ -254,21 +151,45 @@ Produces a ready-to-distribute DOCX using the official CH Armee Befehl template.
 
 | Command | Description |
 |---|---|
-| `milanon anonymize` | Anonymize documents |
-| `milanon deanonymize` | De-anonymize LLM outputs |
-| `milanon context` | Generate LLM context file |
-| `milanon validate` | Check placeholder integrity |
-| `milanon pack` | Assemble 5-layer workflow prompt (`--workflow`, `--mode`, `--context`, `--step`) |
-| `milanon export` | Export Markdown to DOCX (`--docx`, `--deanonymize`) |
-| `milanon doctrine list` | List available doctrine files |
-| `milanon doctrine extract` | Extract doctrine chapters for prompting |
-| `milanon config set/get` | Read/write project configuration |
-| `milanon db init` | Initialize reference data |
-| `milanon db import` | Import from CSV (PISA or name list) |
-| `milanon db reset` | Reset mapping database |
-| `milanon db list` | List known entities |
+| `milanon anonymize <input> -o <dir>` | Anonymize documents (`--recursive`, `--force`, `--dry-run`, `--embed-images`) |
+| `milanon deanonymize <input> -o <dir>` | De-anonymize LLM outputs |
+| `milanon validate <file>` | Check placeholder integrity in LLM output |
+| `milanon pack` | Assemble 5-layer workflow prompt (`--workflow`, `--mode`, `--step`, `--context`) |
+| `milanon unpack` | De-anonymize clipboard/file, optionally split into files (`--split`) |
+| `milanon export <file> --docx` | Export Markdown to DOCX (`--deanonymize` for real names) |
+| `milanon context` | Generate LLM context file (`--unit`, `--output`) |
+| `milanon doctrine list` | List available doctrine files from INDEX.yaml |
+| `milanon doctrine extract` | Extract doctrine chapters for token-efficient prompting |
+| `milanon project generate` | Generate Claude.ai Project folder (`--unit`, `--output`) |
+| `milanon config set/get` | Read/write project configuration (mode, unit) |
+| `milanon review <dir>` | Review anonymization quality, learn unrecognized names |
+| `milanon db init` | Initialize reference data (municipalities + military units) |
+| `milanon db import <csv>` | Import from CSV (`--format pisa\|names`) |
+| `milanon db list` | List known entities (`--type`, `--limit`) |
 | `milanon db stats` | Show database statistics |
-| `milanon gui` | Launch Streamlit web interface |
+| `milanon db reset` | Reset mapping database (`--include-ref-data`) |
+| `milanon gui` | Launch Streamlit web interface (`--port`) |
+
+---
+
+## Doctrine Knowledge Base
+
+MilAnon includes 11 Swiss Army regulations as Markdown with chapter-level extraction:
+
+| Regulation | Content |
+|---|---|
+| BFE 52.080 (Einsatz) | **THE core:** 5+2 Aktionsplanungsprozess, all 5 steps |
+| BFE 52.081 (Ausbildung) | Training planning and execution |
+| TF 50.030 | Taktische Fuehrung 17 — Einsatzgrundsaetze, Raumordnung, Taktische Aufgaben |
+| FSO 50.040 | Fuehrung und Stabsorganisation 17 — Aktionsplanung on staff level |
+| WAT 51.301 | Wachtdienst aller Truppen — 10-point guard duty order structure |
+| Reglement 51.019 | Checkpoints |
+| Reglement 51.020 | Strassenkontrollen |
+| Reglement 51.025 | Beobachtung |
+| Reglement 51.050 | Sperren |
+| Paradigmenwechsel | Bereitschaftsraum paradigm reference |
+
+14 chapter-level extracts in `data/doctrine/extracts/` for token-efficient prompting (~5-30 KB each instead of ~3 MB total).
 
 ---
 
@@ -287,39 +208,60 @@ The same entity always gets the same placeholder — consistent across files, ru
 
 ---
 
-## Reference Data
+## Streamlit GUI
 
-| File | Description |
-|---|---|
-| `data/swiss_municipalities.csv` | 4059 Swiss municipalities with PLZ and canton |
-| `data/military_units.csv` | Ranks, branches, functions, unit patterns (single source of truth) |
-| `data/doctrine/INDEX.yaml` | Workflow → doctrine chapter → mode mapping |
-| `data/doctrine/*.md` | 11 Swiss Army regulations as Markdown (~3 MB) |
-| `data/doctrine/extracts/` | Token-efficient chapter extracts for prompt assembly |
-| `data/doctrine/skeletons/` | Document structure templates (5-Punkte-Befehl universal) |
-| `data/templates/role.md` | Layer 1: LLM role definition |
-| `data/templates/rules.md` | Layer 5: Output rules |
-| `data/templates/workflows/` | Layer 4: Per-workflow task templates |
-| `data/templates/docx/befehl_vorlage.docx` | CH Armee Befehl base template |
+```bash
+milanon gui              # Opens http://localhost:8501
+milanon gui --port 8502  # Custom port
+```
+
+5 pages: Anonymize, De-Anonymize, LLM Workflow (Pack/Work/Unpack), DB Import, DB Stats.
 
 ---
 
 ## Development
 
 ```bash
-# Run all tests
-pytest tests/ -v         # 520+ tests
-
-# Specific test modules
-pytest tests/domain/ -v
-pytest tests/e2e/ -v
-
-# Lint
-ruff check src/ tests/
-
-# Coverage
-pytest tests/ --cov=src/milanon --cov-report=term-missing
+git clone https://github.com/V4R9/MilAnon.git
+cd Anonymizer_Tool_Army
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+python -m pytest tests/ -x    # 672 tests
+ruff check src/ tests/        # Linting
 ```
+
+### Project Structure
+
+```
+src/milanon/
+  domain/           # Core business logic (no external deps)
+  usecases/         # Anonymize, deanonymize, pack, doctrine, export, context
+  adapters/         # Parsers, recognizers, writers, repositories, CLI
+  gui/              # Streamlit app
+  config/           # Settings, military patterns
+  utils/            # CSV helpers
+data/
+  military_units.csv          # Single source of truth: ranks, branches, units, functions
+  swiss_municipalities.csv    # 4059 Swiss municipalities with PLZ and canton
+  doctrine/                   # 11 regulations + 14 extracts + 5 skeletons
+  templates/                  # 5-layer prompt templates + DOCX base templates
+```
+
+### Standards
+
+- Clean Code + SOLID principles
+- Tests: Arrange-Act-Assert, naming `test_<what>_<when>_<then>`
+- Commits: Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`)
+- All code, docs, tests, comments in English
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feat/your-feature`)
+3. Write tests for your changes
+4. Ensure all tests pass (`python -m pytest tests/ -x`)
+5. Commit with conventional commits
+6. Open a Pull Request
 
 ---
 
@@ -327,25 +269,32 @@ pytest tests/ --cov=src/milanon --cov-report=term-missing
 
 | Document | Description |
 |---|---|
-| [Project Summary](docs/PROJECT_SUMMARY.md) | Goals, scope, non-goals |
-| [Product Requirements](docs/PRD.md) | Full requirements specification (v1.1) |
-| [Architecture Overview](docs/architecture/ARCHITECTURE.md) | Clean Architecture, ADRs, diagrams |
-| [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) | Step-by-step build plan |
-| [PISA 410 Column Mapping](docs/PISA_410_COLUMN_MAPPING.md) | MilOffice CSV import spec |
+| [Product Design](docs/PRODUCT_DESIGN_COMMAND_ASSISTANT.md) | 5+2 process design, workflow architecture |
+| [Roadmap](docs/ROADMAP.md) | Epics, user stories, delivery phases |
+| [Architecture](docs/architecture/ARCHITECTURE.md) | Clean Architecture overview + 13 ADRs |
+| [Strategic Analysis](docs/STRATEGIC_ANALYSIS.md) | IMD frameworks (Rumelt, PESTEL, VRIO) applied |
 | [Changelog](CHANGELOG.md) | Release history |
 
 ---
 
 ## Security & Privacy
 
-- **No network access** — all processing is local
+- **No network access** — all processing is 100% local
 - **No telemetry** — nothing is logged or transmitted externally
-- Database stored at `~/.milanon/milanon.db` (override via `MILANON_DB_PATH` env var)
+- Database stored at `~/.milanon/milanon.db` (override via `MILANON_DB_PATH`)
 - Streamlit GUI runs on `localhost` only
-- To wipe all mappings: `milanon db reset` (or `rm ~/.milanon/milanon.db` then `milanon db init`)
+- To wipe all mappings: `milanon db reset` or `rm ~/.milanon/milanon.db`
 
 ---
 
 ## License
 
-Internal use only — Swiss Army.
+MIT — see [LICENSE](LICENSE)
+
+---
+
+## Acknowledgments
+
+- Swiss Army doctrine: BFE, FSO, TF, WAT
+- IMD Strategic Thinking (strategic analysis framework)
+- Built with Claude (Anthropic) as AI pair-programming partner
