@@ -118,6 +118,9 @@ demo_anon/
 .claude/
 CLAUDE.md
 
+# Product design reference material (local only — used as context for Claude)
+Unterlagen Review Product Design/
+
 # OS files
 .DS_Store
 Thumbs.db

@@ -1,0 +1,255 @@
+# Doctrine Knowledge Base — Workflow Index
+#
+# CENTRAL CONCEPT: The 5+2 Aktionsplanungsprozess (BFE 52.080 Kap 5)
+#
+# 5 Führungstätigkeiten (sequential):
+#   1. Problemerfassung — Understand the problem, decompose into sub-tasks
+#   2. Beurteilung der Lage (BdL) — AUGEZ factor analysis (Auftrag, Umwelt, Gegner, Eigene, Zeit)
+#   3. Entschlussfassung — Generate variants, evaluate, decide, formulate Absicht + Aufträge
+#   4. Planentwicklung — Elaborate Besondere Anordnungen, Beilagen, Reserve plans
+#   5. Befehlsgebung — Assemble 5-Punkte-Befehl and issue it
+#
+# +2 Begleitende Tätigkeiten (continuous across all 5 steps):
+#   - Sofortmassnahmen (SOMA) — OEBAS-VIV immediate actions
+#   - Zeitplanung — Synchronisationsmatrix (internal + external timeline)
+#   (Plus Risikomanagement as permanent cross-cutting activity)
+#
+# The 5+2 is THE universal process. Every workflow below is a specialized
+# application of this process. The difference is only WHICH doctrine chapters
+# and WHICH skeleton templates are used.
+
+# ============================================================================
+# AVAILABLE DOCTRINE FILES
+# ============================================================================
+# These files are stored in data/doctrine/ as Markdown.
+# Total: 11 files, ~3 MB
+
+doctrine_files:
+  52_080_bfe_einsatz.md:
+    title: "Behelf Führung Einheit (BFE) — Teil 1: Einsatz"
+    regulation: "52.080"
+    key_chapters:
+      - "Kap 2: Führungsprozesse, Führungsrhythmus"
+      - "Kap 3: Risikomanagement"
+      - "Kap 4: Lageverfolgung (3 Produkte der Führung)"
+      - "Kap 5: Aktionsplanung (5+2 Prozess) — THE CORE"
+      - "Kap 5.1: Problemerfassung"
+      - "Kap 5.2: Sofortmassnahmen"
+      - "Kap 5.3: Zeitplanung"
+      - "Kap 5.4: Beurteilung der Lage (AUGEZ, AEK)"
+      - "Kap 5.5: Entschlussfassung (Varianten, Entschluss)"
+      - "Kap 5.6: Planentwicklung"
+      - "Kap 5.7: Befehlsgebung (5-Punkte-Befehl)"
+
+  52_081_bfe_ausbildung.md:
+    title: "BFE — Teil 2: Ausbildungsdienst"
+    regulation: "52.081"
+    key_chapters:
+      - "Kap 2: Personal (Planung, Führung)"
+      - "Kap 3: Ausbildungsplanung"
+      - "Kap 4: Ausbildungsdurchführung"
+      - "Anhänge: Befehle, Checklisten, Traktandenlisten"
+
+  51_301_wachtdienst_aller_truppen.md:
+    title: "Wachtdienst aller Truppen (WAT)"
+    regulation: "51.301"
+    key_chapters:
+      - "Wachtdienstbefehl-Struktur"
+      - "Pflichten und Befugnisse"
+      - "Ablösung, Wachtjournal"
+      - "ROE/ROB für Wachtdienst"
+
+  50_030_taktische_fuehrung.md:
+    title: "Taktische Führung 17 (TF 17)"
+    regulation: "50.030"
+    key_chapters:
+      - "Kap 5: Grundkenntnisse taktischer Führung"
+      - "Kap 5.2: Grundsätze der Taktik (Einsatzgrundsätze)"
+      - "Kap 5.3: Führung auf taktischer Stufe"
+      - "Kap 5.4: Einsatzraum und Raumordnung"
+      - "Kap 5.5: Taktische Aufgaben"
+
+  50_040_fso_17.md:
+    title: "Führung und Stabsorganisation der Armee 17 (FSO 17)"
+    regulation: "50.040"
+    key_chapters:
+      - "Führungsprozesse (Kern- und Unterstützungsprozesse)"
+      - "Aktionsplanung auf allen Stufen"
+      - "Befehlstechnik"
+
+  50_041_bfa_17.md:
+    title: "Behelf Führung Armee 17 (BFA 17)"
+    regulation: "50.041"
+
+  53_005_fuehrung_einsatz_inf.md:
+    title: "Führung und Einsatz der Infanterie"
+    regulation: "53.005"
+    key_chapters:
+      - "Führung und Organisation Stufe Bat/Kp"
+      - "Einsatzgrundsätze Infanterie"
+
+  53_005_21_ei_verf_inf_bat.md:
+    title: "Einsatzverfahren des Infanteriebataillons"
+    regulation: "53.005.21"
+    relevance: "Stufe drüber — Kp Kdt muss den Bat verstehen"
+
+  53_005_23_ei_verf_inf_kp.md:
+    title: "Einsatzverfahren der Infanteriekompanie"
+    regulation: "53.005.23"
+    relevance: "EIGENE STUFE — direkt anwendbar"
+
+  53_005_25_ei_verf_inf_z.md:
+    title: "Einsatzverfahren des Infanteriezuges"
+    regulation: "53.005.25"
+    relevance: "Stufe drunter — Kp Kdt muss 2 Stufen tiefer denken"
+
+  53_126_feuerkampf_panzerabwehr.md:
+    title: "Grundsätze des Feuerkampfes (Panzer Abwehr)"
+    regulation: "53.126.21"
+    relevance: "Verteidigung ist Kernauftrag der Schweizer Armee"
+
+
+# ============================================================================
+# WORKFLOWS — All derived from the 5+2 Prozess
+# ============================================================================
+
+workflows:
+
+  # --------------------------------------------------------------------------
+  # THE CORE: Full 5+2 Aktionsplanung
+  # --------------------------------------------------------------------------
+  5+2:
+    name: "Aktionsplanungs-Assistent (5+2 Prozess)"
+    description: >
+      THE universal workflow. Guides the commander through the complete
+      Aktionsplanung: Problemerfassung → Sofortmassnahmen → Zeitplanung →
+      BdL (AUGEZ) → Entschlussfassung → Planentwicklung → Befehlsgebung.
+      Produces ALL intermediate products along the way.
+    system_prompt: templates/5+2-aktionsplanung.md
+    doctrine:
+      - source: 52_080_bfe_einsatz.md
+        chapters: ["Kap 5 Aktionsplanung"]  # The entire Chapter 5
+      - source: 50_030_taktische_fuehrung.md
+        extract: extracts/tf_kap5_grundkenntnisse.md
+    skeleton: null  # Dynamic — produces multiple documents
+    output_format: [markdown]
+    products:
+      - "Problemerfassungs-Matrix (Teilprobleme, Prioritäten, Delegation)"
+      - "Sofortmassnahmen-Liste (OEBAS-VIV)"
+      - "Pendenzen-Liste"
+      - "Synchronisationsmatrix (externer + interner Zeitplan)"
+      - "AUGEZ-Analyse (Faktorenanalyse)"
+      - "Schlüsselbereiche ROT/BLAU"
+      - "Konsequenzen ROT → Konsequenzen BLAU"
+      - "Varianten (2-3 mit ROS-Unterscheidung)"
+      - "Entschluss + Absicht + Aufträge"
+      - "Besondere Anordnungen + Beilagen"
+      - "5-Punkte-Befehl (Ei Bf Einh)"
+
+  # --------------------------------------------------------------------------
+  # DERIVED WORKFLOWS — Specialized 5+2 applications
+  # --------------------------------------------------------------------------
+  analyse:
+    name: "Bat Dossier Analyse"
+    description: "Extract all tasks, timeline, conflicts for your unit. Step 1 of the 5+2."
+    system_prompt: templates/analyse.md
+    doctrine: []
+    skeleton: null
+    output_format: [markdown]
+    maps_to_5+2: "Schritt 1: Problemerfassung (Initialisierung)"
+
+  allgemeiner-befehl:
+    name: "Allgemeiner Kp Befehl (Dok 000)"
+    description: "Complete company order — the final product of a full 5+2 cycle."
+    system_prompt: templates/allgemeiner-befehl.md
+    doctrine:
+      - source: 52_080_bfe_einsatz.md
+        extract: extracts/bfe_befehlsschema.md
+    skeleton: skeletons/000_allgemeiner_befehl.md
+    output_format: [markdown, docx]
+    maps_to_5+2: "Schritt 5: Befehlsgebung"
+
+  wachtdienst:
+    name: "Wachtdienstbefehl (Dok 300/400)"
+    description: "Guard duty order — a 5+2 cycle focused on security at a Standort."
+    system_prompt: templates/wachtdienst.md
+    doctrine:
+      - source: 51_301_wachtdienst_aller_truppen.md
+        extract: extracts/wat_wachtdienstbefehl.md
+      - source: 52_080_bfe_einsatz.md
+        extract: extracts/bfe_befehlsschema.md
+    skeleton: skeletons/300_wachtdienstbefehl.md
+    output_format: [markdown, docx]
+    maps_to_5+2: "Kompletter 5+2 mit Fokus Sicherung"
+
+  einsatzbefehl:
+    name: "Kp Einsatzbefehl (Dok 500)"
+    description: "Tactical company order — 5+2 cycle with full BdL and Gegner-Analyse."
+    system_prompt: templates/einsatzbefehl.md
+    doctrine:
+      - source: 52_080_bfe_einsatz.md
+        extract: extracts/bfe_befehlsschema.md
+      - source: 50_030_taktische_fuehrung.md
+        extract: extracts/tf_kap5_grundkenntnisse.md
+      - source: 53_005_23_ei_verf_inf_kp.md
+        extract: null
+    skeleton: skeletons/500_einsatzbefehl.md
+    output_format: [markdown, docx]
+    maps_to_5+2: "Kompletter 5+2 mit taktischem Fokus"
+
+  dienstbetrieb:
+    name: "Befehl Dienstbetrieb (Dok 100)"
+    description: "Daily operations — 5+2 cycle focused on Dienstbetrieb-Regelung."
+    system_prompt: templates/dienstbetrieb.md
+    doctrine:
+      - source: 52_081_bfe_ausbildung.md
+        extract: extracts/bfe_personalplanung.md
+    skeleton: skeletons/100_bf_dienstbetrieb.md
+    output_format: [markdown, docx]
+    maps_to_5+2: "Abgekürzter 5+2 (Problemerfassung → Planentwicklung → Befehl)"
+
+  ausbildung:
+    name: "Befehl Ausbildung (Dok 200)"
+    description: "Training planning — 5+2 cycle for Lernziele, Lektionen, WAP."
+    system_prompt: templates/ausbildung.md
+    doctrine:
+      - source: 52_081_bfe_ausbildung.md
+        extract: extracts/bfe_ausbildungsplanung.md
+    skeleton: skeletons/200_bf_ausbildung.md
+    output_format: [markdown, xlsx]
+    maps_to_5+2: "5+2 mit Ausbildungsfokus"
+
+  aktionsplanung:
+    name: "Beurteilung der Lage (BdL)"
+    description: "Guided AUGEZ analysis — Step 2 of the 5+2, standalone for tactical problems."
+    system_prompt: templates/aktionsplanung.md
+    doctrine:
+      - source: 52_080_bfe_einsatz.md
+        extract: extracts/bfe_fuehrungsprozess.md
+      - source: 50_030_taktische_fuehrung.md
+        extract: extracts/tf_kap5_grundkenntnisse.md
+    skeleton: null
+    output_format: [markdown]
+    maps_to_5+2: "Schritt 2: Beurteilung der Lage (isoliert)"
+
+  personalplanung:
+    name: "Personalplanung"
+    description: "Personnel management — simplified 5+2 for TDL, Entlassungen, Aufgebote."
+    system_prompt: templates/personalplanung.md
+    doctrine:
+      - source: 52_081_bfe_ausbildung.md
+        extract: extracts/bfe_personalplanung.md
+    skeleton: null
+    output_format: [markdown, xlsx]
+    maps_to_5+2: "Abgekürzter 5+2 für administrative Aufgaben"
+
+  rapport:
+    name: "Rapport-Vorbereitung"
+    description: "Prepare Frontrapport, Bat Rap input from current Kp data."
+    system_prompt: templates/rapport.md
+    doctrine:
+      - source: 52_081_bfe_ausbildung.md
+        extract: null
+    skeleton: null
+    output_format: [markdown]
+    maps_to_5+2: "Lageverfolgung → Einsatzbericht"

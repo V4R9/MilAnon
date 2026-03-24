@@ -1,168 +1,147 @@
-# MilAnon — Product Roadmap
+# MilAnon — Product Roadmap v2
 
-> Strategic feature planning. For tactical sprint items see [BACKLOG.md](BACKLOG.md).
-> For original MVP requirements see [PRD.md](PRD.md).
-> Last updated: 2026-03-25
+> Central Concept: **5+2 Aktionsplanungsprozess** (BFE 52.080 Kap 5)
+> Core Architecture: Cloud Intelligence + Local Security + Local DOCX Generation
+> Last updated: 2026-03-25 (Session: Deep Doctrine + Berrm + Template Analysis)
 
 ---
 
-## Completed Epics (MVP)
+## Architecture Decisions (this session)
 
-| Epic | Name | Status |
+| ADR | Decision | Impact |
 |---|---|---|
-| E1 | Document Ingestion (EML, DOCX, PDF, XLSX/CSV) | ✅ |
-| E2 | Entity Recognition (Pattern, Military, List) | ✅ |
-| E3 | Anonymization Engine | ✅ |
-| E4 | De-Anonymization Engine | ✅ |
-| E5 | Mapping Database (SQLite, persistent) | ✅ |
-| E6 | Reference Data & Bootstrapping (Municipalities, Ranks) | ✅ |
-| E7 | User Interface (CLI + Streamlit GUI) | ✅ |
-| E8 | LLM Output Optimization (Legend, Validation, Context) | ✅ |
+| [ADR-009](architecture/ADR-009-5plus2-central-concept.md) | 5+2 is THE central product concept | Every workflow = specialized 5+2 |
+| [ADR-010](architecture/ADR-010-universal-5-punkte-befehl.md) | Universal 5-Punkte-Befehl with mode markers | One skeleton, ADF+Berrm via `--mode` |
+| [ADR-011](architecture/ADR-011-local-docx-pipeline.md) | Local DOCX generation from structured Markdown | LLM=content, Code=formatting, De-Anon=local |
+| [ADR-012](architecture/ADR-012-5-layer-system-prompt.md) | 5-Layer System Prompt Architecture | Role+Context+Doctrine+Task+Rules |
+| [ADR-013](architecture/ADR-013-doctrine-chapter-extraction.md) | Doctrine chapter extraction for token efficiency | ~3MB → 5-30KB per workflow step |
 
 ---
 
-## Current: Hardening & Quality (March 2026)
+## Phase 1: Core Engine — DONE ✅ (v0.3.0)
 
-**Goal:** Produktiv-ready bis Ende März. Fokus auf Output-Qualität und Robustheit.
+520+ tests, 13 CLI commands, 5 GUI pages. See [BACKLOG.md](BACKLOG.md) for details.
 
-| Item | Epic | Priority | Status |
+---
+
+## Phase 2: Doctrine + 5+2 Workflows (v0.5.0 — April 2026)
+
+### Epic E14: Doctrine Knowledge Base
+
+| ID | Story | Size | Prio | Status |
+|---|---|---|---|---|
+| US-14.1 | Store 11 doctrine files as .md in data/doctrine/ | S | P0 | ✅ Done |
+| US-14.2 | INDEX.yaml with workflow→chapter→mode mapping | M | P0 | ✅ Done |
+| US-14.3 | Chapter extraction engine (full .md → relevant sections) | L | P0 | Open |
+| US-14.4 | `milanon doctrine list` CLI | S | P2 | Open |
+| US-14.5 | `milanon doctrine extract --workflow analyse` preview | M | P2 | Open |
+| US-14.6 | Paradigmenwechsel Berrm document in doctrine KB | S | P0 | ✅ Done |
+
+### Epic E15: 5+2 Command Workflows
+
+**Infrastructure (must-have for ANY workflow):**
+
+| ID | Story | Size | Prio |
 |---|---|---|---|
-| Visual PDF page detection (WAP/Picasso) | E1 | P1 | ✅ |
-| LLM Context Generator (`milanon context`) | E8 | P1 | ✅ |
-| Generic name CSV import (Bat Stab) | E5 | P1 | ✅ |
-| Quick-Add names in GUI | E7 | P2 | ✅ |
-| Code Review — 14 findings refactored | — | P1 | ✅ |
-| Mega-cell visual detection (Organigramm) | E1 | P1 | 🔴 B-013 |
-| Empty column stripping in PDF tables | E1 | P1 | 🔴 B-014 |
-| Post-anonymization review loop | E2 | P2 | 🔴 B-010 |
-| EINHEIT alias system | E5 | P2 | 🔴 B-018 |
-| De-anonymize filenames (B-023) | E4 | P1 | 🔴 |
-| Obsidian wiki-link compatibility (B-024) | E4 | P1 | 🔴 |
-| In-place de-anonymization (B-025) | E4 | P2 | 🔴 |
+| US-15.I1 | `--workflow` flag on `milanon pack` — reads INDEX.yaml, assembles 5-layer prompt | L | **P0** |
+| US-15.I2 | 5-Layer System Prompt assembly engine (Role+Context+Doctrine+Task+Rules) | L | **P0** |
+| US-15.I3 | `--context` flag — include Vault files from previous steps as additional input | M | **P0** |
+| US-15.I4 | `--mode berrm\|adf` flag — selects skeleton mode markers + doctrine chapters | M | **P0** |
+| US-15.I5 | `--step 1-5` flag — selects which 5+2 step to execute | S | **P0** |
+| US-15.I6 | Layer 1 template: `templates/role.md` (static, with TF 17 taktische Kompetenz) | M | **P0** |
+| US-15.I7 | Layer 5 template: `templates/rules.md` (static, placeholder + KDT ENTSCHEID rules) | S | **P0** |
+
+**Workflows (content — each is a Layer 4 template):**
+
+| ID | Story | 5+2 Step | Size | Prio |
+|---|---|---|---|---|
+| US-15.W1 | **Analyse** — 4-Farben-Initialisierung + Problemerfassung + SOMA + Zeitplan | Step 1 | L | **P0** |
+| US-15.W2 | **BdL** — AUGEZ-Analyse mit AEK, Konsequenzen ROT/BLAU | Step 2 | L | P1 |
+| US-15.W3 | **Entschluss** — Varianten (ROS), Einsatzgrundsätze-Bewertung, Absicht+Aufträge | Step 3 | L | P1 |
+| US-15.W4 | **Ei Bf** — 5-Punkte-Befehl aus allen Produkten (universal, mode-aware) | Step 5 | L | **P0** |
+| US-15.W5 | **Wachtdienst** — WAT-konformer Befehl (Berrm: taktische Sicherung) | Full cycle | L | **P0** |
+| US-15.W6 | **EP Halten** — Eventualplanung Halten Standort | Sub-product | M | P1 |
+| US-15.W7 | **EP Interessenraum** — Eventualplanung Kampf im Interessenraum | Sub-product | M | P1 |
+| US-15.W8 | Dienstbetrieb (Erg Bf im Berrm, Grundbefehl im ADF) | Full cycle | M | P2 |
+| US-15.W9 | Ausbildung (Erg Bf im Berrm, eigener Bf im ADF) | Full cycle | M | P2 |
+
+**Skeletons:**
+
+| ID | Story | Size | Prio | Status |
+|---|---|---|---|---|
+| US-15.S1 | Universal 5-Punkte-Befehl skeleton with mode markers | L | P0 | ✅ Done |
+| US-15.S2 | Allgemeiner Befehl skeleton (Dok 000) | M | P0 | ✅ Done |
+| US-15.S3 | Wachtdienstbefehl skeleton (WAT structure) | M | P0 | ✅ Done |
+| US-15.S4 | EP Halten Standort skeleton | S | P1 | Open |
+| US-15.S5 | EP Kampf Interessenraum skeleton | S | P1 | Open |
 
 ---
 
-## Core Innovation: The Round-Trip Workflow
+## Phase 3: DOCX Pipeline + Claude Projects (v0.7.0 — May 2026)
 
-**Key insight (2026-03-24):** MilAnon is not a one-way anonymizer. It enables a **continuous round-trip** between the user's local vault and public LLMs — preserving the user's manual edits across iterations.
+### Epic E17: Local DOCX Generation (ADR-011)
 
-### The Problem
+| ID | Story | Size | Prio |
+|---|---|---|---|
+| US-17.1 | `milanon export vault/befehl.md --docx --template befehl_vorlage.docx` | L | P1 |
+| US-17.2 | Markdown→DOCX style mapping engine (### → "1. Main title", etc.) | L | P1 |
+| US-17.3 | Aufträge-Tabelle: Nx2 DOCX table (links=Einheit, rechts=Bullet List) | M | P1 |
+| US-17.4 | `--deanonymize` flag on export — replace [PLACEHOLDER] → cleartext in DOCX | M | P1 |
+| US-17.5 | Combined: `milanon export --docx --deanonymize` in one step | S | P1 |
+| US-17.6 | XLSX export for WAP/Personalplanung/Synchronisationsmatrix | M | P2 |
+| US-17.7 | Dossier assembly: `milanon dossier assemble` — all docs, numbered, as ZIP | L | P2 |
 
-```
-Week 1: Mails → Anonymize → Claude → Dashboard v1 → De-Anonymize → Vault
-         User edits vault: status changes, notes, checked-off tasks ✏️
-Week 2: 3 new mails arrive. How to update without losing edits?
-         Option A: Regenerate everything → edits LOST ❌
-         Option B: Only send new mails → Claude doesn't know current state ❌
-```
+### Epic E16: Claude Project Generator
 
-### The Solution: Round-Trip via Re-Anonymize
-
-```
-INITIAL (once):
-  Source docs (Mails/PDF) → anonymize → Claude → De-anonymize → Vault
-
-UPDATE (repeatable, preserves edits):
-  1. RE-ANONYMIZE: Vault files (with edits) → anonymize → Placeholders
-  2. COMBINE: Re-anonymized vault + new anonymized mails
-  3. PACK: Combined content + template → clipboard
-  4. CLAUDE: "Here is the current state + 3 new mails. Update the dashboard."
-  5. UNPACK: Claude's output → de-anonymize --in-place → Vault
-```
-
-**Why this works:** The mapping DB is persistent. "Müller Hans" is ALWAYS `[PERSON_042]` — whether from a mail, from the vault, or from any future document. The round-trip is lossless.
-
-**Re-Anonymize is already built.** `milanon anonymize` takes text with real names and replaces them with placeholders. Just point it at vault files instead of source documents. No new code needed for the basic case.
+| ID | Story | Size | Prio |
+|---|---|---|---|
+| US-16.1 | `milanon project generate --unit "Inf Kp 56/1" --output ~/project/` | M | P2 |
+| US-16.2 | System Prompt assembler (Layer 1+2+5 → SYSTEM_PROMPT.md) | M | P2 |
+| US-16.3 | Knowledge file merger (doctrine → per-domain extracts for Project KB) | M | P2 |
+| US-16.4 | INSTRUCTIONS.md + WORKFLOWS.md generator | S | P2 |
 
 ---
 
-## Next: LLM Workflow Automation — Epic E10 (Q2 2026)
+## Phase 4: Sharing + Community (v1.0 — Q3 2026)
 
-**Goal:** MilAnon becomes the secure workspace between classified documents and public LLMs. The full round-trip in 3 commands.
+### Epic E18: Starter Kit & Onboarding
 
-### E10.1: Pack — Prompt Package Builder (P1) 🔴
-### E10.2: Templates — Reusable Prompt Templates (P1) 🔴
-### E10.3: Unpack — De-Anonymize from Clipboard (P1) 🔴
-### E10.4: GUI Integration — Pack & Unpack in Streamlit (P2) 🔴
-### E10.5: Update Template — Preserve User Edits (P2) 🔴
-
-See [BACKLOG.md](BACKLOG.md) for full specifications.
+| ID | Story | Size | Prio |
+|---|---|---|---|
+| US-18.1 | `milanon starter-kit export` (doctrine+templates+config, no PII) | M | P3 |
+| US-18.2 | `milanon starter-kit import` | M | P3 |
+| US-18.3 | Bat-level shared configuration | S | P3 |
 
 ---
 
-## Epic E13: Military Reference Data Consolidation (Q2 2026)
+## Critical Path for 31.03.2026 (Bat Dossier arrives)
 
-**Goal:** Single Source of Truth for all Swiss Army reference data. Eliminate triple-redundancy, add real organizational hierarchy, enable smarter recognition and richer LLM context.
+**Must work on Day 1:**
+1. ✅ Anonymization (works today)
+2. ✅ Review Loop (works today)
+3. E14.3 Chapter Extraction — doctrine extracts for prompts
+4. E15.I1-I7 Workflow Infrastructure — `--workflow`, 5-layer prompt, `--mode`, `--context`
+5. E15.W1 Workflow Analyse — first step of the 5+2
 
-### Problem Statement
+**Must work in Week 1-2:**
+6. E15.W4 Workflow Ei Bf — the primary document
+7. E15.W5 Workflow Wachtdienst — most time-consuming document
+8. E17.1-5 DOCX Export + De-Anonymize — for distribution
 
-Today there are three redundant data sources that are out of sync:
+**Can wait until WK (June):**
+9. All other workflows (BdL, Entschluss, EP, Dienstbetrieb, Ausbildung)
+10. Claude Project Generator
+11. Starter Kit
 
-| Source | Used by | Actual value |
+---
+
+## Delivery Channels (all use the same core)
+
+| Channel | Zielgruppe | How it works |
 |---|---|---|
-| `data/military_units.csv` | `init_reference_data.py` → SQLite `ref_military_units` | **Dead data** — loaded into DB but never queried by any recognizer |
-| `data/swiss_military_ranks.md` | Nobody | **Dead data** — pure documentation, read by no code |
-| `src/milanon/config/military_patterns.py` | `PatternRecognizer` + `MilitaryRecognizer` | **Actual source of truth** — hardcoded Python lists |
+| **CLI + Clipboard** | Any Kdt | `milanon pack` → paste in Claude.ai → `milanon unpack` |
+| **Claude Code** | Tech-savvy Kdt | Claude Code calls milanon CLI directly, reads/writes Vault |
+| **Claude Desktop + MCP** | Advanced | Claude Desktop accesses filesystem via MCP |
+| **Claude Project** | Less technical Kdt | Pre-built Project with System Prompt + Knowledge |
 
-All three contain the same ranks, branches, and functions — maintained in three places with no synchronization.
-
-Additionally, the tool has no knowledge of:
-- **Concrete formations** (Inf Bat 56, Ter Div 2, Mech Br 1)
-- **Organizational hierarchy** (Kdo Op → Ter Div 2 → Inf Bat 56 → Inf Kp 56/1)
-- **Standard battalion structure** (Stabskp=56/0, Kp 1-3, Ustü Kp=56/4)
-- **Unit type long forms** ("Ustü Kp" = "Unterstützungskompanie")
-
-### Value Created
-
-| Area | Today | With E13 |
-|---|---|---|
-| **Recognition** | Generic regex only: `Inf + Bat + Number` | Exact lookup for known units (Confidence 1.0) + regex fallback |
-| **LLM Context** | Flat list: `[EINHEIT_010] = Battalion` | Full hierarchy: `Kdo Op → Ter Div 2 → Inf Bat 56 → YOUR UNIT` |
-| **Alias Resolution** | None — "Ustü Kp 56/4" and "Ustü Kp 56" = 2 placeholders | Auto-alias via standard Bat structure |
-| **Pack Templates** | Generic: "Company under Battalion" | Rich: "Inf Kp 56/1, one of 5 companies of Inf Bat 56, under Ter Div 2" |
-| **Maintainability** | Edit 3 files, hope they're in sync | Edit 1 CSV, everything updates |
-
-### Implementation Phases
-
-**Phase 1 — Consolidate (B-028):** Delete dead files, extend CSV with `parent` + `level` columns, keep `military_patterns.py` hardcoded lists as-is for backward compat.
-
-**Phase 2 — CSV as Source of Truth for Recognizer (B-029):** `military_patterns.py` reads rank/branch/function lists from DB (loaded from CSV) instead of hardcoded. PII patterns (AHV, phone, email) stay hardcoded.
-
-**Phase 3 — Concrete Units + Hierarchy (B-030):** ~80 real formations from Wikipedia (all Ter Div, Inf Bat, Mech Br), 5er-structure for all 8 Inf Bat, parent column for hierarchy chain.
-
-**Phase 4 — Hierarchy in Context + Alias Resolution (B-031):** `generate_context.py` uses DB hierarchy instead of slash-heuristic. Automatic alias detection for Stabskp/Ustü Kp patterns.
-
-### Data Source
-
-Swiss Army organizational structure from [Wikipedia: Gliederung der Schweizer Armee](https://de.wikipedia.org/wiki/Gliederung_der_Schweizer_Armee) (public information, updated for 2026 structure).
-
----
-
-## Future Epics (Q3+ 2026)
-
-### Epic E9: Reporting & Audit (P3)
-Processing history, entity statistics over time, audit trail for compliance.
-
-### Epic E11: NLP Enhancement (P3)
-spaCy-based recognition for unknown names, fuzzy matching for typos, image OCR for embedded text.
-
-### Epic E12: Multi-User / Sharing (P3)
-Shared mapping databases for battalion-level coordination. Export/import of mapping DBs.
-
----
-
-## Backlog Cross-Reference
-
-Tactical items (bug fixes, small improvements) are tracked in [BACKLOG.md](BACKLOG.md).
-
-| Backlog Iteration | Mapped to Epic | Status |
-|---|---|---|
-| Iteration 1–2c | E1–E8 hardening | ✅ Done |
-| Iteration 3 (B-010) | E2 — Self-improving recognition | 🔴 Next |
-| Iteration 4 (B-013–B-017) | E1 — Output quality | 🔴 Next |
-| Iteration 5 (B-018) | E5 — EINHEIT aliases | 🔴 Planned |
-| Iteration 6 (B-019–B-021) | E3 — Incremental processing | 🔴 Planned |
-| Iteration 7 (B-023–B-025) | E4 — De-anonymization quality | 🔴 Planned |
-| Iteration 8 (B-026–B-027) | E7 — GUI enhancements | 🔴 Planned |
-| Iteration 9 (B-028–B-031) | E13 — Military reference data | 🔴 Planned |
-| Epic E10 | LLM Workflow Automation | 🔴 Q2 2026 |
+The core flow is always: **Anonymize → LLM writes content → De-anonymize → Local DOCX generation.**

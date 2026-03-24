@@ -47,286 +47,73 @@
 
 ---
 
-## Iteration 4 — Output Quality
+## Iteration 4 — Output Quality — Done ✅ (2026-03-25)
 
-## B-013: Mega-Cell Visual Detection (P1) 🔴
-
-**Commit:** `fix(parser): detect mega-cell visual layouts (organigramm, gliederung)`
-
-## B-014: Remove Empty Columns from PDF Tables (P1) 🔴
-
-**Commit:** `feat(parser): strip empty columns from PDF table extraction`
-
-## B-022: EML Display Names Not Anonymized (P1) 🔴
-
-**Commit:** `feat(recognition): anonymize display names in EML From/To/Cc/Bcc headers`
+- B-013: Mega-Cell Visual Detection (Organigramm/Gliederung >500 chars) ✅
+- B-014: Remove Empty Columns from PDF Tables (15→5 cols) ✅
+- B-022: EML Display Names anonymized (From/To/Cc/Bcc headers) ✅
 
 ---
 
-## Iteration 7 — De-Anonymization Quality
+## Iteration 7 — De-Anonymization Quality — Done ✅ (2026-03-25)
 
-## B-023: De-Anonymize Filenames (P1) 🔴
-
-**Commit:** `feat(deanonymize): resolve placeholders in output filenames`
-
-## B-024: Obsidian Wiki-Link Compatibility (P1) 🔴
-
-**Commit:** `feat(deanonymize): handle Obsidian wiki-links with proper alias format`
-
-## B-025: In-Place De-Anonymization (P2) 🔴
-
-**Commit:** `feat(deanonymize): add --in-place flag for direct vault de-anonymization`
+- B-023: De-Anonymize Filenames ([PERSON_005].md → Brüngger_Xenia.md) ✅
+- B-024: Obsidian Wiki-Link Compatibility ([[PERSON_005]] → [[Brüngger_Xenia|Xenia BRÜNGGER]]) ✅
+- B-025: In-Place De-Anonymization (--in-place flag with .milanon_backup/) ✅
 
 ---
 
-## Iteration 8 — GUI Enhancements
+## Iteration 8 — GUI Enhancements — Done ✅ (2026-03-25)
 
-## B-026: Embed Images Checkbox on Anonymize Page (P1) 🔴
-
-**Commit:** `feat(gui): add embed-images checkbox to Anonymize page`
-
-## B-027: LLM Workflow Page (P1) 🔴
-
-**Commit:** `feat(gui): add LLM Workflow page with context generator, instructions, and unpack`
+- B-026: Embed Images Checkbox on Anonymize Page ✅
+- B-027: LLM Workflow Page (3 tabs: Pack, Work with LLM, Unpack) ✅
 
 ---
 
-## Iteration 9 — Military Reference Data Consolidation (Epic E13)
+## Iteration 9 — Military Reference Data (Epic E13) — Done ✅ (2026-03-25)
 
-## B-028: Consolidate Redundant Data Files (P1) 🔴
-
-**Discovered in:** Data audit (2026-03-25)
-
-**Problem:** Three redundant data sources exist, two of which are dead:
-
-| Source | Lines of code | Used by | Status |
-|---|---|---|---|
-| `data/military_units.csv` | 59 rows | `init_reference_data.py` → SQLite | **Dead data** — loaded into `ref_military_units` but NEVER queried |
-| `data/swiss_military_ranks.md` | 120 lines | Nobody | **Dead data** — pure Markdown documentation |
-| `src/milanon/config/military_patterns.py` | Hardcoded lists | `PatternRecognizer` + `MilitaryRecognizer` | **Actual source of truth** |
-
-The same ranks, branches, and functions are maintained in 3 places with no sync mechanism.
-
-**Required Fix:**
-
-1. **Delete** `data/swiss_military_ranks.md` — replace with a one-line deprecation notice pointing to the CSV.
-
-2. **Extend** `data/military_units.csv` with two new columns:
-   - `parent` — full_name of the parent unit (empty for non-concrete entries)
-   - `level` — organizational level: `command`, `division`, `brigade`, `battalion`, `company`, `platoon` (empty for rank/branch/function/unit_pattern entries)
-
-3. **Verify** that all entries in `military_patterns.py` hardcoded lists are also present in the CSV:
-   - All RANK_ABBREVIATIONS → type=rank rows in CSV
-   - All BRANCH_ABBREVIATIONS → type=branch rows in CSV
-   - All FUNCTION_ABBREVIATIONS → type=function rows in CSV
-   - Add any missing entries to the CSV
-
-4. **Ensure backward compatibility:** `military_patterns.py` hardcoded lists stay untouched in this phase. The CSV is extended but the Python code doesn't read from it yet.
-
-5. **Update** `init_reference_data.py` to parse the new `parent` and `level` columns when loading into SQLite.
-
-6. **Extend** SQLite schema for `ref_military_units`:
-   ```sql
-   -- Add columns (migration-safe: ALTER TABLE ADD COLUMN)
-   ALTER TABLE ref_military_units ADD COLUMN full_name TEXT DEFAULT '';
-   ALTER TABLE ref_military_units ADD COLUMN abbreviation TEXT DEFAULT '';
-   ALTER TABLE ref_military_units ADD COLUMN level TEXT DEFAULT '';
-   ALTER TABLE ref_military_units ADD COLUMN parent_unit_name TEXT DEFAULT '';
-   ALTER TABLE ref_military_units ADD COLUMN category TEXT DEFAULT '';
-   ```
-
-**Acceptance Criteria:**
-- Given the repo, when `data/swiss_military_ranks.md` is checked, then it contains only a deprecation notice.
-- Given the CSV, when opened, then it has `parent` and `level` columns (may be empty for non-concrete entries).
-- Given all entries in `military_patterns.py` RANK_ABBREVIATIONS, when compared to CSV type=rank rows, then every abbreviation is present in both.
-- Given `milanon db init`, when run, then `ref_military_units` table contains all CSV rows including the new columns.
-- Given existing tests, when `pytest tests/` runs, then all 480+ tests pass (backward compatible).
-
-**Commit:** `refactor(data): consolidate military reference files, extend CSV schema with parent/level`
+- B-028: Consolidate Redundant Data Files (swiss_military_ranks.md deprecated, CSV extended with parent/level) ✅
+- B-029: CSV as Source of Truth (military_patterns.py reads from CSV, fallback to hardcoded) ✅
+- B-030: Concrete Swiss Army Formations (~100 units with hierarchy: Kdo Op → Ter Div → Bat → Kp) ✅
+- B-031: Hierarchy-Aware Context Generator (full command chain, siblings, children from DB) ✅
 
 ---
 
-## B-029: Load Recognizer Lists from DB Instead of Hardcoded (P1) 🔴
+## Iteration 10 — Self-Improving Recognition — Done ✅ (2026-03-25)
 
-**Discovered in:** Data audit (2026-03-25)
-
-**Problem:** `military_patterns.py` contains hardcoded Python lists (RANK_ABBREVIATIONS, BRANCH_ABBREVIATIONS, FUNCTION_ABBREVIATIONS) that duplicate the CSV data. When a new rank or branch is added to the CSV, the Python file must also be manually updated — they will inevitably drift.
-
-**Required Fix:**
-
-1. **New function** in `military_patterns.py`:
-   ```python
-   def _load_from_csv() -> tuple[list[str], list[str], list[str]]:
-       """Load rank, branch, function abbreviations from military_units.csv.
-       Returns (ranks, branches, functions) sorted longest-first."""
-   ```
-
-2. **Replace** the hardcoded RANK_ABBREVIATIONS, BRANCH_ABBREVIATIONS, FUNCTION_ABBREVIATIONS with calls to `_load_from_csv()`. Fall back to hardcoded defaults if CSV is not found (for test isolation).
-
-3. **Keep PII patterns hardcoded** — AHV_PATTERN, PHONE_*, EMAIL_PATTERN, ADRESSE_PATTERN, INITIAL_SURNAME_PATTERN are structural patterns, not reference data. They stay in Python.
-
-4. **Rebuild compiled patterns** from the loaded lists: UNIT_PATTERN, TER_DIV_PATTERN, RANK_NAME_PATTERN must be re-compiled from the CSV-sourced lists.
-
-5. **Performance:** Load once at module import time (same as today). No per-document DB queries.
-
-**Key constraint:** The CSV is the source, not the DB. This keeps the module self-contained and testable without a DB connection. The DB is for runtime queries (generate_context, etc.), the CSV is for pattern compilation.
-
-**Acceptance Criteria:**
-- Given a new rank "Oberstbrigadier" added to CSV but NOT to the Python file, when the module loads, then the new rank is included in RANK_ABBREVIATIONS and RANK_NAME_PATTERN.
-- Given the CSV does not exist (e.g. in unit tests), when the module loads, then it falls back to hardcoded defaults and all existing tests pass.
-- Given the module loads, when RANK_ABBREVIATIONS is inspected, then it is sorted longest-first (for longest-match-first regex).
-- Given all 480+ existing tests, when run, then they all pass.
-
-**Commit:** `refactor(patterns): load rank/branch/function lists from CSV instead of hardcoded`
+- B-010: Post-Anonymization Review Loop (scan for ALLCAPS/Titlecase candidates, interactive confirmation, auto-add to DB) ✅
+- CLI: `milanon review` command with --auto-add and --dry-run flags ✅
 
 ---
 
-## B-030: Add Concrete Swiss Army Formations to CSV (P1) 🔴
+## Iteration 11 — LLM Workflow Automation (Epic E10) — Done ✅ (2026-03-25)
 
-**Discovered in:** Wikipedia analysis + WK25 Dossier (2026-03-25)
-
-**Problem:** The tool has no knowledge of actual Swiss Army formations. It recognizes "Inf Bat 56" only via generic regex pattern (`Inf + Bat + Number`), not as a known entity. It doesn't know that Inf Bat 56 belongs to Ter Div 2, or that it has 5 companies (Stabskp 56, Kp 56/1-3, Ustü Kp 56/4).
-
-**Data source:** [Wikipedia: Gliederung der Schweizer Armee](https://de.wikipedia.org/wiki/Gliederung_der_Schweizer_Armee) — public information, 2026 structure.
-
-**Required Fix:**
-
-Add `type=concrete_unit` rows to `military_units.csv` with `parent` and `level` columns:
-
-**Top-level commands:**
-```csv
-concrete_unit,Kommando Operationen,Kdo Op,Kommando,,_root,command
-concrete_unit,Kommando Ausbildung,Kdo Ausb,Kommando,,_root,command
-concrete_unit,Logistikbasis der Armee,LBA,Kommando,,_root,command
-concrete_unit,Kommando Cyber,Kdo Cyber,Kommando,,_root,command
-```
-
-**Heer + Mechanisierte Brigaden:**
-```csv
-concrete_unit,Heer,Heer,Kommando,,Kommando Operationen,command
-concrete_unit,Mechanisierte Brigade 1,Mech Br 1,Brigade,,Heer,brigade
-concrete_unit,Mechanisierte Brigade 4,Mech Br 4,Brigade,,Heer,brigade
-concrete_unit,Mechanisierte Brigade 11,Mech Br 11,Brigade,,Heer,brigade
-```
-
-**All 4 Territorialdivisionen + their Bataillone:**
-```csv
-concrete_unit,Territorialdivision 2,Ter Div 2,Division,,Kommando Operationen,division
-concrete_unit,Infanteriebataillon 56,Inf Bat 56,Bataillon,,Territorialdivision 2,battalion
-```
-
-**All 8 Inf Bat with standard 5er-structure (0-4):**
-Each Inf Bat gets: Stabskp (=0), Kp 1, Kp 2, Kp 3, Ustü Kp (=4).
-Inf Bat: 11, 13, 19, 20, 56, 61, 65, 97.
-
-```csv
-concrete_unit,Infanterie Stabskompanie 56,Inf Stabskp 56,Kompanie,Stabskp 56,Infanteriebataillon 56,company
-concrete_unit,Infanteriekompanie 56/1,Inf Kp 56/1,Kompanie,,Infanteriebataillon 56,company
-concrete_unit,Infanteriekompanie 56/2,Inf Kp 56/2,Kompanie,,Infanteriebataillon 56,company
-concrete_unit,Infanteriekompanie 56/3,Inf Kp 56/3,Kompanie,,Infanteriebataillon 56,company
-concrete_unit,Infanterie Unterstützungskompanie 56/4,Inf Ustü Kp 56/4,Kompanie,,Infanteriebataillon 56,company
-```
-
-**Luftwaffe, LBA, Kdo Cyber:**
-Key brigades and battalions.
-
-**Target: ~100-120 rows** of concrete_unit entries covering the complete Swiss Army structure at brigade level and below for the Heer, plus all Inf Bat companies.
-
-**Acceptance Criteria:**
-- Given the CSV, when all concrete_unit rows are counted, then there are 100+ entries.
-- Given "Inf Bat 56" in the CSV, when its children are queried, then 5 companies are returned (Stabskp 56, Kp 56/1-3, Ustü Kp 56/4).
-- Given "Ter Div 2", when its children are queried, then Inf Bat 11, 20, 56, 97 + Genie Bat 6 + Rttg Bat 2 are returned.
-- Given `milanon db init --force`, when run, then all concrete_unit entries are in the DB with correct parent references.
-- Given existing tests, when run, then they all pass.
-
-**Commit:** `feat(data): add ~100 concrete Swiss Army formations with hierarchy to reference CSV`
+- E10.1: Pack CLI (`milanon pack --template obsidian-notes --input anon/ --unit "Inf Kp 56/1"`) ✅
+- E10.2: Templates (4 built-in: obsidian-notes, befehl-entwurf, analyse, frei + custom ~/.milanon/templates/) ✅
+- E10.3: Unpack CLI (`milanon unpack --clipboard --output vault/` with split support) ✅
+- E10.4: GUI Integration (Pack Builder + Unpack in LLM Workflow page) ✅
 
 ---
 
-## B-031: Hierarchy-Aware Context Generator + Improved Recognition (P1) 🔴
+## Documentation & Polish — Done ✅ (2026-03-25)
 
-**Discovered in:** Data audit + LLM Context analysis (2026-03-25)
-
-**Problem:** Two systems need upgrading to use the new hierarchy data:
-
-**A) Context Generator (`generate_context.py`):**
-Currently uses `_parent_number()` heuristic (slash-notation: "56/1" → parent "56"). This breaks for:
-- Formations without slash (Ter Div 2 → parent is Kdo Op, not guessable from the name)
-- Stabskp (56/0 pattern not used in all documents)
-- Cross-level references (what Bat belongs to which Div)
-
-With DB hierarchy: Full chain resolution `Kdo Op → Ter Div 2 → Inf Bat 56 → Inf Kp 56/1` directly from the `ref_military_units` table.
-
-**B) Military Recognizer (`military_recognizer.py`):**
-Currently only matches generic patterns. With concrete_unit data in the DB, it could:
-- Match known unit names with higher confidence (1.0 vs 0.9 for pattern match)
-- Recognize units that don't follow standard patterns (e.g. "Geb Inf Bat 29")
-- Provide richer metadata in DetectedEntity
-
-**Required Fix:**
-
-**Part A — Context Generator:**
-1. New method in `SqliteMappingRepository`:
-   ```python
-   def get_unit_hierarchy(self, unit_abbreviation: str) -> list[dict]:
-       """Return the parent chain from the given unit up to root.
-       Returns list of dicts with keys: full_name, abbreviation, level, parent."""
-   
-   def get_unit_children(self, parent_full_name: str) -> list[dict]:
-       """Return direct children of a unit."""
-   
-   def get_unit_siblings(self, unit_full_name: str) -> list[dict]:
-       """Return sibling units (same parent)."""
-   ```
-
-2. `generate_context.py` uses these methods to build a rich hierarchy section:
-   ```markdown
-   ## Organizational Hierarchy
-   
-   Command chain: Kdo Op → Ter Div 2 → Inf Bat 56 → **Inf Kp 56/1** (YOUR UNIT)
-   
-   Sibling companies (same Bat):
-   | Placeholder | Unit | Type |
-   |---|---|---|
-   | [EINHEIT_009] | Stabskp 56 | Staff Company |
-   | **[EINHEIT_001]** | **Inf Kp 56/1** | **← YOUR UNIT** |
-   | [EINHEIT_008] | Inf Kp 56/2 | Company |
-   | [EINHEIT_007] | Inf Kp 56/3 | Company |
-   | [EINHEIT_006] | Ustü Kp 56/4 | Support Company |
-   
-   Sister battalions (same Ter Div):
-   Inf Bat 11, Inf Bat 20, Inf Bat 97, G Bat 6, Rttg Bat 2
-   ```
-
-3. Falls back gracefully: If no hierarchy data in DB (old DB without B-030), use existing slash-heuristic.
-
-**Part B — Enhanced Recognition (optional, can be deferred):**
-1. After pattern-based recognition, check matched unit text against `ref_military_units` concrete entries.
-2. If exact match found: boost confidence to 1.0 and add metadata (level, parent).
-3. If no match but pattern matches: keep existing confidence (0.9).
-4. New recognizer: scan for concrete unit abbreviations not caught by generic patterns.
-
-**Acceptance Criteria:**
-- Given "Inf Kp 56/1" as the user's unit and hierarchy data in DB, when context is generated, then the output includes the full command chain and sibling companies.
-- Given a unit with no hierarchy data in DB, when context is generated, then it falls back to slash-heuristic (backward compatible).
-- Given "Ter Div 2" in document text, when recognition runs, then it is detected with confidence 1.0 (exact match) instead of 0.9 (pattern).
-- Given all existing tests, when run, then they pass.
-
-**Commit:** `feat(context): hierarchy-aware context generation from DB + enhanced unit recognition`
+- Version bump 0.1.0 → 0.3.0 ✅
+- CHANGELOG.md v0.3.0 section ✅
+- README.md updated (all CLI commands, features, Git URL) ✅
+- CLAUDE.md updated ✅
+- SESSION_HANDOVER.md created ✅
+- CLI colored output + ref data in db stats ✅
+- Stale files cleaned up ✅
 
 ---
 
-## Iteration 3 — Self-Improving Recognition
-
-## B-010: Post-Anonymization Review (P2) 🔴
-
-**Commit:** `feat(review): add post-anonymization review for unknown name candidates`
-
----
+## Still Open 🔴
 
 ## Iteration 5 — EINHEIT Alias System
 
 ## B-018: Military Unit Alias Table (P2) 🔴
+
+**Problem:** Multiple placeholders for same unit due to naming variants ("Inf Ustü Kp 56/4" vs "Inf Ustü Kp 56"). With E13 hierarchy data now in the DB, this could leverage the parent-child relationships for automatic alias resolution.
 
 **Commit:** `feat(mapping): military unit alias table for duplicate EINHEIT resolution`
 
@@ -335,16 +122,40 @@ Currently only matches generic patterns. With concrete_unit data in the DB, it c
 ## Iteration 6 — Incremental Processing Improvements
 
 ## B-019: Clean Up Orphaned Output Files (P2) 🔴
+
+`--clean` flag to remove output files whose source input was deleted/renamed.
+
 ## B-020: Entity Count Total Across All Outputs (P3) 🔴
+
+Show total entity count across all tracked files, not just current batch.
+
 ## B-021: Detect Renamed Files via Content Hash (P3) 🔴
+
+Reuse existing output when a file is renamed but content is identical.
 
 ---
 
 ## Iteration 4b — Recognition Gaps
 
 ## B-015: International Phone Numbers (P2) 🔴
+
+Generic pattern for +49, +33, +43 etc. At least one German number found in real-world test.
+
 ## B-016: c/o Name Detection in Address Fields (P2) 🔴
+
+"c/o Walter Fanger" pattern → PERSON entity with confidence 0.8.
+
 ## B-017: Near-AHV Warning for Transposed Digits (P3) 🔴
+
+Detect 765.xxxx.xxxx.xx (transposed 756) and emit warning without anonymizing.
+
+---
+
+## Epic E10 — Remaining Items
+
+## E10.5: Update Template — Preserve User Edits (P2) 🔴
+
+Template that instructs Claude to merge updated data with existing vault content without losing manual edits. Critical for the Round-Trip workflow.
 
 ---
 
@@ -358,4 +169,4 @@ Currently only matches generic patterns. With concrete_unit data in the DB, it c
 - **B-105**: Import summary with delta info
 - **B-106**: GUI Finder dialog for folder/file selection (tkinter.filedialog)
 - **B-107**: --exclude pattern for anonymize
-- **B-108**: CLI UX polish — Kali-Linux-style terminal output
+- **B-108**: CLI UX polish — ASCII banner, Kali-style terminal
