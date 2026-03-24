@@ -2,7 +2,7 @@
 
 > Strategic feature planning. For tactical sprint items see [BACKLOG.md](BACKLOG.md).
 > For original MVP requirements see [PRD.md](PRD.md).
-> Last updated: 2026-03-24
+> Last updated: 2026-03-25
 
 ---
 
@@ -80,82 +80,61 @@ UPDATE (repeatable, preserves edits):
 
 **Goal:** MilAnon becomes the secure workspace between classified documents and public LLMs. The full round-trip in 3 commands.
 
-### Full Workflow with E10
-
-```bash
-# INITIAL SETUP (once per WK cycle)
-milanon db init
-milanon db import pisa_410.csv
-milanon db import bat_stab.csv --format names
-milanon anonymize source_docs/ --output anon/ --recursive
-milanon pack --template obsidian-notes --input anon/ --unit "Inf Kp 56/1"
-# → Paste in Claude.ai → Claude creates Dashboard + Notes → Copy output
-milanon unpack --clipboard --output vault/Personelles/ --in-place
-
-# WEEKLY UPDATE (repeatable)
-milanon anonymize vault/Personelles/ --output anon/vault/        # Re-anonymize vault (with edits)
-milanon anonymize new_mails/ --output anon/new/                   # Anonymize new mails
-milanon pack --template update-dashboard --input anon/ --unit "Inf Kp 56/1"
-# → Paste in Claude.ai → "Update with new mails, preserve existing data" → Copy output
-milanon unpack --clipboard --output vault/Personelles/ --in-place
-```
-
 ### E10.1: Pack — Prompt Package Builder (P1) 🔴
-
-**As a** commander, **I want** to generate a ready-to-paste prompt package from my anonymized documents, **so that** I can start working with Claude.ai without manually assembling context, instructions, and document content.
-
-**CLI:**
-```bash
-milanon pack --template obsidian-notes --input anon/ --unit "Inf Kp 56/1"
-milanon pack --prompt "Update dashboard with new mails" --input anon/ --unit "Inf Kp 56/1"
-```
-
-Auto-copied to system clipboard (pbcopy on macOS).
-
 ### E10.2: Templates — Reusable Prompt Templates (P1) 🔴
-
-Built-in templates (`data/templates/`):
-- `obsidian-notes.md` — Create Obsidian notes with YAML frontmatter per person
-- `befehl-entwurf.md` — Draft a company-level order from the Dossier
-- `analyse.md` — Analyze document: decisions, timeline, open items, risks
-- `update-dashboard.md` — Update existing dashboard with new information (preserves edits)
-- `frei.md` — Minimal wrapper for custom prompts
-
-Custom templates: `~/.milanon/templates/`
-
 ### E10.3: Unpack — De-Anonymize from Clipboard (P1) 🔴
-
-```bash
-milanon unpack --clipboard --output vault/Personelles/ --in-place
-```
-
-Features: clipboard reading, multi-file splitting, Obsidian wiki-link handling, filename de-anonymization.
-
 ### E10.4: GUI Integration — Pack & Unpack in Streamlit (P2) 🔴
-
-Pack + Unpack pages in the GUI for non-CLI users.
-
 ### E10.5: Update Template — Preserve User Edits (P2) 🔴
 
-**As a** commander, **I want** to tell Claude "here is my current vault state plus new mails — update without losing my edits", **so that** the round-trip preserves my work.
+See [BACKLOG.md](BACKLOG.md) for full specifications.
 
-The `update-dashboard.md` template instructs Claude:
-```
-You are updating an existing set of personnel notes. 
+---
 
-CURRENT STATE (re-anonymized from user's vault — contains user's manual edits):
-{vault_content}
+## Epic E13: Military Reference Data Consolidation (Q2 2026)
 
-NEW INFORMATION (newly anonymized mails):
-{new_content}
+**Goal:** Single Source of Truth for all Swiss Army reference data. Eliminate triple-redundancy, add real organizational hierarchy, enable smarter recognition and richer LLM context.
 
-Rules:
-- PRESERVE all existing data, status changes, and notes from the current state
-- ADD new information from the new mails
-- UPDATE status fields if new mails indicate changes
-- Do NOT delete or overwrite user's manual annotations
-- Preserve all [PLACEHOLDER] tokens exactly
-```
+### Problem Statement
+
+Today there are three redundant data sources that are out of sync:
+
+| Source | Used by | Actual value |
+|---|---|---|
+| `data/military_units.csv` | `init_reference_data.py` → SQLite `ref_military_units` | **Dead data** — loaded into DB but never queried by any recognizer |
+| `data/swiss_military_ranks.md` | Nobody | **Dead data** — pure documentation, read by no code |
+| `src/milanon/config/military_patterns.py` | `PatternRecognizer` + `MilitaryRecognizer` | **Actual source of truth** — hardcoded Python lists |
+
+All three contain the same ranks, branches, and functions — maintained in three places with no synchronization.
+
+Additionally, the tool has no knowledge of:
+- **Concrete formations** (Inf Bat 56, Ter Div 2, Mech Br 1)
+- **Organizational hierarchy** (Kdo Op → Ter Div 2 → Inf Bat 56 → Inf Kp 56/1)
+- **Standard battalion structure** (Stabskp=56/0, Kp 1-3, Ustü Kp=56/4)
+- **Unit type long forms** ("Ustü Kp" = "Unterstützungskompanie")
+
+### Value Created
+
+| Area | Today | With E13 |
+|---|---|---|
+| **Recognition** | Generic regex only: `Inf + Bat + Number` | Exact lookup for known units (Confidence 1.0) + regex fallback |
+| **LLM Context** | Flat list: `[EINHEIT_010] = Battalion` | Full hierarchy: `Kdo Op → Ter Div 2 → Inf Bat 56 → YOUR UNIT` |
+| **Alias Resolution** | None — "Ustü Kp 56/4" and "Ustü Kp 56" = 2 placeholders | Auto-alias via standard Bat structure |
+| **Pack Templates** | Generic: "Company under Battalion" | Rich: "Inf Kp 56/1, one of 5 companies of Inf Bat 56, under Ter Div 2" |
+| **Maintainability** | Edit 3 files, hope they're in sync | Edit 1 CSV, everything updates |
+
+### Implementation Phases
+
+**Phase 1 — Consolidate (B-028):** Delete dead files, extend CSV with `parent` + `level` columns, keep `military_patterns.py` hardcoded lists as-is for backward compat.
+
+**Phase 2 — CSV as Source of Truth for Recognizer (B-029):** `military_patterns.py` reads rank/branch/function lists from DB (loaded from CSV) instead of hardcoded. PII patterns (AHV, phone, email) stay hardcoded.
+
+**Phase 3 — Concrete Units + Hierarchy (B-030):** ~80 real formations from Wikipedia (all Ter Div, Inf Bat, Mech Br), 5er-structure for all 8 Inf Bat, parent column for hierarchy chain.
+
+**Phase 4 — Hierarchy in Context + Alias Resolution (B-031):** `generate_context.py` uses DB hierarchy instead of slash-heuristic. Automatic alias detection for Stabskp/Ustü Kp patterns.
+
+### Data Source
+
+Swiss Army organizational structure from [Wikipedia: Gliederung der Schweizer Armee](https://de.wikipedia.org/wiki/Gliederung_der_Schweizer_Armee) (public information, updated for 2026 structure).
 
 ---
 
@@ -184,4 +163,6 @@ Tactical items (bug fixes, small improvements) are tracked in [BACKLOG.md](BACKL
 | Iteration 5 (B-018) | E5 — EINHEIT aliases | 🔴 Planned |
 | Iteration 6 (B-019–B-021) | E3 — Incremental processing | 🔴 Planned |
 | Iteration 7 (B-023–B-025) | E4 — De-anonymization quality | 🔴 Planned |
+| Iteration 8 (B-026–B-027) | E7 — GUI enhancements | 🔴 Planned |
+| Iteration 9 (B-028–B-031) | E13 — Military reference data | 🔴 Planned |
 | Epic E10 | LLM Workflow Automation | 🔴 Q2 2026 |

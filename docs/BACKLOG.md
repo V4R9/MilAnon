@@ -47,248 +47,278 @@
 
 ---
 
-## Iteration 4 — Output Quality (from MD Analysis 2026-03-24)
+## Iteration 4 — Output Quality
 
-## B-013: Organigramm/Gliederung Pages — Mega-Cell Visual Detection (P1) 🔴
-
-**Problem:** Organigramm Stab and Gliederung pages are visual layouts but only have 3 columns — heuristic doesn't catch them. One cell contains 1000+ chars of garbled content.
-
-**Required Fix:** Add third condition to `_is_visual_layout()`: ANY single cell >500 characters → visual layout.
+## B-013: Mega-Cell Visual Detection (P1) 🔴
 
 **Commit:** `fix(parser): detect mega-cell visual layouts (organigramm, gliederung)`
 
----
-
 ## B-014: Remove Empty Columns from PDF Tables (P1) 🔴
-
-**Problem:** Dokumentenbudget has 5 real columns but pdfplumber extracts 15 due to merged cells. Extra columns are empty in every row.
-
-**Required Fix:** Post-processing: remove columns that are empty in ALL rows before Markdown rendering.
 
 **Commit:** `feat(parser): strip empty columns from PDF table extraction`
 
----
-
 ## B-022: EML Display Names Not Anonymized (P1) 🔴
-
-**Problem:** `From: Milo Bärtschi <[EMAIL_178]>` — email anonymized but display name leaks. Systematic problem for ALL EML headers.
-
-**Required Fix:** New EmlDisplayNameRecognizer that extracts display names from From/To/Cc/Bcc headers and creates PERSON entities. Confidence 0.85.
 
 **Commit:** `feat(recognition): anonymize display names in EML From/To/Cc/Bcc headers`
 
 ---
 
-## Iteration 7 — De-Anonymization Quality (from Obsidian Test 2026-03-24)
+## Iteration 7 — De-Anonymization Quality
 
-## B-023: De-Anonymize Filenames with Placeholders (P1) 🔴
-
-**Problem:** `[PERSON_005].md` stays as placeholder filename. Should become `Brüngger_Xenia.md`.
-
-**Required Fix:** Scan output filename for placeholders, resolve via MappingService, transform to filesystem-safe `Nachname_Vorname` format.
+## B-023: De-Anonymize Filenames (P1) 🔴
 
 **Commit:** `feat(deanonymize): resolve placeholders in output filenames`
 
----
-
 ## B-024: Obsidian Wiki-Link Compatibility (P1) 🔴
-
-**Problem:** `[[PERSON_005]]` becomes `[Xenia BRÜNGGER]` (broken link). Should become `[[Brüngger_Xenia|Xenia BRÜNGGER]]`.
-
-**Required Fix:** Process Obsidian `[[PLACEHOLDER]]` links BEFORE regular placeholders. Replace with proper alias format matching B-023 naming.
 
 **Commit:** `feat(deanonymize): handle Obsidian wiki-links with proper alias format`
 
----
-
 ## B-025: In-Place De-Anonymization (P2) 🔴
-
-**Problem:** De-anonymizer always creates a copy. User wants to modify files directly in the Obsidian vault.
-
-**Required Fix:** New `--in-place` flag. Safety: confirmation prompt + optional `.milanon_backup/`.
 
 **Commit:** `feat(deanonymize): add --in-place flag for direct vault de-anonymization`
 
 ---
 
-## Iteration 8 — GUI Enhancements (E7 + E10 Foundation)
+## Iteration 8 — GUI Enhancements
 
 ## B-026: Embed Images Checkbox on Anonymize Page (P1) 🔴
 
-**Discovered in:** GUI testing (2026-03-24)
-
-**Problem:** The CLI has `--embed-images` to render visual PDF pages (WAP/Picasso) as PNG, but the GUI has no corresponding option. Users who only use the GUI cannot access this feature.
-
-**Required Fix:** Add a fourth checkbox to the Anonymize page options row:
-- Label: "Embed visual pages as PNG"
-- Help text: "Renders WAP/schedule pages as PNG images in the output (NOT anonymized)."
-- Pass `embed_images=True` to `uc.execute()` when checked.
-
-**Acceptance Criteria:**
-- Given the Anonymize page, when loaded, then an "Embed visual pages as PNG" checkbox is visible alongside Recursive, Force, and Dry run.
-- Given the checkbox is checked and a PDF with visual pages is processed, when anonymization runs, then PNGs are generated next to the .md output.
-- Given the checkbox is unchecked, when a PDF with visual pages is processed, then only placeholder markers are inserted (existing behavior).
-
 **Commit:** `feat(gui): add embed-images checkbox to Anonymize page`
 
----
-
-## B-027: LLM Workflow Page — Guided Round-Trip Experience (P1) 🔴
-
-**Discovered in:** UX brainstorming session (2026-03-24)
-
-**Problem:** The GUI has no support for the LLM workflow. The user must manually:
-1. Generate a context file via CLI
-2. Copy-paste anonymized documents into Claude.ai
-3. Copy Claude's output into files
-4. Run de-anonymize via CLI
-
-This is error-prone, tedious, and the main reason users fall back to the terminal.
-
-**Vision:** A dedicated "LLM Workflow" page that guides the user through the complete round-trip in a single, intuitive interface. The page grows with Epic E10 (Pack/Unpack) but starts useful from day one.
-
-**Required Fix:**
-
-New navigation entry between "De-Anonymize" and "DB Import":
-```python
-page = st.sidebar.radio(
-    "Navigation",
-    ["Anonymize", "De-Anonymize", "LLM Workflow", "DB Import", "DB Stats"],
-)
-```
-
-The page uses `st.tabs()` with three guided steps:
-
-### Tab 1: "📦 Pack for LLM"
-
-**Section 1a — Context Generator:**
-- st.subheader("Step 1: Generate Context")
-- st.markdown explaining what the context file does and why it matters
-- Unit selector: st.selectbox populated from `GenerateContextUseCase.get_available_units()`
-  - Format: "Inf Kp 56/1 (Company)" — shows original value + level
-  - If no units in DB: st.info with link to DB Import page
-- Output path: st.text_input with sensible default (e.g. last anonymize output dir + "/CONTEXT.md")
-- [Generate Context] button
-- After generation: show content in st.expander("Preview CONTEXT.md") with st.code(content, language="markdown")
-- st.download_button("📥 Download CONTEXT.md", content) — lets user save it anywhere
-
-**Section 1b — Pack Builder (E10.1 Foundation — initially simplified):**
-- st.subheader("Step 2: Build Prompt Package")
-- Template selector: st.selectbox with options:
-  - "Obsidian Notes — Personendossier pro Person mit YAML Frontmatter"
-  - "Befehlsentwurf — Kompaniebefehl aus dem Dossier ableiten"
-  - "Analyse — Entscheide, Zeitplan, Pendenzen, Risiken"
-  - "Freier Prompt — eigene Anweisung"
-- If "Freier Prompt" selected: st.text_area("Your prompt", placeholder="z.B. Erstelle mir eine Übersicht der Personalfälle...")
-- Anonymized input: st.text_input("Anonymized files folder", placeholder="/path/to/test_output")
-- [Build Pack] button
-- After build: st.text_area with the complete pack content (Context + Template + Document), readonly
-- st.download_button("📥 Download Pack") + st.caption("Copy the content above and paste into Claude.ai")
-
-**Implementation for v1 (before E10.1 is fully built):**
-The "Build Pack" button reads CONTEXT.md + all .md files from the input folder, concatenates them with the template instructions, and displays the result. No clipboard API needed — the user copies from the text area.
-
-### Tab 2: "💬 Work with LLM"
-
-**Guided instructions with visual cues:**
-```
-st.subheader("Send to Claude.ai")
-
-st.markdown("""
-### How to use the pack:
-
-1. **Copy** the pack content from Step 1 (or download and open the file)
-2. **Open** [Claude.ai](https://claude.ai) in a new tab
-3. **Paste** the entire pack as your first message
-4. **Work** with Claude — refine, ask follow-up questions, iterate
-5. **Copy** Claude's final output when you're satisfied
-
-### Tips:
-- Tell Claude to preserve all `[PLACEHOLDER]` tokens exactly as written
-- If Claude's response is too long, ask it to split into sections
-- For Obsidian Notes: ask Claude to separate each person with `---`
-""")
-
-st.info("💡 Coming soon: One-click clipboard integration and prompt templates with auto-fill.")
-```
-
-### Tab 3: "📥 Unpack & De-Anonymize"
-
-**Full de-anonymization interface for LLM output:**
-- st.subheader("Restore Real Names from LLM Output")
-- st.markdown explaining the unpack step
-
-**Input method tabs:** st.radio("Input method", ["Paste text", "Select file/folder"])
-
-**If "Paste text":**
-- llm_output = st.text_area("Paste Claude's output here", height=400, placeholder="Paste the complete LLM response...")
-- Output path: st.text_input("Save to", placeholder="/path/to/obsidian/vault/Personelles")
-
-**If "Select file/folder":**
-- Input path: st.text_input("LLM output file or folder", placeholder="/path/to/llm_output/")
-- Output path: st.text_input("Save to", placeholder="/path/to/obsidian/vault/")
-
-**Options row:**
-- col1: st.checkbox("Split on --- separators", help="Creates separate files for each section")
-- col2: st.checkbox("De-anonymize in-place", help="Overwrites input files directly (requires B-025)", disabled=True) ← disabled until B-025 is implemented
-
-**[De-Anonymize & Save] button:**
-1. If paste mode: write to temp file first
-2. Run DeAnonymizeUseCase
-3. Show results: "Restored N placeholders across M files"
-4. Show file list: which files were written where
-5. If warnings (unresolved placeholders): show in expander
-
-**Preview section:**
-- After de-anonymization, show a preview of the first restored file in st.expander
-- st.caption("Check that names are correctly restored before opening in Obsidian")
-
-### UX Polish:
-
-**Progress indicators:**
-- Each tab shows a status icon in the tab title: "📦 Pack for LLM", "💬 Work with LLM", "📥 Unpack"
-- After completing Step 1, show st.success with arrow: "✅ Pack ready → proceed to Step 2"
-- After completing Step 3, show st.balloons() + link to output folder
-
-**Session state:**
-- Remember the last used unit, template, input/output paths across tab switches
-- If the user already generated a context in Step 1, auto-fill the output path in Step 3
-
-**Error handling:**
-- If DB is empty when opening the page: st.warning("No entities in database. Import data first.") with button linking to DB Import
-- If no units found: st.info("No units found. Run anonymization first to detect units.")
-- If de-anonymization has unresolved placeholders: st.warning with count + expandable list
-
-**Acceptance Criteria:**
-- Given the GUI, when "LLM Workflow" is selected, then a page with 3 tabs appears.
-- Given units in the DB, when Tab 1 is opened, then the unit dropdown is populated.
-- Given a generated context, when "Preview" is clicked, then the full CONTEXT.md content is shown.
-- Given pasted LLM output with placeholders, when "De-Anonymize & Save" is clicked, then all placeholders are resolved and files are written.
-- Given no entities in the DB, when the page opens, then a helpful message with link to DB Import is shown.
-- Given the round-trip workflow (Pack → Claude → Unpack), when all three steps are completed, then de-anonymized files appear in the target folder with correct names.
-
-**Negative Criteria:**
-- Must NOT require the terminal for any step of the workflow.
-- Must NOT break existing Anonymize/De-Anonymize pages.
-- Must NOT send any data over the network — all processing stays local.
-
-**Implementation Order:**
-1. Navigation entry + page skeleton with 3 tabs
-2. Tab 1: Context Generator (use existing GenerateContextUseCase)
-3. Tab 3: Unpack with paste text area (use existing DeAnonymizeUseCase)
-4. Tab 1: Pack Builder (simplified v1 — concatenate files)
-5. Tab 2: Static instructions
-6. UX polish (session state, progress, error handling)
+## B-027: LLM Workflow Page (P1) 🔴
 
 **Commit:** `feat(gui): add LLM Workflow page with context generator, instructions, and unpack`
 
 ---
 
+## Iteration 9 — Military Reference Data Consolidation (Epic E13)
+
+## B-028: Consolidate Redundant Data Files (P1) 🔴
+
+**Discovered in:** Data audit (2026-03-25)
+
+**Problem:** Three redundant data sources exist, two of which are dead:
+
+| Source | Lines of code | Used by | Status |
+|---|---|---|---|
+| `data/military_units.csv` | 59 rows | `init_reference_data.py` → SQLite | **Dead data** — loaded into `ref_military_units` but NEVER queried |
+| `data/swiss_military_ranks.md` | 120 lines | Nobody | **Dead data** — pure Markdown documentation |
+| `src/milanon/config/military_patterns.py` | Hardcoded lists | `PatternRecognizer` + `MilitaryRecognizer` | **Actual source of truth** |
+
+The same ranks, branches, and functions are maintained in 3 places with no sync mechanism.
+
+**Required Fix:**
+
+1. **Delete** `data/swiss_military_ranks.md` — replace with a one-line deprecation notice pointing to the CSV.
+
+2. **Extend** `data/military_units.csv` with two new columns:
+   - `parent` — full_name of the parent unit (empty for non-concrete entries)
+   - `level` — organizational level: `command`, `division`, `brigade`, `battalion`, `company`, `platoon` (empty for rank/branch/function/unit_pattern entries)
+
+3. **Verify** that all entries in `military_patterns.py` hardcoded lists are also present in the CSV:
+   - All RANK_ABBREVIATIONS → type=rank rows in CSV
+   - All BRANCH_ABBREVIATIONS → type=branch rows in CSV
+   - All FUNCTION_ABBREVIATIONS → type=function rows in CSV
+   - Add any missing entries to the CSV
+
+4. **Ensure backward compatibility:** `military_patterns.py` hardcoded lists stay untouched in this phase. The CSV is extended but the Python code doesn't read from it yet.
+
+5. **Update** `init_reference_data.py` to parse the new `parent` and `level` columns when loading into SQLite.
+
+6. **Extend** SQLite schema for `ref_military_units`:
+   ```sql
+   -- Add columns (migration-safe: ALTER TABLE ADD COLUMN)
+   ALTER TABLE ref_military_units ADD COLUMN full_name TEXT DEFAULT '';
+   ALTER TABLE ref_military_units ADD COLUMN abbreviation TEXT DEFAULT '';
+   ALTER TABLE ref_military_units ADD COLUMN level TEXT DEFAULT '';
+   ALTER TABLE ref_military_units ADD COLUMN parent_unit_name TEXT DEFAULT '';
+   ALTER TABLE ref_military_units ADD COLUMN category TEXT DEFAULT '';
+   ```
+
+**Acceptance Criteria:**
+- Given the repo, when `data/swiss_military_ranks.md` is checked, then it contains only a deprecation notice.
+- Given the CSV, when opened, then it has `parent` and `level` columns (may be empty for non-concrete entries).
+- Given all entries in `military_patterns.py` RANK_ABBREVIATIONS, when compared to CSV type=rank rows, then every abbreviation is present in both.
+- Given `milanon db init`, when run, then `ref_military_units` table contains all CSV rows including the new columns.
+- Given existing tests, when `pytest tests/` runs, then all 480+ tests pass (backward compatible).
+
+**Commit:** `refactor(data): consolidate military reference files, extend CSV schema with parent/level`
+
+---
+
+## B-029: Load Recognizer Lists from DB Instead of Hardcoded (P1) 🔴
+
+**Discovered in:** Data audit (2026-03-25)
+
+**Problem:** `military_patterns.py` contains hardcoded Python lists (RANK_ABBREVIATIONS, BRANCH_ABBREVIATIONS, FUNCTION_ABBREVIATIONS) that duplicate the CSV data. When a new rank or branch is added to the CSV, the Python file must also be manually updated — they will inevitably drift.
+
+**Required Fix:**
+
+1. **New function** in `military_patterns.py`:
+   ```python
+   def _load_from_csv() -> tuple[list[str], list[str], list[str]]:
+       """Load rank, branch, function abbreviations from military_units.csv.
+       Returns (ranks, branches, functions) sorted longest-first."""
+   ```
+
+2. **Replace** the hardcoded RANK_ABBREVIATIONS, BRANCH_ABBREVIATIONS, FUNCTION_ABBREVIATIONS with calls to `_load_from_csv()`. Fall back to hardcoded defaults if CSV is not found (for test isolation).
+
+3. **Keep PII patterns hardcoded** — AHV_PATTERN, PHONE_*, EMAIL_PATTERN, ADRESSE_PATTERN, INITIAL_SURNAME_PATTERN are structural patterns, not reference data. They stay in Python.
+
+4. **Rebuild compiled patterns** from the loaded lists: UNIT_PATTERN, TER_DIV_PATTERN, RANK_NAME_PATTERN must be re-compiled from the CSV-sourced lists.
+
+5. **Performance:** Load once at module import time (same as today). No per-document DB queries.
+
+**Key constraint:** The CSV is the source, not the DB. This keeps the module self-contained and testable without a DB connection. The DB is for runtime queries (generate_context, etc.), the CSV is for pattern compilation.
+
+**Acceptance Criteria:**
+- Given a new rank "Oberstbrigadier" added to CSV but NOT to the Python file, when the module loads, then the new rank is included in RANK_ABBREVIATIONS and RANK_NAME_PATTERN.
+- Given the CSV does not exist (e.g. in unit tests), when the module loads, then it falls back to hardcoded defaults and all existing tests pass.
+- Given the module loads, when RANK_ABBREVIATIONS is inspected, then it is sorted longest-first (for longest-match-first regex).
+- Given all 480+ existing tests, when run, then they all pass.
+
+**Commit:** `refactor(patterns): load rank/branch/function lists from CSV instead of hardcoded`
+
+---
+
+## B-030: Add Concrete Swiss Army Formations to CSV (P1) 🔴
+
+**Discovered in:** Wikipedia analysis + WK25 Dossier (2026-03-25)
+
+**Problem:** The tool has no knowledge of actual Swiss Army formations. It recognizes "Inf Bat 56" only via generic regex pattern (`Inf + Bat + Number`), not as a known entity. It doesn't know that Inf Bat 56 belongs to Ter Div 2, or that it has 5 companies (Stabskp 56, Kp 56/1-3, Ustü Kp 56/4).
+
+**Data source:** [Wikipedia: Gliederung der Schweizer Armee](https://de.wikipedia.org/wiki/Gliederung_der_Schweizer_Armee) — public information, 2026 structure.
+
+**Required Fix:**
+
+Add `type=concrete_unit` rows to `military_units.csv` with `parent` and `level` columns:
+
+**Top-level commands:**
+```csv
+concrete_unit,Kommando Operationen,Kdo Op,Kommando,,_root,command
+concrete_unit,Kommando Ausbildung,Kdo Ausb,Kommando,,_root,command
+concrete_unit,Logistikbasis der Armee,LBA,Kommando,,_root,command
+concrete_unit,Kommando Cyber,Kdo Cyber,Kommando,,_root,command
+```
+
+**Heer + Mechanisierte Brigaden:**
+```csv
+concrete_unit,Heer,Heer,Kommando,,Kommando Operationen,command
+concrete_unit,Mechanisierte Brigade 1,Mech Br 1,Brigade,,Heer,brigade
+concrete_unit,Mechanisierte Brigade 4,Mech Br 4,Brigade,,Heer,brigade
+concrete_unit,Mechanisierte Brigade 11,Mech Br 11,Brigade,,Heer,brigade
+```
+
+**All 4 Territorialdivisionen + their Bataillone:**
+```csv
+concrete_unit,Territorialdivision 2,Ter Div 2,Division,,Kommando Operationen,division
+concrete_unit,Infanteriebataillon 56,Inf Bat 56,Bataillon,,Territorialdivision 2,battalion
+```
+
+**All 8 Inf Bat with standard 5er-structure (0-4):**
+Each Inf Bat gets: Stabskp (=0), Kp 1, Kp 2, Kp 3, Ustü Kp (=4).
+Inf Bat: 11, 13, 19, 20, 56, 61, 65, 97.
+
+```csv
+concrete_unit,Infanterie Stabskompanie 56,Inf Stabskp 56,Kompanie,Stabskp 56,Infanteriebataillon 56,company
+concrete_unit,Infanteriekompanie 56/1,Inf Kp 56/1,Kompanie,,Infanteriebataillon 56,company
+concrete_unit,Infanteriekompanie 56/2,Inf Kp 56/2,Kompanie,,Infanteriebataillon 56,company
+concrete_unit,Infanteriekompanie 56/3,Inf Kp 56/3,Kompanie,,Infanteriebataillon 56,company
+concrete_unit,Infanterie Unterstützungskompanie 56/4,Inf Ustü Kp 56/4,Kompanie,,Infanteriebataillon 56,company
+```
+
+**Luftwaffe, LBA, Kdo Cyber:**
+Key brigades and battalions.
+
+**Target: ~100-120 rows** of concrete_unit entries covering the complete Swiss Army structure at brigade level and below for the Heer, plus all Inf Bat companies.
+
+**Acceptance Criteria:**
+- Given the CSV, when all concrete_unit rows are counted, then there are 100+ entries.
+- Given "Inf Bat 56" in the CSV, when its children are queried, then 5 companies are returned (Stabskp 56, Kp 56/1-3, Ustü Kp 56/4).
+- Given "Ter Div 2", when its children are queried, then Inf Bat 11, 20, 56, 97 + Genie Bat 6 + Rttg Bat 2 are returned.
+- Given `milanon db init --force`, when run, then all concrete_unit entries are in the DB with correct parent references.
+- Given existing tests, when run, then they all pass.
+
+**Commit:** `feat(data): add ~100 concrete Swiss Army formations with hierarchy to reference CSV`
+
+---
+
+## B-031: Hierarchy-Aware Context Generator + Improved Recognition (P1) 🔴
+
+**Discovered in:** Data audit + LLM Context analysis (2026-03-25)
+
+**Problem:** Two systems need upgrading to use the new hierarchy data:
+
+**A) Context Generator (`generate_context.py`):**
+Currently uses `_parent_number()` heuristic (slash-notation: "56/1" → parent "56"). This breaks for:
+- Formations without slash (Ter Div 2 → parent is Kdo Op, not guessable from the name)
+- Stabskp (56/0 pattern not used in all documents)
+- Cross-level references (what Bat belongs to which Div)
+
+With DB hierarchy: Full chain resolution `Kdo Op → Ter Div 2 → Inf Bat 56 → Inf Kp 56/1` directly from the `ref_military_units` table.
+
+**B) Military Recognizer (`military_recognizer.py`):**
+Currently only matches generic patterns. With concrete_unit data in the DB, it could:
+- Match known unit names with higher confidence (1.0 vs 0.9 for pattern match)
+- Recognize units that don't follow standard patterns (e.g. "Geb Inf Bat 29")
+- Provide richer metadata in DetectedEntity
+
+**Required Fix:**
+
+**Part A — Context Generator:**
+1. New method in `SqliteMappingRepository`:
+   ```python
+   def get_unit_hierarchy(self, unit_abbreviation: str) -> list[dict]:
+       """Return the parent chain from the given unit up to root.
+       Returns list of dicts with keys: full_name, abbreviation, level, parent."""
+   
+   def get_unit_children(self, parent_full_name: str) -> list[dict]:
+       """Return direct children of a unit."""
+   
+   def get_unit_siblings(self, unit_full_name: str) -> list[dict]:
+       """Return sibling units (same parent)."""
+   ```
+
+2. `generate_context.py` uses these methods to build a rich hierarchy section:
+   ```markdown
+   ## Organizational Hierarchy
+   
+   Command chain: Kdo Op → Ter Div 2 → Inf Bat 56 → **Inf Kp 56/1** (YOUR UNIT)
+   
+   Sibling companies (same Bat):
+   | Placeholder | Unit | Type |
+   |---|---|---|
+   | [EINHEIT_009] | Stabskp 56 | Staff Company |
+   | **[EINHEIT_001]** | **Inf Kp 56/1** | **← YOUR UNIT** |
+   | [EINHEIT_008] | Inf Kp 56/2 | Company |
+   | [EINHEIT_007] | Inf Kp 56/3 | Company |
+   | [EINHEIT_006] | Ustü Kp 56/4 | Support Company |
+   
+   Sister battalions (same Ter Div):
+   Inf Bat 11, Inf Bat 20, Inf Bat 97, G Bat 6, Rttg Bat 2
+   ```
+
+3. Falls back gracefully: If no hierarchy data in DB (old DB without B-030), use existing slash-heuristic.
+
+**Part B — Enhanced Recognition (optional, can be deferred):**
+1. After pattern-based recognition, check matched unit text against `ref_military_units` concrete entries.
+2. If exact match found: boost confidence to 1.0 and add metadata (level, parent).
+3. If no match but pattern matches: keep existing confidence (0.9).
+4. New recognizer: scan for concrete unit abbreviations not caught by generic patterns.
+
+**Acceptance Criteria:**
+- Given "Inf Kp 56/1" as the user's unit and hierarchy data in DB, when context is generated, then the output includes the full command chain and sibling companies.
+- Given a unit with no hierarchy data in DB, when context is generated, then it falls back to slash-heuristic (backward compatible).
+- Given "Ter Div 2" in document text, when recognition runs, then it is detected with confidence 1.0 (exact match) instead of 0.9 (pattern).
+- Given all existing tests, when run, then they pass.
+
+**Commit:** `feat(context): hierarchy-aware context generation from DB + enhanced unit recognition`
+
+---
+
 ## Iteration 3 — Self-Improving Recognition
 
-## B-010: Post-Anonymization Review — Learn Unknown Names (P2) 🔴
-
-Every document processed makes the tool smarter. After anonymization, scan output for candidate names. User confirms/rejects → confirmed names added to DB automatically.
+## B-010: Post-Anonymization Review (P2) 🔴
 
 **Commit:** `feat(review): add post-anonymization review for unknown name candidates`
 
@@ -298,8 +328,6 @@ Every document processed makes the tool smarter. After anonymization, scan outpu
 
 ## B-018: Military Unit Alias Table (P2) 🔴
 
-**Problem:** Multiple placeholders for same unit due to naming variants.
-
 **Commit:** `feat(mapping): military unit alias table for duplicate EINHEIT resolution`
 
 ---
@@ -307,32 +335,16 @@ Every document processed makes the tool smarter. After anonymization, scan outpu
 ## Iteration 6 — Incremental Processing Improvements
 
 ## B-019: Clean Up Orphaned Output Files (P2) 🔴
-
-**Commit:** `feat(cli): add --clean flag to remove orphaned output files`
-
 ## B-020: Entity Count Total Across All Outputs (P3) 🔴
-
-**Commit:** `feat(cli): show total entity count across all tracked files in summary`
-
 ## B-021: Detect Renamed Files via Content Hash (P3) 🔴
-
-**Commit:** `feat(tracking): detect renamed files via content hash to avoid reprocessing`
 
 ---
 
 ## Iteration 4b — Recognition Gaps
 
 ## B-015: International Phone Numbers (P2) 🔴
-
-**Commit:** `feat(recognition): detect international phone numbers beyond Swiss +41`
-
 ## B-016: c/o Name Detection in Address Fields (P2) 🔴
-
-**Commit:** `feat(recognition): detect person names in c/o address prefixes`
-
 ## B-017: Near-AHV Warning for Transposed Digits (P3) 🔴
-
-**Commit:** `feat(recognition): warn on possible AHV numbers with transposed digits`
 
 ---
 
