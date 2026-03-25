@@ -2,7 +2,7 @@
 
 > Central Concept: **5+2 Aktionsplanungsprozess** (BFE 52.080 Kap 5)
 > Core Architecture: Cloud Intelligence + Local Security + Local DOCX Generation
-> Last updated: 2026-03-25 (v0.5.0 code complete — all E14/E15/E16 done, E17 partial)
+> Last updated: 2026-03-25 (v0.5.0-stable — code review complete)
 
 ---
 
@@ -20,11 +20,13 @@
 
 ## Phase 1: Core Engine — DONE ✅ (v0.3.0)
 
-648 tests, 17 CLI commands, 6 GUI pages. Full anonymize→validate→deanonymize round-trip.
+685 tests, 17 CLI commands, 8 GUI pages. Full anonymize→validate→deanonymize round-trip.
 
 ---
 
-## Phase 2: Doctrine + 5+2 Workflows — DONE ✅ (v0.5.0)
+## Phase 2: Doctrine + 5+2 Workflows — DONE ✅ (v0.5.0-stable)
+
+> Code review complete (2026-03-25): 19 findings resolved (CR-001 to CR-019). See docs/BACKLOG.md.
 
 ### Epic E14: Doctrine Knowledge Base ✅
 
@@ -114,6 +116,9 @@
 | BUG-013: Strassennamen ohne Suffix erkennen | P2 | Open |
 | BUG-018: Rich Output für `pack --workflow` | P2 | Open |
 | FR-003: Interactive A/B/C Optionen | P1 | ✅ Done (in rules.md) |
+| FR-017: Two-Tier Anonymization (DSG/Full) | P0 | Spec approved, implementation pending |
+| Code Review (19 findings) | P0 | ✅ Done (2026-03-25) |
+| CI/CD Pipeline (GitHub Actions) | P1 | Open |
 | GUI Overhaul | P1 | ✅ Done (Paket G) |
 
 ---
@@ -130,6 +135,8 @@
 ---
 
 ## Critical Path for 31.03.2026 (Bat Dossier arrives)
+
+**Code review complete** — all 19 CR findings resolved (2026-03-25). Codebase is stable.
 
 **Must work on Day 1 — ALL DONE ✅:**
 1. ✅ Anonymization (tested with real 70-page dossier, 2795 entities)
