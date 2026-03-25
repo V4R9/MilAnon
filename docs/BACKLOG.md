@@ -14,13 +14,13 @@
 | BUG-002 | Layer 3 (Doctrine Extracts) missing from prompt output | 🔴 | ✅ Fixed (Paket K) |
 | BUG-003 | CSVs (PISA, Hilfsliste) anonymized into output folder | 🟡 | ✅ Fixed (Paket K) |
 | BUG-004 | CSVs packed into prompt (37% token waste) | 🟡 | ✅ Fixed (Paket K) |
-| BUG-005 | DOCX Writer: `**bold**` not converted, stays as Markdown | 🔴 | ❌ Open |
-| BUG-006 | DOCX Writer: `---` separators rendered as empty paragraphs | 🟡 | ❌ Open |
-| BUG-007 | DOCX Writer: `<!-- FILL: -->` and `<!-- KDT ENTSCHEID: -->` appear as visible text | 🟡 | ❌ Open |
-| BUG-008 | DOCX Writer: `> blockquotes` not recognized | 🟡 | ❌ Open |
-| BUG-009 | DOCX Writer: Tables with >2 columns incorrectly parsed | 🔴 | ❌ Open |
-| BUG-010 | DOCX Writer: No paragraph spacing — everything runs together | 🟡 | ❌ Open |
-| BUG-011 | DOCX Writer: Aufträge-table (Pt 3) not differentiated from info tables | 🟡 | ❌ Open |
+| BUG-005 | DOCX Writer: `**bold**` not converted, stays as Markdown | 🔴 | ✅ Fixed (FR-004) |
+| BUG-006 | DOCX Writer: `---` separators rendered as empty paragraphs | 🟡 | ✅ Fixed (FR-004) |
+| BUG-007 | DOCX Writer: `<!-- FILL: -->` and `<!-- KDT ENTSCHEID: -->` appear as visible text | 🟡 | ✅ Fixed (FR-004) |
+| BUG-008 | DOCX Writer: `> blockquotes` not recognized | 🟡 | ✅ Fixed (FR-004) |
+| BUG-009 | DOCX Writer: Tables with >2 columns incorrectly parsed | 🔴 | ✅ Fixed (FR-004) |
+| BUG-010 | DOCX Writer: No paragraph spacing — everything runs together | 🟡 | ✅ Fixed (FR-004) |
+| BUG-011 | DOCX Writer: Aufträge-table (Pt 3) not differentiated from info tables | 🟡 | ✅ Fixed (FR-004) |
 | BUG-012 | PII: Single first/last names without rank not detected (Ciardo, Megevand, Nicolas, Stéphane, Etienne) | 🟡 | ❌ Open |
 | BUG-013 | PII: Street names without -strasse/-weg suffix not recognized (Fesenacker 3, Avenue D'Aire 73, Tumma 9) | 🟡 | ❌ Open |
 | BUG-014 | Project Generator: Anonymized dossier missing from output | 🔴 | ✅ Fixed (Paket L) |
@@ -107,7 +107,7 @@ All findings from the post-v0.5.0 code review session.
 - `---` as section break or ignored
 
 **Effort:** L (Opus, 4-6h)
-**Status:** ❌ Open (P1, planned for v0.7.0)
+**Status:** ✅ Done — Full rewrite with official CH Armee styles (befehl_vorlage.docx as template), Markdown inline parsing, multi-column tables, HTML comment stripping
 
 ---
 
@@ -214,7 +214,7 @@ Commander selects mode based on use case: DSG for legal compliance, Full for ope
 | Feature | Prio | Status |
 |---|---|---|
 | FR-001: Dossier Quality Check | P0 | ✅ Done (v0.6.0) |
-| FR-004: DOCX Writer Rewrite | P1 | Open |
+| FR-004: DOCX Writer Rewrite | P1 | ✅ Done (FR-004) |
 | FR-017: Two-Tier Anonymization | P0 | ✅ Done (v0.6.0) |
 | BUG-012: Single names without rank | P2 | Open |
 | BUG-013: Street names without suffix | P2 | Open |

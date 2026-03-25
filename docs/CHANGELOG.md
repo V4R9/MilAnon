@@ -3,6 +3,23 @@
 All notable changes to MilAnon are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.1] — 2026-03-25
+
+### Fixed
+- **FR-004: DOCX Writer Rewrite** — Complete rewrite using official CH Armee `befehl_vorlage.docx` as template
+  - BUG-005: `**bold**` and `*italic*` now render as proper DOCX formatting runs
+  - BUG-006: `---` horizontal rules become page breaks (no empty paragraphs)
+  - BUG-007: HTML comments (`<!-- FILL: -->`, `<!-- KDT ENTSCHEID: -->`) fully stripped
+  - BUG-008: `> blockquotes` rendered as italic Text Indent
+  - BUG-009: Multi-column tables (2, 3, 4+ columns) fully supported
+  - BUG-010: Paragraph spacing handled by template styles (no empty paragraphs)
+  - BUG-011: All table types handled uniformly (Aufträge, Akteure, Standorte)
+  - Style mapping: `#`→Heading 1, `##`→Subject heading, `###`→1. Main title, `####`→1.1 Title, `#####`→1.1.1 Title
+  - Inline: bold/italic/code parsed into separate Runs
+  - 25 new DOCX writer tests (730 total)
+
+---
+
 ## [0.6.0] — 2026-03-25
 
 ### Added

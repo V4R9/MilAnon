@@ -100,7 +100,7 @@
 | US-17.3 | Aufträge-Tabelle: Nx2 DOCX table | ✅ Done | BUG-011 |
 | US-17.4 | `--deanonymize` flag on export | ✅ Done | — |
 | US-17.5 | Combined: `--docx --deanonymize` in one step | ✅ Done | — |
-| FR-004 | **DOCX Writer Rewrite** — fix BUG-005 to BUG-011 | ❌ Open (P1, Opus session) | — |
+| FR-004 | **DOCX Writer Rewrite** — fix BUG-005 to BUG-011 | ✅ Done (v0.6.1) | — |
 | US-17.6 | XLSX export for WAP/Personalplanung | ❌ Open | — |
 | US-17.7 | Dossier assembly: all docs numbered as ZIP | ❌ Open | — |
 

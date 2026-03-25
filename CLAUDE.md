@@ -255,27 +255,23 @@ Markdown (anonymized) → python-docx → DOCX (anonymized) → de-anonymize →
 
 ### Style Mapping (Markdown → DOCX)
 
+Uses `befehl_vorlage.docx` as base template (official CH Armee styles).
+
 | Markdown | DOCX Style |
 |---|---|
-| `# Title` | `Title` |
-| `## Heading` | `1. Main title` |
-| `### Sub` | `2. Second level title` |
-| `#### Sub2` | `3. Third level title` |
+| `# Heading` | `Heading 1` |
+| `## Subject` | `Subject heading` |
+| `### 1 Main` | `1. Main title` |
+| `#### 1.1 Sub` | `1.1 Title` |
+| `##### 1.1.1 Sub` | `1.1.1 Title` |
 | `- item` | `Bullet List 1` |
-| `**bold**` | Bold character style |
-| Punkt 3 Aufträge | Nx2 table (links=Einheit ~4cm, rechts=Bullet List 1) |
-
-### Known Limitations (DOCX Writer)
-
-- BUG-005: `**bold**` not converted — stays as literal Markdown
-- BUG-006: `---` horizontal rules rendered as empty paragraphs
-- BUG-007: `<!-- FILL: -->` and `<!-- KDT ENTSCHEID: -->` appear as visible text
-- BUG-008: `> blockquotes` not recognized
-- BUG-009: Tables with >2 columns incorrectly parsed
-- BUG-010: No paragraph spacing — everything runs together
-- BUG-011: Aufträge-table (Pt 3) not differentiated from info tables
-
-→ FR-004: DOCX Writer Rewrite is planned (P1, Opus session needed)
+| `1. item` | `Numbered List 2` |
+| `**bold**` / `*italic*` | Bold/Italic Runs |
+| `> blockquote` | `Text Indent` (italic) |
+| `| table |` | DOCX Table (any column count) |
+| `---` | Page break |
+| `<!-- comment -->` | Stripped |
+| Other text | `Text Indent` |
 
 ## Claude Project Generator
 
@@ -380,18 +376,10 @@ See docs/CHANGELOG.md for version history.
 
 See `docs/BACKLOG.md` for the complete bug and feature request list.
 
-| ID | Description | Severity | Category |
+| ID | Description | Severity | Status |
 |---|---|---|---|
-| BUG-005 | DOCX Writer: `**bold**` not converted | 🔴 | FR-004 |
-| BUG-006 | DOCX Writer: `---` rendered as empty paragraph | 🟡 | FR-004 |
-| BUG-007 | DOCX Writer: HTML comments visible in output | 🟡 | FR-004 |
-| BUG-008 | DOCX Writer: blockquotes not recognized | 🟡 | FR-004 |
-| BUG-009 | DOCX Writer: multi-column tables broken | 🔴 | FR-004 |
-| BUG-010 | DOCX Writer: no paragraph spacing | 🟡 | FR-004 |
-| BUG-011 | DOCX Writer: Aufträge-table not special-cased | 🟡 | FR-004 |
-| BUG-012 | PII: single names without rank not detected | 🟡 | FR-013 |
-| BUG-013 | PII: street names without suffix missed | 🟡 | FR-012 |
-| BUG-018 | Rich output missing on `pack --workflow` | 🟡 | — |
+| BUG-012 | PII: single names without rank not detected | 🟡 | Open (FR-013) |
+| BUG-013 | PII: street names without suffix missed | 🟡 | Open (FR-012) |
 
 ### Key directories
 
