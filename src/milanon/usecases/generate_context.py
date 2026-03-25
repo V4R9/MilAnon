@@ -81,8 +81,15 @@ class GenerateContextUseCase:
         entries.sort(key=lambda e: (_LEVEL_ORDER.get(e.level, 99), e.original_value))
         return entries
 
-    def generate(self, user_unit_value: str, output_path: Path) -> None:
+    def generate(self, user_unit_value: str, output_path: Path, level: str = "dsg") -> None:
         """Generate CONTEXT.md for *user_unit_value* and write it to *output_path*.
+
+        Args:
+            user_unit_value: The original unit name (e.g. "Inf Kp 56/1").
+            output_path: Destination path for the generated CONTEXT.md file.
+            level: Anonymization level used — ``"dsg"`` (default) or ``"full"``.
+                   This is written into the context file so the LLM knows which
+                   entity types are real vs. placeholders.
 
         Raises ValueError if the unit is not found in the database.
         """
@@ -94,7 +101,7 @@ class GenerateContextUseCase:
         if user_entry is None:
             raise ValueError(f"Unit '{user_unit_value}' not found in database.")
 
-        content = self._render(user_entry, units)
+        content = self._render(user_entry, units, level=level)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(content, encoding="utf-8")
 
@@ -102,7 +109,7 @@ class GenerateContextUseCase:
     # Rendering
     # ------------------------------------------------------------------
 
-    def _render(self, user_entry: UnitEntry, all_units: list[UnitEntry]) -> str:
+    def _render(self, user_entry: UnitEntry, all_units: list[UnitEntry], level: str = "dsg") -> str:
         parent_number = _parent_number(user_entry.original_value)
         parent_entry: UnitEntry | None = None
         if parent_number:
@@ -132,6 +139,8 @@ class GenerateContextUseCase:
         lines.append(
             "> Paste this BEFORE your anonymized document when prompting an LLM.\n"
         )
+
+        lines.extend(self._render_anonymization_level(level))
 
         lines.append("\n## Your Unit\n")
         lines.append(
@@ -184,6 +193,36 @@ class GenerateContextUseCase:
         )
 
         return "\n".join(lines) + "\n"
+
+    @staticmethod
+    def _render_anonymization_level(level: str) -> list[str]:
+        """Return markdown lines describing the anonymization level used.
+
+        Args:
+            level: ``"dsg"`` or ``"full"``.
+        """
+        lines: list[str] = ["\n## Anonymization Level\n"]
+        if level == "full":
+            lines.append("Level: **full** — All entity types are anonymized.")
+            lines.append(
+                "- ALL entities including units (EINHEIT), locations (ORT, STANDORT_MIL), "
+                "and functions (FUNKTION) are replaced with placeholders."
+            )
+            lines.append(
+                "- Everything in [BRACKETS] is a placeholder — no original values remain."
+            )
+        else:
+            # Default: dsg
+            lines.append("Level: **dsg** (DSG mode) — Only personal data is anonymized.")
+            lines.append(
+                "- Unit names (EINHEIT), locations (ORT, STANDORT_MIL), and functions "
+                "(FUNKTION) are REAL — not anonymized. Use them directly."
+            )
+            lines.append(
+                "- Placeholders like [PERSON_001], [TELEFON_003] represent anonymized "
+                "personal data only (names, AHV, phone, email, addresses)."
+            )
+        return lines
 
     def _render_hierarchy_from_db(self, user_entry: UnitEntry) -> list[str] | None:
         """Render DB-sourced command chain section.

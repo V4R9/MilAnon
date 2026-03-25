@@ -162,6 +162,22 @@ open befehl_inf_kp_56_1.docx
 
 ---
 
+## Anonymisierungsstufen
+
+```bash
+milanon anonymize --level dsg   # Nur Personendaten anonymisiert (DEFAULT, empfohlen)
+milanon anonymize --level full  # Alles anonymisiert (für klassifizierte Dokumente)
+```
+
+| Stufe | Was wird anonymisiert | Wann verwenden |
+|---|---|---|
+| `dsg` (Standard) | Namen, AHV, Telefon, E-Mail, Adressen | WK-Planung (nicht INTERN) |
+| `full` | Alles inkl. Einheiten, Orte, Funktionen | INTERN-klassifizierte Dokumente |
+
+**DSG-Modus:** Einheitsnamen (z.B. "Inf Kp 56/1"), Orte und Funktionen bleiben REAL — Claude kann damit arbeiten. Nur Personendaten werden durch Platzhalter ersetzt.
+
+---
+
 ## Weitere Befehle für Claude
 
 | Was du brauchst | Sage zu Claude |

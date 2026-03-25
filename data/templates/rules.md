@@ -49,3 +49,11 @@
 - Every statement must be traceable to either the Bat Bf input or doctrine
 - Do not invent facts — if information is missing, mark it with <!-- FILL: -->
 - Prefer precision over completeness — a partially filled but accurate document is better than a fully filled but speculative one
+
+## Anonymization Levels
+
+This document may have been anonymized at one of two levels:
+- **DSG mode** (default): Only personal data is anonymized (names, AHV, phone, email, addresses). Unit names, locations, and functions are REAL and can be used directly.
+- **Full mode**: ALL entities are anonymized including units, locations, and functions. Everything in [BRACKETS] is a placeholder.
+
+The context file will indicate which level was used.
