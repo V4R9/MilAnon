@@ -7,6 +7,13 @@ from datetime import datetime
 from enum import Enum
 
 
+class AnonymizationLevel(str, Enum):
+    """Anonymization level — DSG (personal data only) or FULL (all entities)."""
+
+    DSG = "dsg"
+    FULL = "full"
+
+
 class EntityType(Enum):
     """Types of sensitive entities that can be detected and anonymized."""
 
@@ -149,3 +156,53 @@ class AnonymizedDocument:
     legend: str = ""
     warnings: list[str] = field(default_factory=list)
     structured_content: dict | None = None
+
+
+# --- Two-Tier Anonymization: Entity Type Sets (FR-017) ---
+
+# Personal data under DSG Art. 5 lit. a — anonymized in both DSG and FULL mode.
+DSG_ENTITY_TYPES: frozenset[EntityType] = frozenset({
+    EntityType.PERSON,
+    EntityType.VORNAME,
+    EntityType.NACHNAME,
+    EntityType.EMAIL,
+    EntityType.TELEFON,
+    EntityType.AHV_NR,
+    EntityType.GEBURTSDATUM,
+    EntityType.ADRESSE,
+    EntityType.ARBEITGEBER,
+    EntityType.MEDIZINISCH,
+    EntityType.FAMILIAER,
+    EntityType.GRAD_FUNKTION,  # Contains personal data (person identifiable)
+})
+
+# Non-personal operational data per ISG — anonymized only in FULL mode.
+ISG_ENTITY_TYPES: frozenset[EntityType] = frozenset({
+    EntityType.EINHEIT,
+    EntityType.FUNKTION,
+    EntityType.STANDORT_MIL,
+    EntityType.ORT,
+})
+
+# Exhaustiveness assertion: every EntityType must appear in exactly one set.
+assert DSG_ENTITY_TYPES | ISG_ENTITY_TYPES == set(EntityType), (
+    "DSG_ENTITY_TYPES and ISG_ENTITY_TYPES do not cover all EntityType values. "
+    "Update one of the sets when adding a new EntityType."
+)
+assert DSG_ENTITY_TYPES.isdisjoint(ISG_ENTITY_TYPES), (
+    "DSG_ENTITY_TYPES and ISG_ENTITY_TYPES must be disjoint."
+)
+
+
+def filter_entities_by_level(
+    entities: list[DetectedEntity],
+    level: AnonymizationLevel,
+) -> list[DetectedEntity]:
+    """Filter detected entities based on anonymization level.
+
+    DSG mode: only personal data entities (DSG Art. 5 lit. a).
+    FULL mode: all entities (current behavior).
+    """
+    if level == AnonymizationLevel.FULL:
+        return entities
+    return [e for e in entities if e.entity_type in DSG_ENTITY_TYPES]

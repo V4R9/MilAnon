@@ -5,12 +5,16 @@ from datetime import datetime
 import pytest
 
 from milanon.domain.entities import (
+    AnonymizationLevel,
     AnonymizedDocument,
+    DSG_ENTITY_TYPES,
     DetectedEntity,
     DocumentFormat,
     EntityMapping,
     EntityType,
     ExtractedDocument,
+    ISG_ENTITY_TYPES,
+    filter_entities_by_level,
 )
 
 
@@ -251,3 +255,62 @@ class TestAnonymizedDocument:
         )
         assert len(doc.entities_found) == 1
         assert doc.warnings == ["1 embedded image skipped"]
+
+
+# --- Two-Tier Anonymization (FR-017) ---
+
+
+def _make_entity(entity_type: EntityType) -> DetectedEntity:
+    """Helper: create a minimal DetectedEntity for the given type."""
+    return DetectedEntity(
+        entity_type=entity_type,
+        original_value="TEST",
+        start_offset=0,
+        end_offset=4,
+    )
+
+
+class TestAnonymizationLevelEntityTypeSets:
+    def test_dsg_entity_types_and_isg_entity_types_are_exhaustive(self):
+        """Every EntityType must appear in DSG_ENTITY_TYPES or ISG_ENTITY_TYPES."""
+        all_types = set(EntityType)
+        covered = DSG_ENTITY_TYPES | ISG_ENTITY_TYPES
+        assert covered == all_types
+
+    def test_dsg_entity_types_and_isg_entity_types_are_disjoint(self):
+        """No EntityType may appear in both sets."""
+        assert DSG_ENTITY_TYPES.isdisjoint(ISG_ENTITY_TYPES)
+
+
+class TestFilterEntitiesByLevel:
+    def test_filter_entities_by_level_full_returns_all(self):
+        """FULL mode must return every entity unchanged."""
+        entities = [_make_entity(t) for t in EntityType]
+        result = filter_entities_by_level(entities, AnonymizationLevel.FULL)
+        assert result == entities
+
+    def test_filter_entities_by_level_dsg_filters_isg_types(self):
+        """DSG mode must exclude entities whose type is in ISG_ENTITY_TYPES."""
+        entities = [_make_entity(t) for t in EntityType]
+        result = filter_entities_by_level(entities, AnonymizationLevel.DSG)
+        result_types = {e.entity_type for e in result}
+        assert result_types.isdisjoint(ISG_ENTITY_TYPES)
+
+    def test_filter_entities_by_level_dsg_keeps_grad_funktion(self):
+        """GRAD_FUNKTION contains personal data and must be kept in DSG mode."""
+        entity = _make_entity(EntityType.GRAD_FUNKTION)
+        result = filter_entities_by_level([entity], AnonymizationLevel.DSG)
+        assert len(result) == 1
+        assert result[0].entity_type == EntityType.GRAD_FUNKTION
+
+    def test_filter_entities_by_level_dsg_excludes_einheit(self):
+        """EINHEIT is non-personal operational data and must be excluded in DSG mode."""
+        entity = _make_entity(EntityType.EINHEIT)
+        result = filter_entities_by_level([entity], AnonymizationLevel.DSG)
+        assert result == []
+
+    def test_filter_entities_by_level_dsg_excludes_ort(self):
+        """ORT is a public municipality and must be excluded in DSG mode."""
+        entity = _make_entity(EntityType.ORT)
+        result = filter_entities_by_level([entity], AnonymizationLevel.DSG)
+        assert result == []
