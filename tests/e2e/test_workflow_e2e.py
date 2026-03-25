@@ -210,8 +210,9 @@ class TestPackWorkflow:
             "--no-clipboard",
         )
 
+        combined = (result.stdout + result.stderr).lower()
         assert result.returncode != 0
-        assert "not found" in result.stderr.lower() or "error" in result.stderr.lower()
+        assert "not found" in combined or "error" in combined
 
 
 # ---------------------------------------------------------------------------

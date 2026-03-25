@@ -64,4 +64,4 @@ class TestProjectSkeleton:
         runner = CliRunner()
         result = runner.invoke(cli, ["db", "stats"])
         assert result.exit_code == 0
-        assert "milanon" in result.output.lower()
+        assert "statistics" in result.output.lower()

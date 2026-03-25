@@ -11,6 +11,10 @@ import logging
 from pathlib import Path
 
 import click
+from rich import box
+from rich.table import Table
+
+from milanon.cli.output import console, print_warning
 
 _DATA_DIR = Path(__file__).parent.parent.parent.parent / "data"
 _DOCTRINE_DIR = _DATA_DIR / "doctrine"
@@ -30,17 +34,17 @@ def doctrine_list() -> None:
     files = uc.list_doctrine_files()
 
     if not files:
-        click.echo("No doctrine files found. Check data/doctrine/INDEX.yaml.")
+        print_warning("No doctrine files found. Check data/doctrine/INDEX.yaml.")
         return
 
-    click.echo(f"{'Filename':<45} {'Regulation':<12} Title")
-    click.echo("-" * 100)
-    for f in files:
-        click.echo(
-            f"  {f['filename']:<43} {f.get('regulation', ''):<12} {f.get('title', '')}"
-        )
-        for ch in f.get("key_chapters", []):
-            click.echo(f"      - {ch}")
+    table = Table(title="Doctrine Knowledge Base", box=box.ROUNDED, border_style="cyan")
+    table.add_column("#", style="dim", width=3)
+    table.add_column("File", style="cyan")
+    table.add_column("Regulation", style="green", width=14)
+    table.add_column("Title", style="white")
+    for i, doc in enumerate(files, 1):
+        table.add_row(str(i), doc["filename"], doc.get("regulation", ""), doc.get("title", ""))
+    console.print(table)
 
 
 @doctrine.command("extract")
@@ -59,8 +63,8 @@ def doctrine_extract(workflow: str | None, extract_all: bool, output: str | None
     out_dir = Path(output) if output else _DOCTRINE_DIR / "extracts"
 
     if workflow and not extract_all:
-        click.echo(f"Workflow-specific filtering not yet implemented: {workflow}", err=True)
-        click.echo("Use --all to extract all chapters.")
+        print_warning(f"Workflow-specific filtering not yet implemented: {workflow}")
+        console.print("  Use [cyan]--all[/cyan] to extract all chapters.")
         return
 
     results = uc.extract_all(out_dir)
@@ -68,11 +72,13 @@ def doctrine_extract(workflow: str | None, extract_all: bool, output: str | None
     failed = sum(1 for v in results.values() if not v)
 
     for name, success in results.items():
-        icon = click.style("✓", fg="green") if success else click.style("✗", fg="red")
-        click.echo(f"  {icon} {name}")
+        if success:
+            console.print(f"  [green]✓[/green] {name}")
+        else:
+            console.print(f"  [red]✗[/red] {name}")
 
-    click.echo("")
-    click.echo(click.style(f"Extracted: {succeeded}", fg="green"))
+    console.print("")
+    console.print(f"  [green bold]Extracted: {succeeded}[/green bold]")
     if failed:
-        click.echo(click.style(f"Failed:    {failed}", fg="red"))
-    click.echo(f"Output:    {out_dir}")
+        console.print(f"  [red bold]Failed:    {failed}[/red bold]")
+    console.print(f"  [dim]Output:    {out_dir}[/dim]")

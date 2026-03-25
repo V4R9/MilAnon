@@ -55,7 +55,7 @@ cover/
 
 # Environments
 .env
-.venv
+.venv/
 env/
 venv/
 ENV/
@@ -88,7 +88,6 @@ __pypackages__/
 *.sqlite
 *.sqlite3
 mapping_db/
-~/.milanon/
 
 # Never commit real documents used for testing
 test_documents/
@@ -119,8 +118,18 @@ demo_anon/
 CLAUDE.md
 
 # Product design reference material (local only — used as context for Claude)
-Unterlagen Review Product Design/
+ZZ_Unterlagen Review Product Design/
+
+# Claude Code prompts (local only — session-specific instructions)
+scripts/claude-code-prompts/
 
 # OS files
 .DS_Store
+**/.DS_Store
 Thumbs.db
+
+# MilAnon runtime directory
+.milanon/
+
+# Streamlit config
+.streamlit/
