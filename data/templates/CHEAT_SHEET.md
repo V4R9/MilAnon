@@ -22,10 +22,11 @@ Dann in Claude.ai:
 ## Schritt 1 — Problemerfassung
 
 **Sage zu Claude:**
-> Analysiere das Bat Dossier für meine Einheit. Führe die Initialisierung mit 4-Farben-Markierung durch und erstelle die Problemerfassung mit Teilproblemen, SOMA und Zeitplan.
+> Analysiere das Bat Dossier für meine Einheit. Führe die Initialisierung mit 4-Farben-Markierung durch, erstelle die Auftragsanalyse und die Problemerfassung mit Teilproblemen, SOMA und Zeitplan.
 
 **Claude produziert:**
 - 4-Farben-Markierung (BLAU/GRÜN/ROT/GELB)
+- Auftragsanalyse (fixe 4-Zeilen-Tabelle gem BFE 5.4.1: Bedeutung, Erwartete Leistung, Handlungsspielraum, Unterstützung)
 - Problemerfassungs-Matrix (Teilprobleme mit Prio)
 - Sofortmassnahmen (OEBAS-VIV)
 - Synchronisationsmatrix
@@ -42,13 +43,14 @@ Dann in Claude.ai:
 ## Schritt 2 — Beurteilung der Lage (BdL)
 
 **Sage zu Claude:**
-> Führe die Beurteilung der Lage durch. Analysiere alle AUGEZ-Faktoren mit der AEK-Methode.
+> Führe die Beurteilung der Lage durch. Beginne mit der Auftragsanalyse (falls noch nicht erstellt) und analysiere dann alle AUGEZ-Faktoren mit der AEK-Methode. Bei jeder Konsequenz wo ich als Kdt entscheiden muss: zeige mir 2-3 Optionen mit Empfehlung.
 
 **Claude produziert:**
+- Auftragsanalyse (falls nicht in Schritt 1): Fixe 4-Zeilen-Tabelle (Bedeutung, Leistung, Handlungsspielraum, Unterstützung)
 - AUGEZ-Analyse (Auftrag, Umwelt, Gegner, Eigene Mittel, Zeit)
 - Für jeden Faktor: Aussage → Erkenntnis → Konsequenz
-- Bedrohungsmatrix
-- Konsequenzen für eigenen Einsatz
+- Konsequenzen verdichtet (Raumordnung, Dispositiv, Führung, Ausbildung, Logistik)
+- Offene Fragen mit Adressat und Termin
 
 **Du entscheidest:**
 - Stimmen die Konsequenzen?

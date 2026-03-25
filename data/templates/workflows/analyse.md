@@ -13,6 +13,21 @@ Markiere den Bat Bf mit den 4 Farben:
 
 Produziere 4 separate Abschnitte mit den extrahierten Passagen.
 
+## Schritt 1b: Auftragsanalyse (BFE 5.4.1)
+
+Erstelle die Auftragsanalyse in der fixen Tabellenstruktur:
+
+| | Aussagen | Erkenntnisse | Konsequenzen |
+|---|---|---|---|
+| **1. Bedeutung der Aufgabe im Gesamtrahmen** | Absicht vorgesetzte Stufe (1+2 Stufen hoch) | Was bedeutet das für mich? | Mittel, Räume, Zeit, Informationen (muss zeichenbar sein!) |
+| **2. Erwartete Leistung des Verbandes** | Erhaltener Auftrag wörtlich | min: Mindestleistung / max: Maximalleistung | Was muss ich MINDESTENS leisten? |
+| **3. Handlungsspielraum** | gebunden: Was ist FIX vorgegeben / frei: Wo habe ich Freiheit | Was kann ich selbst entscheiden? | Wo nutze ich die Freiheit? |
+| **4. Direkte + Indirekte Unterstützung** | Welche Ustü-Elemente, Nachbarn, Bat-Mittel | Was erhalte ich? Was muss ich anfordern? | Wie setze ich die Ustü ein? |
+
+WICHTIG: Die Konsequenzen in Zeile 1 müssen in die Kategorien **Mittel, Räume, Zeit, Informationen** gegliedert sein und müssen auf der Planungskarte **zeichenbar** sein.
+
+Produziere: `15_auftragsanalyse.md`
+
 ## Schritt 2: Problemerfassung (BFE 5.1.2)
 
 ### Problementdeckung
@@ -64,5 +79,6 @@ Produziere folgende Dateien (jeweils mit # Dateiname als Header, getrennt durch 
 6. `12_sofortmassnahmen.md`
 7. `13_pendenzen.md`
 8. `14_synchronisationsmatrix.md`
+9. `15_auftragsanalyse.md`
 
 WICHTIG: Alle [PLACEHOLDER]-Token exakt beibehalten. Keine Originalnamen, Orte oder Einheitsbezeichnungen rekonstruieren.
