@@ -134,13 +134,24 @@ class SqliteMappingRepository:
         for sql in migrations:
             try:
                 self._conn.execute(sql)
-            except Exception:
+            except sqlite3.OperationalError:
                 pass  # Column already exists
         self._conn.commit()
 
     def close(self) -> None:
         """Close the database connection."""
-        self._conn.close()
+        if self._conn:
+            self._conn.close()
+            self._conn = None
+
+    def __enter__(self) -> "SqliteMappingRepository":
+        """Support use as a context manager."""
+        return self
+
+    def __exit__(self, exc_type: object, exc_val: object, exc_tb: object) -> bool:
+        """Close connection on context manager exit."""
+        self.close()
+        return False
 
     def get_mapping(
         self, entity_type: EntityType, original_value: str
@@ -157,25 +168,35 @@ class SqliteMappingRepository:
     def create_mapping(
         self, entity_type: EntityType, original_value: str, source_document: str = ""
     ) -> EntityMapping:
-        """Create a new mapping with an auto-generated placeholder."""
+        """Create a new mapping with an auto-generated placeholder.
+
+        Uses BEGIN IMMEDIATE to acquire an exclusive write lock for the entire
+        read-check-write sequence, preventing duplicate placeholders under
+        concurrent Streamlit sessions.
+        """
         now = _now_iso()
-        placeholder = self._next_placeholder(entity_type)
-        self._conn.execute(
-            """INSERT INTO entity_mappings
-               (entity_type, original_value, normalized_value, placeholder,
-                first_seen_at, last_seen_at, source_document, created_by)
-               VALUES (?, ?, ?, ?, ?, ?, ?, 'auto')""",
-            (
-                entity_type.value,
-                original_value,
-                _normalize(original_value),
-                placeholder,
-                now,
-                now,
-                source_document,
-            ),
-        )
-        self._conn.commit()
+        self._conn.execute("BEGIN IMMEDIATE")
+        try:
+            placeholder = self._next_placeholder(entity_type)
+            self._conn.execute(
+                """INSERT INTO entity_mappings
+                   (entity_type, original_value, normalized_value, placeholder,
+                    first_seen_at, last_seen_at, source_document, created_by)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 'auto')""",
+                (
+                    entity_type.value,
+                    original_value,
+                    _normalize(original_value),
+                    placeholder,
+                    now,
+                    now,
+                    source_document,
+                ),
+            )
+            self._conn.commit()
+        except Exception:
+            self._conn.rollback()
+            raise
         return EntityMapping(
             entity_type=entity_type,
             original_value=original_value,
@@ -293,7 +314,7 @@ class SqliteMappingRepository:
                     (name,),
                 )
                 imported += 1
-            except Exception:
+            except sqlite3.OperationalError:
                 pass
         self._conn.commit()
         return imported
@@ -467,12 +488,27 @@ class SqliteMappingRepository:
         return counts
 
     def _next_placeholder(self, entity_type: EntityType) -> str:
-        """Generate the next placeholder for a given entity type."""
+        """Generate the next placeholder for a given entity type.
+
+        Uses MAX of existing numeric suffixes (not COUNT) so that placeholder
+        numbers remain monotonically increasing even when mappings are deleted.
+        """
+        # Placeholder format: [ENTITY_TYPE_NNN]
+        # Extract the trailing 3-digit number by taking the 4 chars before the ']',
+        # i.e. substr(placeholder, length-4, 3) gives the numeric suffix.
         row = self._conn.execute(
-            "SELECT COUNT(*) as cnt FROM entity_mappings WHERE entity_type = ?",
+            """SELECT COALESCE(
+                   MAX(CAST(substr(placeholder,
+                       length(placeholder) - 3,
+                       3
+                   ) AS INTEGER)),
+                   0
+               ) AS max_num
+               FROM entity_mappings
+               WHERE entity_type = ?""",
             (entity_type.value,),
         ).fetchone()
-        next_num = row["cnt"] + 1
+        next_num = (row["max_num"] or 0) + 1
         return f"[{entity_type.value}_{next_num:03d}]"
 
     @staticmethod
