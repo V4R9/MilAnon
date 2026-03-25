@@ -1,7 +1,34 @@
 # MilAnon — Session Handover
 
-Last updated: 2026-03-25 (Marathon Session: v0.5.0 built in ~17 Claude Code sessions)
-Version: 0.5.0 (code complete, branches to merge)
+Last updated: 2026-03-25 (v0.5.0 — all branches merged)
+Version: 0.5.0
+
+**ALL 10 DESIGN DECISIONS RESOLVED. IMPLEMENTATION COMPLETE.**
+
+---
+
+## Final State (v0.5.0)
+
+| Metric | Value |
+|---|---|
+| Version | 0.5.0 |
+| Tests | 685 passing |
+| CLI commands | 19 |
+| GUI pages | 5 |
+| Doctrine files | 11 regulations + 14 extracts + 5 skeletons |
+| Workflows defined | 10 (3 with Layer 4 templates: analyse, ei-bf, wachtdienst) |
+| ADRs | 13 |
+| Design decisions | 10/10 resolved |
+
+### What was implemented since v0.3.0
+
+- **E14: Doctrine Knowledge Base** — 11 regulations indexed, chapter extraction engine, `milanon doctrine list/extract`
+- **E15: 5+2 Workflow Infrastructure** — `--workflow`, `--mode berrm|adf`, `--context`, `--step`, 5-layer prompt assembly
+- **E15.W1/W4/W5: Workflows** — Analyse, Einsatzbefehl, Wachtdienstbefehl (Layer 4 templates)
+- **E17: DOCX Export** — `milanon export --docx --deanonymize`, Armee-Vorlage style mapping, Auftraege table
+- **E16: Claude Project Generator** — `milanon project generate --unit`
+- **Incremental processing improvements** — orphan cleanup, entity totals, rename detection
+- **Code quality** — safe tempfile handling, DOCX style validation, doctrine chapter regex fix
 
 ---
 
