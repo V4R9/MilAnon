@@ -19,6 +19,27 @@ Dann in Claude.ai:
 
 ---
 
+## Schritt 0 — Dossier Quality Check (EMPFOHLEN)
+
+**Sage zu Claude:**
+> Prüfe mein Bat Dossier auf Fehler, Widerspüche, fehlende Informationen und inkonsistente Termine bevor ich mit der Aktionsplanung beginne.
+
+**Claude produziert:**
+- Executive Summary (Ampel: 🟢/🟡/🔴)
+- Terminprüfung (WAP vs. Befehle: Überlappungen, verstrichene Fristen)
+- Vollständigkeits-Check (fehlende Beilagen/Anhänge)
+- Konsistenz-Check (Widerspüche zwischen den Befehlen)
+- Logik-Check (physische Machbarkeit der Termine)
+- Informationslücken (was brauche ich noch, wo anfordern)
+
+**Du entscheidest:**
+- Welche kritischen Punkte klärst du VOR dem Start der AP?
+- Welche Fragen nimmst du an den Bat Rap I mit?
+
+**Wenn zufrieden:** "Passt. Beginne mit der Problemerfassung."
+
+---
+
 ## Schritt 1 — Problemerfassung
 
 **Sage zu Claude:**
@@ -145,6 +166,7 @@ open befehl_inf_kp_56_1.docx
 
 | Was du brauchst | Sage zu Claude |
 |---|---|
+| **Dossier prüfen** | **"Prüfe mein Bat Dossier auf Fehler, Widerspüche und fehlende Infos."** |
 | Wachtdienstbefehl | "Erstelle den Wachtdienstbefehl gemäss WAT." |
 | Eventualplanung Halten | "Erstelle die EP Halten Standort." |
 | Eventualplanung Kampf | "Erstelle die EP Kampf im Interessenraum." |
