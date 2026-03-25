@@ -490,6 +490,12 @@ def pack(
         console.print(table)
         return
 
+    if workflow:
+        subtitle = f"{input_path}  •  workflow: {workflow}  •  mode: {mode or 'berrm'}"
+        print_header("MilAnon Pack — Workflow", subtitle)
+    else:
+        print_header("MilAnon Pack", input_path)
+
     with _make_repo() as repo:
         if workflow:
             # Workflow mode — use WorkflowPackUseCase (5-layer doctrine-aware prompts)
@@ -550,7 +556,7 @@ def pack(
     elif not no_clipboard:
         print_warning("Could not copy to clipboard.")
     if result.output_path:
-        console.print(f"  [dim]Written to: {result.output_path}[/dim]")
+        print_success(f"Written to: {result.output_path}")
 
 
 @cli.command()
