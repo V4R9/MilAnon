@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 from docx import Document
 
-
-PLACEHOLDER_PATTERN = re.compile(r"\[([A-Z_]+)_(\d{3})\]")
+from milanon.domain.anonymizer import PLACEHOLDER_PATTERN
 
 
 class ExportDocxUseCase:

@@ -75,7 +75,7 @@ class DetectedEntity:
         return self.end_offset - self.start_offset
 
 
-@dataclass
+@dataclass(frozen=True)
 class EntityMapping:
     """A mapping between an original entity value and its placeholder.
 

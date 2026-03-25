@@ -19,6 +19,9 @@ LEGEND_PATTERN: re.Pattern[str] = re.compile(
     re.DOTALL,
 )
 
+# Canonical placeholder pattern — single source of truth for all modules.
+PLACEHOLDER_PATTERN: re.Pattern[str] = re.compile(r"\[([A-Z_]+)_(\d{3})\]")
+
 _LEGEND_HEADER_TEMPLATE = """\
 <!-- MILANON LEGEND START
 {entries}
@@ -88,7 +91,8 @@ class Anonymizer:
                 )
             except Exception as exc:
                 warnings.append(
-                    f"Could not anonymize '{entity.original_value}': {exc}"
+                    f"Could not anonymize {entity.entity_type.value} at offset "
+                    f"{entity.start_offset}-{entity.end_offset}: {exc}"
                 )
 
         legend = self._build_legend(placeholder_map, entities)

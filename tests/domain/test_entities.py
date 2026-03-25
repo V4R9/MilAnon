@@ -158,15 +158,17 @@ class TestEntityMapping:
                 placeholder="",
             )
 
-    def test_mapping_is_mutable(self):
+    def test_mapping_is_immutable(self):
+        """EntityMapping is a value object and must not be mutated after creation."""
+        from dataclasses import FrozenInstanceError
+
         mapping = EntityMapping(
             entity_type=EntityType.ORT,
             original_value="Bern",
             placeholder="[ORT_001]",
         )
-        new_time = datetime(2026, 1, 1)
-        mapping.last_seen = new_time
-        assert mapping.last_seen == new_time
+        with pytest.raises(FrozenInstanceError):
+            mapping.last_seen = datetime(2026, 1, 1)  # type: ignore[misc]
 
 
 # --- ExtractedDocument ---

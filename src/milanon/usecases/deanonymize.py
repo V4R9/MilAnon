@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import re
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from milanon.adapters.writers.markdown_writer import MarkdownWriter
+from milanon.domain.anonymizer import PLACEHOLDER_PATTERN
 from milanon.domain.deanonymizer import DeAnonymizer, _to_obsidian_filename
 from milanon.domain.entities import AnonymizedDocument, DocumentFormat
 
-_FILENAME_PLACEHOLDER_RE = re.compile(r"\[([A-Z_]+)_(\d{3})\]")
+_FILENAME_PLACEHOLDER_RE = PLACEHOLDER_PATTERN
 
 logger = logging.getLogger(__name__)
 

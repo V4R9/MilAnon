@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import re
 
-from milanon.domain.anonymizer import LEGEND_PATTERN
+from milanon.domain.anonymizer import LEGEND_PATTERN, PLACEHOLDER_PATTERN
 from milanon.domain.mapping_service import MappingService
 
 logger = logging.getLogger(__name__)
@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 # Must be processed BEFORE regular placeholders to prevent bracket destruction.
 _OBSIDIAN_LINK_RE = re.compile(r"\[\[([A-Z_]+_\d{3})\]\]")
 
-# Matches any placeholder of the form [ENTITY_TYPE_NNN]
-_PLACEHOLDER_RE = re.compile(r"\[([A-Z_]+)_(\d{3})\]")
+# Matches any placeholder of the form [ENTITY_TYPE_NNN] — imported from domain.anonymizer.
+_PLACEHOLDER_RE = PLACEHOLDER_PATTERN
 
 
 def _to_obsidian_filename(original: str) -> str:

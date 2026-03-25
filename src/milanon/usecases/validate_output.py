@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from milanon.domain.anonymizer import PLACEHOLDER_PATTERN
 from milanon.domain.deanonymizer import DeAnonymizer
 
-_PLACEHOLDER_RE = re.compile(r"\[([A-Z_]+)_(\d{3})\]")
+_PLACEHOLDER_RE = PLACEHOLDER_PATTERN
 
 
 @dataclass
