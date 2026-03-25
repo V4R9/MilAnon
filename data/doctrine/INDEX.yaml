@@ -162,6 +162,30 @@ workflows:
     output_format: [markdown]
     maps_to_5+2: "Schritt 1: Problemerfassung (Initialisierung)"
 
+  bdl:
+    name: "Beurteilung der Lage (BdL)"
+    description: "AUGEZ factor analysis with Schlüsselbereiche and Konsequenzen. Step 2 of the 5+2."
+    system_prompt: templates/workflows/bdl.md
+    doctrine:
+      - source: 52_080_bfe_einsatz.md
+        extract: extracts/bfe_bdl.md
+      - source: 50_030_taktische_fuehrung.md
+        extract: extracts/tf_taktische_grundsaetze.md
+    skeleton: null
+    output_format: [markdown]
+    maps_to_5+2: "Schritt 2: Beurteilung der Lage"
+
+  entschluss:
+    name: "Entschlussfassung"
+    description: "Generate variants, evaluate, decide Absicht + Aufträge. Step 3 of the 5+2."
+    system_prompt: templates/workflows/entschluss.md
+    doctrine:
+      - source: 52_080_bfe_einsatz.md
+        extract: extracts/bfe_entschlussfassung.md
+    skeleton: null
+    output_format: [markdown]
+    maps_to_5+2: "Schritt 3: Entschlussfassung"
+
   allgemeiner-befehl:
     name: "Allgemeiner Kp Befehl (Dok 000)"
     description: "Complete company order — the final product of a full 5+2 cycle."
