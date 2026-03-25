@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import re
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
 from milanon.domain.entities import EntityMapping, EntityType
+from milanon.domain.mapping_service import normalize_value
 
 # Full schema DDL
 _SCHEMA_SQL = """\
@@ -87,13 +87,9 @@ CREATE INDEX IF NOT EXISTS idx_tracking_path
 """
 
 
-def _normalize(value: str) -> str:
-    """Normalize a value for case-insensitive, whitespace-insensitive matching.
-
-    Collapses all internal whitespace (newlines, tabs, multiple spaces) to a
-    single space so that 'Inf\\nBat 56' and 'Inf Bat 56' map to the same entry.
-    """
-    return re.sub(r"\s+", " ", value.strip()).lower()
+# CR-011: Normalization logic lives in the domain layer (MappingService).
+# This alias keeps internal usage consistent without duplicating logic.
+_normalize = normalize_value
 
 
 def _now_iso() -> str:
@@ -149,6 +145,15 @@ class SqliteMappingRepository:
         return self
 
     def __exit__(self, exc_type: object, exc_val: object, exc_tb: object) -> bool:
+        """Close connection on context manager exit."""
+        self.close()
+        return False
+
+    def __enter__(self):
+        """Support use as context manager."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
         """Close connection on context manager exit."""
         self.close()
         return False
@@ -411,6 +416,19 @@ class SqliteMappingRepository:
             (parent, full_name),
         ).fetchall()
         return [dict(r) for r in rows]
+
+    def get_file_tracking_by_hash(
+        self, content_hash: str, operation: str
+    ) -> dict | None:
+        """Find a file tracking record by content hash (for rename detection).
+
+        Returns the first matching record dict, or None.
+        """
+        row = self._conn.execute(
+            "SELECT * FROM file_tracking WHERE content_hash = ? AND operation = ? LIMIT 1",
+            (content_hash, operation),
+        ).fetchone()
+        return dict(row) if row else None
 
     def get_file_tracking(
         self, file_path: str, operation: str

@@ -8,6 +8,19 @@ from milanon.domain.entities import EntityType
 from milanon.domain.protocols import MappingRepository
 
 
+def normalize_value(value: str) -> str:
+    """Normalize a value for case-insensitive, whitespace-insensitive matching.
+
+    This is the single source of truth for normalization logic (CR-011).
+    Collapses all internal whitespace (newlines, tabs, multiple spaces) to a
+    single space so that 'Inf\\nBat 56' and 'Inf Bat 56' map to the same entry.
+
+    Repository implementations should import this function rather than
+    duplicating the normalization logic.
+    """
+    return re.sub(r"\s+", " ", value.strip()).lower()
+
+
 class MappingService:
     """Orchestrates entity mapping operations via the repository protocol.
 
@@ -37,6 +50,10 @@ class MappingService:
             entity_type, value, source_document
         )
         return mapping.placeholder
+
+    def get_all_mappings(self):
+        """Return all stored entity mappings (delegates to repository)."""
+        return self._repository.get_all_mappings()
 
     def resolve_placeholder(self, placeholder: str) -> str | None:
         """Resolve a placeholder back to its original value.

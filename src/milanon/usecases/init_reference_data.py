@@ -7,7 +7,7 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-from milanon.adapters.repositories.sqlite_repository import SqliteMappingRepository
+from milanon.domain.protocols import ReferenceDataRepository
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class InitReferenceDataUseCase:
     Idempotent: if ref tables are already populated, nothing is loaded.
     """
 
-    def __init__(self, repository: SqliteMappingRepository, data_dir: Path | None = None) -> None:
+    def __init__(self, repository: ReferenceDataRepository, data_dir: Path | None = None) -> None:
         self._repo = repository
         self._data_dir = data_dir or _DEFAULT_DATA_DIR
 

@@ -103,19 +103,19 @@ def anonymize(
 ) -> None:
     """Anonymize documents by replacing sensitive entities with placeholders."""
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    repo = _make_repo()
-    use_case = _make_anonymize_use_case(repo)
+    with _make_repo() as repo:
+        use_case = _make_anonymize_use_case(repo)
 
-    result = use_case.execute(
-        Path(input_path),
-        Path(output),
-        recursive=recursive,
-        force=force,
-        dry_run=dry_run,
-        embed_images=embed_images,
-        clean=clean,
-        include_spreadsheets=include_spreadsheets,
-    )
+        result = use_case.execute(
+            Path(input_path),
+            Path(output),
+            recursive=recursive,
+            force=force,
+            dry_run=dry_run,
+            embed_images=embed_images,
+            clean=clean,
+            include_spreadsheets=include_spreadsheets,
+        )
 
     prefix = "[dim][dry-run][/dim] " if dry_run else ""
     errors_val = f"[red bold]{result.files_error}[/red bold]" if result.files_error > 0 else f"[green]{result.files_error}[/green]"
@@ -171,16 +171,16 @@ def deanonymize(input_path: str, output: str | None, force: bool, dry_run: bool,
         )
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    repo = _make_repo()
-    use_case = _make_deanonymize_use_case(repo)
+    with _make_repo() as repo:
+        use_case = _make_deanonymize_use_case(repo)
 
-    result = use_case.execute(
-        Path(input_path),
-        Path(output) if output else None,
-        force=force,
-        dry_run=dry_run,
-        in_place=in_place,
-    )
+        result = use_case.execute(
+            Path(input_path),
+            Path(output) if output else None,
+            force=force,
+            dry_run=dry_run,
+            in_place=in_place,
+        )
 
     prefix = "[dim][dry-run][/dim] " if dry_run else ""
     errors_val = f"[red bold]{result.files_error}[/red bold]" if result.files_error > 0 else f"[green]{result.files_error}[/green]"
@@ -211,12 +211,12 @@ def validate(file_path: str) -> None:
     from milanon.domain.mapping_service import MappingService
     from milanon.usecases.validate_output import ValidateOutputUseCase
 
-    repo = _make_repo()
-    service = MappingService(repo)
-    deanonymizer = DeAnonymizer(service)
-    use_case = ValidateOutputUseCase(deanonymizer)
+    with _make_repo() as repo:
+        service = MappingService(repo)
+        deanonymizer = DeAnonymizer(service)
+        use_case = ValidateOutputUseCase(deanonymizer)
 
-    result = use_case.execute(Path(file_path))
+        result = use_case.execute(Path(file_path))
 
     print_result_table([
         ("File", str(result.file_path)),
@@ -246,13 +246,12 @@ def db_init(force: bool) -> None:
     """Initialize reference data (Swiss municipalities + military units) in the database."""
     from milanon.usecases.init_reference_data import InitReferenceDataUseCase
 
-    repo = _make_repo()
+    with _make_repo() as repo:
+        if force:
+            repo.clear_reference_data()
 
-    if force:
-        repo.clear_reference_data()
-
-    uc = InitReferenceDataUseCase(repo, _DATA_DIR)
-    result = uc.execute()
+        uc = InitReferenceDataUseCase(repo, _DATA_DIR)
+        result = uc.execute()
 
     muni_val = (
         "already loaded — skipped (use --force to reload)"
@@ -284,13 +283,13 @@ def db_init(force: bool) -> None:
 @click.confirmation_option(prompt="This will delete all entity mappings. Continue?")
 def db_reset(include_ref_data: bool) -> None:
     """Reset the mapping database (delete all entity mappings and file tracking)."""
-    repo = _make_repo()
-    if include_ref_data:
-        counts = repo.reset_everything()
-        msg = "Reset complete — all tables cleared."
-    else:
-        counts = repo.reset_all_mappings()
-        msg = "Reset complete — mappings and file tracking cleared. Reference data kept."
+    with _make_repo() as repo:
+        if include_ref_data:
+            counts = repo.reset_everything()
+            msg = "Reset complete — all tables cleared."
+        else:
+            counts = repo.reset_all_mappings()
+            msg = "Reset complete — mappings and file tracking cleared. Reference data kept."
 
     table = Table(box=box.SIMPLE, show_header=True, padding=(0, 2))
     table.add_column("Table", style="cyan")
@@ -314,18 +313,18 @@ def db_import(csv_path: str, import_format: str) -> None:
     """Import entities from a CSV file (PISA 410 or simple name list)."""
     from milanon.domain.mapping_service import MappingService
 
-    repo = _make_repo()
-    service = MappingService(repo)
+    with _make_repo() as repo:
+        service = MappingService(repo)
 
-    if import_format == "names":
-        from milanon.usecases.import_names import ImportNamesUseCase
-        use_case = ImportNamesUseCase(service)
-    else:
-        # "pisa" and legacy "miloffice" both use ImportEntitiesUseCase
-        from milanon.usecases.import_entities import ImportEntitiesUseCase
-        use_case = ImportEntitiesUseCase(service)
+        if import_format == "names":
+            from milanon.usecases.import_names import ImportNamesUseCase
+            use_case = ImportNamesUseCase(service)
+        else:
+            # "pisa" and legacy "miloffice" both use ImportEntitiesUseCase
+            from milanon.usecases.import_entities import ImportEntitiesUseCase
+            use_case = ImportEntitiesUseCase(service)
 
-    result = use_case.execute(Path(csv_path), source_document=csv_path)
+        result = use_case.execute(Path(csv_path), source_document=csv_path)
 
     print_result_table([
         ("Rows processed", str(result.rows_processed)),
@@ -341,8 +340,8 @@ def db_list(entity_type: str | None, limit: int) -> None:
     """List known entities in the mapping database."""
     from milanon.domain.entities import EntityType
 
-    repo = _make_repo()
-    mappings = repo.get_all_mappings()
+    with _make_repo() as repo:
+        mappings = repo.get_all_mappings()
 
     if entity_type:
         try:
@@ -370,9 +369,11 @@ def db_list(entity_type: str | None, limit: int) -> None:
 @db.command("stats")
 def db_stats() -> None:
     """Show database statistics."""
-    repo = _make_repo()
-    total = repo.get_total_mapping_count()
-    by_type = repo.get_mapping_count_by_type()
+    with _make_repo() as repo:
+        total = repo.get_total_mapping_count()
+        by_type = repo.get_mapping_count_by_type()
+        muni_count = repo.get_ref_municipality_count()
+        mil_count = repo.get_ref_military_unit_count()
 
     table = Table(title="Database Statistics", box=box.ROUNDED, border_style="cyan")
     table.add_column("Type", style="cyan")
@@ -387,8 +388,8 @@ def db_stats() -> None:
     table.add_section()
     table.add_row("[bold]Total entities[/bold]", f"[bold cyan]{total}[/bold cyan]")
     table.add_section()
-    table.add_row("[dim]Municipalities (ref)[/dim]", f"[dim]{repo.get_ref_municipality_count()}[/dim]")
-    table.add_row("[dim]Military units (ref)[/dim]", f"[dim]{repo.get_ref_military_unit_count()}[/dim]")
+    table.add_row("[dim]Municipalities (ref)[/dim]", f"[dim]{muni_count}[/dim]")
+    table.add_row("[dim]Military units (ref)[/dim]", f"[dim]{mil_count}[/dim]")
 
     console.print(table)
 
@@ -405,7 +406,7 @@ def context(unit_name: str | None, output_path: str) -> None:
     """Generate an LLM context file with unit hierarchy and placeholder mapping."""
     from milanon.usecases.generate_context import GenerateContextUseCase
 
-    repo = _make_repo()
+    repo = _make_repo()  # kept open — interactive prompt needs live DB access
     use_case = GenerateContextUseCase(repo)
 
     units = use_case.get_available_units()
@@ -443,6 +444,7 @@ def context(unit_name: str | None, output_path: str) -> None:
         sys.exit(1)
 
     use_case.generate(unit_name, Path(output_path))
+    repo.close()
     print_success(f"Context file written to {output_path}")
 
 
@@ -488,49 +490,48 @@ def pack(
         console.print(table)
         return
 
-    repo = _make_repo()
+    with _make_repo() as repo:
+        if workflow:
+            # Workflow mode — use WorkflowPackUseCase (5-layer doctrine-aware prompts)
+            from milanon.usecases.generate_context import GenerateContextUseCase
+            from milanon.usecases.workflow_pack import WorkflowPackUseCase
 
-    if workflow:
-        # Workflow mode — use WorkflowPackUseCase (5-layer doctrine-aware prompts)
-        from milanon.usecases.generate_context import GenerateContextUseCase
-        from milanon.usecases.workflow_pack import WorkflowPackUseCase
+            ctx_gen = GenerateContextUseCase(repo)
+            use_case = WorkflowPackUseCase(repo, ctx_gen)
 
-        ctx_gen = GenerateContextUseCase(repo)
-        use_case = WorkflowPackUseCase(repo, ctx_gen)
+            resolved_mode = mode or _get_config_value("mode") or "berrm"
 
-        resolved_mode = mode or _get_config_value("mode") or "berrm"
+            try:
+                _, result = use_case.execute(
+                    workflow=workflow,
+                    mode=resolved_mode,
+                    step=step,
+                    input_path=Path(input_path),
+                    unit=user_unit,
+                    context_path=Path(context_path) if context_path else None,
+                    output_path=Path(output_path) if output_path else None,
+                    copy_clipboard=not no_clipboard,
+                )
+            except ValueError as exc:
+                print_error(str(exc))
+                sys.exit(1)
+        else:
+            # Classic mode — use PackUseCase (backward compatible)
+            use_case = PackUseCase(repo)
 
-        try:
-            _, result = use_case.execute(
-                workflow=workflow,
-                mode=resolved_mode,
-                step=step,
-                input_path=Path(input_path),
-                unit=user_unit,
-                context_path=Path(context_path) if context_path else None,
-                output_path=Path(output_path) if output_path else None,
-                copy_clipboard=not no_clipboard,
-            )
-        except ValueError as exc:
-            print_error(str(exc))
-            sys.exit(1)
-    else:
-        # Classic mode — use PackUseCase (backward compatible)
-        use_case = PackUseCase(repo)
-
-        try:
-            _, result = use_case.execute(
-                Path(input_path),
-                template_name=template_name,
-                user_prompt=user_prompt,
-                user_unit=user_unit,
-                context_path=Path(context_path) if context_path else None,
-                output_path=Path(output_path) if output_path else None,
-                copy_clipboard=not no_clipboard,
-            )
-        except ValueError as exc:
-            print_error(str(exc))
-            sys.exit(1)
+            try:
+                _, result = use_case.execute(
+                    Path(input_path),
+                    template_name=template_name,
+                    user_prompt=user_prompt,
+                    user_unit=user_unit,
+                    context_path=Path(context_path) if context_path else None,
+                    output_path=Path(output_path) if output_path else None,
+                    copy_clipboard=not no_clipboard,
+                )
+            except ValueError as exc:
+                print_error(str(exc))
+                sys.exit(1)
 
     token_estimate = result.total_chars // 4
     ctx_pct = token_estimate * 100 // 200_000
@@ -575,23 +576,23 @@ def unpack(
         sys.exit(1)
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    repo = _make_repo()
 
     from milanon.domain.deanonymizer import DeAnonymizer
     from milanon.domain.mapping_service import MappingService
     from milanon.usecases.unpack import UnpackUseCase
 
-    service = MappingService(repo)
-    deanonymizer = DeAnonymizer(service)
-    use_case = UnpackUseCase(deanonymizer)
+    with _make_repo() as repo:
+        service = MappingService(repo)
+        deanonymizer = DeAnonymizer(service)
+        use_case = UnpackUseCase(deanonymizer)
 
-    result = use_case.execute(
-        Path(output_dir),
-        input_file=Path(input_file) if input_file else None,
-        from_clipboard=from_clipboard,
-        split_sections=split_sections,
-        in_place=in_place,
-    )
+        result = use_case.execute(
+            Path(output_dir),
+            input_file=Path(input_file) if input_file else None,
+            from_clipboard=from_clipboard,
+            split_sections=split_sections,
+            in_place=in_place,
+        )
 
     print_result_table([
         ("Source", result.source),
@@ -617,7 +618,7 @@ def review(input_path: str, auto_add: bool, dry_run: bool) -> None:
     from milanon.domain.mapping_service import MappingService
     from milanon.usecases.review_candidates import ReviewCandidatesUseCase
 
-    repo = _make_repo()
+    repo = _make_repo()  # kept open — interactive prompt needs live DB access
     service = MappingService(repo)
     use_case = ReviewCandidatesUseCase(service)
 
@@ -672,6 +673,8 @@ def review(input_path: str, auto_add: bool, dry_run: bool) -> None:
         count = use_case.add_confirmed_candidates(confirmed)
         print_success(f"Added {count} new entities to database.")
 
+    repo.close()
+
 
 # ---------------------------------------------------------------------------
 # doctrine command group (wired from doctrine_commands.py)
@@ -701,10 +704,6 @@ def export(input_path: str, docx: bool, template_path: str | None, deanonymize: 
     from milanon.adapters.writers.docx_befehl_writer import DocxBefehlWriter
     from milanon.usecases.export_docx import ExportDocxUseCase
 
-    repo = _make_repo()
-    writer = DocxBefehlWriter()
-    use_case = ExportDocxUseCase(repo, writer)
-
     in_path = Path(input_path)
     tpl_path = Path(template_path) if template_path else _DATA_DIR / "templates" / "docx" / "befehl_vorlage.docx"
     out_path = Path(output) if output else in_path.with_suffix(".docx")
@@ -713,8 +712,13 @@ def export(input_path: str, docx: bool, template_path: str | None, deanonymize: 
         print_error(f"Template not found: {tpl_path}")
         sys.exit(1)
 
-    print_header("MilAnon Export", f"{in_path.name} → DOCX")
-    result_path = use_case.execute(in_path, out_path, tpl_path, deanonymize=deanonymize)
+    with _make_repo() as repo:
+        writer = DocxBefehlWriter()
+        use_case = ExportDocxUseCase(repo, writer)
+
+        print_header("MilAnon Export", f"{in_path.name} → DOCX")
+        result_path = use_case.execute(in_path, out_path, tpl_path, deanonymize=deanonymize)
+
     print_success(f"Exported: {result_path}")
     if deanonymize:
         print_success("De-anonymization applied.")

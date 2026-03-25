@@ -8,7 +8,7 @@ import re
 import tempfile
 from pathlib import Path
 
-from milanon.domain.workflow import load_workflows
+from milanon.config.workflow import load_workflows
 from milanon.usecases.pack import PackResult, _copy_to_clipboard
 
 logger = logging.getLogger(__name__)

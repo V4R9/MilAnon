@@ -8,10 +8,8 @@ import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from milanon.adapters.writers.markdown_writer import MarkdownWriter
 from milanon.domain.anonymizer import PLACEHOLDER_PATTERN
 from milanon.domain.deanonymizer import DeAnonymizer, _to_obsidian_filename
-from milanon.domain.entities import AnonymizedDocument, DocumentFormat
 
 _FILENAME_PLACEHOLDER_RE = PLACEHOLDER_PATTERN
 
@@ -131,22 +129,16 @@ class DeAnonymizeUseCase:
 
             # B-021: Renamed file detection — same hash, different path
             try:
-                # TECH DEBT: Accesses repository._conn directly. Should be a proper
-                # repository method (get_tracking_by_hash). Deferred to avoid parallel
-                # session conflict. See Code Review.
-                conn = self._repository._conn
-                row = conn.execute(
-                    "SELECT * FROM file_tracking"
-                    " WHERE content_hash = ? AND operation = 'deanonymize' LIMIT 1",
-                    (current_hash,),
-                ).fetchone()
-                if row and row["file_path"] != rel_path:
+                existing_by_hash = self._repository.get_file_tracking_by_hash(
+                    current_hash, "deanonymize"
+                )
+                if existing_by_hash and existing_by_hash["file_path"] != rel_path:
                     logger.info(
                         "Detected renamed file: %s → %s",
-                        row["file_path"],
+                        existing_by_hash["file_path"],
                         rel_path,
                     )
-                    out = row["output_path"] if "output_path" in row.keys() else ""
+                    out = existing_by_hash.get("output_path", "")
                     self._repository.upsert_file_tracking(
                         rel_path, current_hash, "deanonymize", output_path=out
                     )
@@ -194,7 +186,7 @@ class DeAnonymizeUseCase:
                 new_path = out_path.parent / new_name
                 out_path.rename(new_path)
                 out_path = new_path
-                logger.info("Renamed %s → %s", original_name, new_name)
+                logger.debug("Renamed %s → %s", original_name, new_name)
         else:
             # Write to output directory
             out_path = output_dir / file_path.relative_to(input_root)
@@ -209,7 +201,7 @@ class DeAnonymizeUseCase:
                 if out_path.exists():
                     out_path.rename(new_path)
                 out_path = new_path
-                logger.info("Renamed %s → %s", original_name, new_name)
+                logger.debug("Renamed %s → %s", original_name, new_name)
 
         self._repository.upsert_file_tracking(
             rel_path, current_hash, "deanonymize", output_path=str(out_path)

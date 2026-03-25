@@ -125,7 +125,7 @@ class ReviewCandidatesUseCase:
 
         # Add all existing DB values (already anonymized — no need to flag)
         try:
-            all_mappings = self._mapping_service._repository.get_all_mappings()
+            all_mappings = self._mapping_service.get_all_mappings()
             for m in all_mappings:
                 self._exclusions.add(m.original_value.upper())
                 for word in m.original_value.split():
@@ -254,11 +254,11 @@ class ReviewCandidatesUseCase:
                 entity_type = EntityType.VORNAME
 
             # Check if already exists before creating
-            existing = self._mapping_service._repository.get_mapping(entity_type, value)
-            if existing is None:
+            already_exists = self._mapping_service.has_mapping(entity_type, value)
+            if not already_exists:
                 self._mapping_service.get_or_create_placeholder(
                     entity_type, value, source_document
                 )
                 count += 1
-                logger.info("Added %s: %s", entity_type.value, value)
+                logger.info("Added %s mapping", entity_type.value)
         return count

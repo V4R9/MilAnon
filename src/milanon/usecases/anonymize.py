@@ -7,7 +7,7 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from milanon.adapters.repositories.sqlite_repository import SqliteMappingRepository
+from milanon.domain.protocols import FileTrackingRepository, MappingRepository
 
 from milanon.adapters.parsers import get_parser
 from milanon.adapters.parsers.pdf_parser import VISUAL_PAGE_EMBED_MARKER, VISUAL_PAGE_SKIP_MARKER
@@ -122,7 +122,7 @@ class AnonymizeUseCase:
         self,
         pipeline: RecognitionPipeline,
         anonymizer: Anonymizer,
-        repository: SqliteMappingRepository,
+        repository: FileTrackingRepository,
     ) -> None:
         self._pipeline = pipeline
         self._anonymizer = anonymizer
@@ -229,9 +229,6 @@ class AnonymizeUseCase:
                     existing_by_hash["file_path"],
                     rel_path,
                 )
-                # TECH DEBT: Accesses repository._conn directly. Should be a proper
-                # repository method (get_tracking_by_hash). Deferred to avoid parallel
-                # session conflict. See Code Review.
                 self._repository.upsert_file_tracking(
                     rel_path,
                     current_hash,
@@ -303,15 +300,7 @@ class AnonymizeUseCase:
         Returns the first matching record dict, or None.
         """
         try:
-            # TECH DEBT: Accesses repository._conn directly. Should be a proper
-            # repository method (get_tracking_by_hash). Deferred to avoid parallel
-            # session conflict. See Code Review.
-            conn = self._repository._conn
-            row = conn.execute(
-                "SELECT * FROM file_tracking WHERE content_hash = ? AND operation = ? LIMIT 1",
-                (content_hash, operation),
-            ).fetchone()
-            return dict(row) if row else None
+            return self._repository.get_file_tracking_by_hash(content_hash, operation)
         except Exception:
             return None
 

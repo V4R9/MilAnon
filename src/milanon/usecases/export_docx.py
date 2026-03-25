@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+# TODO(FR-004): Move python-docx usage to adapter layer (DocxWriter)
+# Currently violates Dependency Rule — UseCase imports infra library directly
 from docx import Document
 
 from milanon.domain.anonymizer import PLACEHOLDER_PATTERN
