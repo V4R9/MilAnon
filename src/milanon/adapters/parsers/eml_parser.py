@@ -6,6 +6,7 @@ import email
 import email.header
 import email.message
 import email.utils
+import html
 import re
 from pathlib import Path
 
@@ -144,13 +145,10 @@ class EmlParser:
         return payload.decode(charset, errors="replace")
 
     @staticmethod
-    def _strip_html_tags(html: str) -> str:
+    def _strip_html_tags(html_text: str) -> str:
         """Strip HTML tags — used as fallback when no text/plain part exists."""
-        text = re.sub(r"<[^>]+>", " ", html)
-        text = re.sub(r"&nbsp;", " ", text)
-        text = re.sub(r"&amp;", "&", text)
-        text = re.sub(r"&lt;", "<", text)
-        text = re.sub(r"&gt;", ">", text)
+        text = re.sub(r"<[^>]+>", " ", html_text)
+        text = html.unescape(text)
         text = re.sub(r"\s+", " ", text)
         return text.strip()
 

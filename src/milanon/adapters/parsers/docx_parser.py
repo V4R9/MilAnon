@@ -115,7 +115,7 @@ class DocxParser:
         try:
             if hf.is_linked_to_previous:
                 return ""
-        except Exception:
+        except AttributeError:
             pass
         texts = [p.text.strip() for p in hf.paragraphs if p.text.strip()]
         return "\n".join(texts)

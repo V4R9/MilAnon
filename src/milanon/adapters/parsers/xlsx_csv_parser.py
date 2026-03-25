@@ -126,8 +126,17 @@ class XlsxCsvParser:
     # ------------------------------------------------------------------
 
     def _parse_csv(self, path: Path) -> ExtractedDocument:
-        text = path.read_text(encoding="utf-8-sig")  # handles BOM
-        rows = self._read_csv_rows(text)
+        content: str | None = None
+        for encoding in ("utf-8-sig", "latin-1"):
+            try:
+                with open(path, encoding=encoding, newline="") as f:
+                    content = f.read()
+                break
+            except UnicodeDecodeError:
+                continue
+        else:
+            raise ValueError(f"Cannot decode {path} with supported encodings")
+        rows = self._read_csv_rows(content)
         data_rows = self._apply_pisa_skip(rows)
 
         text_content = _rows_to_text(data_rows)

@@ -45,7 +45,7 @@ def _tesseract_available() -> bool:
     try:
         pytesseract.get_tesseract_version()
         return True
-    except Exception:
+    except (OSError, FileNotFoundError):
         return False
 
 
@@ -285,6 +285,6 @@ class PdfParser:
             if not images:
                 return ""
             return pytesseract.image_to_string(images[0], lang=_OCR_LANG)
-        except Exception as exc:
+        except (OSError, FileNotFoundError, RuntimeError) as exc:
             logger.debug("OCR failed for page %d: %s", page_num, exc)
             return ""

@@ -75,6 +75,9 @@ class ListRecognizer:
         self._repository = repository
         # None = fetch from DB on demand; empty list = no municipalities
         self._municipality_names: list[str] | None = municipality_names
+        # Cache of compiled regex patterns keyed by the escaped value string,
+        # so each unique entity value is compiled at most once per instance.
+        self._pattern_cache: dict[str, re.Pattern[str]] = {}
 
     def recognize(self, document: ExtractedDocument) -> list[DetectedEntity]:
         """Find all known entities in the document text."""
@@ -86,16 +89,24 @@ class ListRecognizer:
 
     # ------------------------------------------------------------------
 
+    def _get_pattern(self, value: str) -> re.Pattern[str]:
+        """Return a cached compiled word-boundary pattern for *value*.
+
+        Patterns are cached in ``self._pattern_cache`` so each unique entity
+        value is compiled at most once per ``ListRecognizer`` instance, reducing
+        repeated ``re.compile`` calls when processing multiple documents.
+        """
+        if value not in self._pattern_cache:
+            self._pattern_cache[value] = _word_boundary_pattern(value)
+        return self._pattern_cache[value]
+
     def _match_known_mappings(self, text: str) -> list[DetectedEntity]:
         """Match all known entity values from the mapping DB.
 
         Each value is matched with Unicode-safe word boundaries to prevent
         false positives inside longer words (e.g. 'Bern' in 'Arbeitgebern').
-
-        PERFORMANCE NOTE: This compiles one regex per DB mapping on every call.
-        For large databases (thousands of mappings), consider caching compiled
-        patterns keyed by (mapping_id, original_value) or building a single
-        combined alternation pattern.
+        Compiled patterns are cached via ``_get_pattern`` to avoid recompiling
+        the same regex on every document.
         """
         entities: list[DetectedEntity] = []
         all_mappings = self._repository.get_all_mappings()
@@ -103,7 +114,7 @@ class ListRecognizer:
             value = mapping.original_value
             if not value or len(value) < _MIN_ENTITY_LEN:
                 continue
-            pattern = _word_boundary_pattern(value)
+            pattern = self._get_pattern(value)
             for match in pattern.finditer(text):
                 entities.append(
                     DetectedEntity(
@@ -137,7 +148,7 @@ class ListRecognizer:
             if name.lower() in _MUNICIPALITY_EXCLUDED:
                 continue
             is_stopword = name.lower() in _MUNICIPALITY_STOPWORDS
-            pattern = _word_boundary_pattern(name)
+            pattern = self._get_pattern(name)
             for match in pattern.finditer(text):
                 if is_stopword:
                     preceding = text[max(0, match.start() - _CONTEXT_WINDOW) : match.start()]
