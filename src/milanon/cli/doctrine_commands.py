@@ -1,8 +1,7 @@
-"""Doctrine CLI commands — manage the doctrine knowledge base.
+"""Doctrine CLI commands — registered in main.py.
 
-NOTE: This command group is NOT yet wired into main.py.
-To use standalone:
-    python -c "from milanon.cli.doctrine_commands import doctrine; doctrine()" -- list
+Provides the `milanon doctrine` subcommand group for managing the
+doctrine knowledge base (list, extract).
 """
 
 from __future__ import annotations

@@ -122,6 +122,7 @@ ZZ_Unterlagen Review Product Design/
 
 # Claude Code prompts (local only — session-specific instructions)
 scripts/claude-code-prompts/
+scripts/NEXT_SESSION_PROMPT.md
 
 # OS files
 .DS_Store
