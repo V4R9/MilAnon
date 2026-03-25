@@ -23,7 +23,8 @@ logger = logging.getLogger(__name__)
 
 _EMBED_DPI = 200
 
-_SUPPORTED_EXTENSIONS = {".eml", ".docx", ".pdf", ".xlsx", ".csv"}
+_SUPPORTED_EXTENSIONS = {".eml", ".docx", ".pdf"}
+_SPREADSHEET_EXTENSIONS = {".xlsx", ".csv"}
 
 _WRITERS = {
     DocumentFormat.EML: EmlWriter(),
@@ -40,6 +41,7 @@ class ProcessingOptions:
     force: bool = False
     dry_run: bool = False
     embed_images: bool = False
+    include_spreadsheets: bool = False
 
 
 @dataclass
@@ -135,6 +137,7 @@ class AnonymizeUseCase:
         dry_run: bool = False,
         embed_images: bool = False,
         clean: bool = False,
+        include_spreadsheets: bool = False,
     ) -> AnonymizeResult:
         """Anonymize documents in input_path.
 
@@ -146,12 +149,18 @@ class AnonymizeUseCase:
             dry_run: If True, report what would be done without writing.
             embed_images: If True, rasterize visual PDF pages and embed as PNG.
             clean: If True, remove output files with no corresponding input file.
+            include_spreadsheets: If True, also process .csv and .xlsx files.
 
         Returns:
             AnonymizeResult with processing statistics.
         """
-        options = ProcessingOptions(force=force, dry_run=dry_run, embed_images=embed_images)
+        options = ProcessingOptions(
+            force=force, dry_run=dry_run, embed_images=embed_images,
+            include_spreadsheets=include_spreadsheets,
+        )
         result = AnonymizeResult()
+
+        allowed_extensions = _SUPPORTED_EXTENSIONS | (_SPREADSHEET_EXTENSIONS if include_spreadsheets else set())
 
         if input_path.is_file():
             files = [input_path]
@@ -160,7 +169,7 @@ class AnonymizeUseCase:
             pattern = "**/*" if recursive else "*"
             files = [
                 f for f in input_path.glob(pattern)
-                if f.is_file() and f.suffix.lower() in _SUPPORTED_EXTENSIONS
+                if f.is_file() and f.suffix.lower() in allowed_extensions
             ]
             input_root = input_path
 
