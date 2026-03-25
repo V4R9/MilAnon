@@ -135,56 +135,6 @@ class ExtractedDocument:
             raise ValueError("source_path must not be empty")
 
 
-class AnonymizationLevel(Enum):
-    """Anonymization level controlling which entity types are replaced.
-
-    DSG: Only personal data per Swiss Data Protection Act (Datenschutzgesetz).
-    FULL: All entity types including military/operational entities (ISG scope).
-    """
-
-    DSG = "dsg"
-    FULL = "full"
-
-
-# Entity types that fall under DSG (personal data protection)
-DSG_ENTITY_TYPES: frozenset[EntityType] = frozenset({
-    EntityType.PERSON,
-    EntityType.VORNAME,
-    EntityType.NACHNAME,
-    EntityType.EMAIL,
-    EntityType.TELEFON,
-    EntityType.AHV_NR,
-    EntityType.GEBURTSDATUM,
-    EntityType.ADRESSE,
-    EntityType.ARBEITGEBER,
-    EntityType.MEDIZINISCH,
-    EntityType.FAMILIAER,
-    EntityType.GRAD_FUNKTION,
-})
-
-# Entity types that fall under ISG (military/operational secrecy)
-ISG_ENTITY_TYPES: frozenset[EntityType] = frozenset({
-    EntityType.EINHEIT,
-    EntityType.FUNKTION,
-    EntityType.STANDORT_MIL,
-    EntityType.ORT,
-})
-
-
-def filter_entities_by_level(
-    entities: list[DetectedEntity],
-    level: AnonymizationLevel,
-) -> list[DetectedEntity]:
-    """Filter detected entities based on the anonymization level.
-
-    DSG level: only personal data entities (DSG_ENTITY_TYPES).
-    FULL level: all entities (DSG + ISG).
-    """
-    if level == AnonymizationLevel.FULL:
-        return entities
-    return [e for e in entities if e.entity_type in DSG_ENTITY_TYPES]
-
-
 @dataclass
 class AnonymizedDocument:
     """The result of anonymizing a document.
