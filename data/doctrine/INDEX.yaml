@@ -257,3 +257,14 @@ workflows:
     skeleton: null
     output_format: [markdown]
     maps_to_5+2: "Lageverfolgung → Einsatzbericht"
+
+  dossier-check:
+    name: "Dossier Quality Check"
+    description: "Pre-flight validation of the Bat Dossier before Aktionsplanung — checks timeline consistency, completeness, logical feasibility, and security."
+    system_prompt: templates/workflows/dossier-check.md
+    doctrine:
+      - source: 52_080_bfe_einsatz.md
+        extract: extracts/bfe_initialisierung.md
+    skeleton: null
+    output_format: [markdown]
+    maps_to_5+2: "Schritt 0: Dossier-Prüfung"
