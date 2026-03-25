@@ -321,8 +321,8 @@ claude_project/
 milanon db init [--force]
 
 # Anonymize (incremental by default — .csv/.xlsx excluded unless --include-spreadsheets)
-milanon anonymize <input> --output <o> [--recursive] [--force] [--dry-run]
-                  [--embed-images] [--include-spreadsheets]
+milanon anonymize <input> --output <o> [--level dsg|full] [--recursive] [--force]
+                  [--dry-run] [--embed-images] [--include-spreadsheets]
 
 # De-anonymize (incremental by default)
 milanon deanonymize <input> --output <o> [--force] [--dry-run]
@@ -335,8 +335,8 @@ milanon context [--unit "Inf Kp 56/1"] [--output CONTEXT.md]
 
 # Assemble 5-layer prompt for a workflow step
 milanon pack <input_path> --workflow analyse|ei-bf|wachtdienst|dossier-check
-             [--mode berrm|adf] [--unit "Inf Kp 56/1"] [--context <path>]
-             [--step 1-5] [--output <path>] [--no-clipboard]
+             [--mode berrm|adf] [--level dsg|full] [--unit "Inf Kp 56/1"]
+             [--context <path>] [--step 1-5] [--output <path>] [--no-clipboard]
 
 # Doctrine management
 milanon doctrine list
@@ -365,12 +365,12 @@ milanon gui [--port 8501]
 
 ## Current Phase
 
-v0.5.0-stable — Code review complete. Baseline stabilized.
+v0.6.0 — Two-Tier Anonymization (FR-017) implemented.
 
 **Phase 1 (Core Engine) — DONE** (v0.3.0): Anonymization, de-anonymization, GUI, round-trip.
 **Phase 2 (Doctrine + 5+2 Workflows) — DONE** (v0.5.0): E14, E15, E16 complete. Code review applied.
 **Phase 3 (DOCX Pipeline) — PARTIAL** (v0.7.0): E17 functional, Writer Rewrite needed (FR-004).
-**Next:** FR-017 Two-Tier Anonymization (DSG/Full) — spec approved, implementation pending.
+**Phase 4 (Quality)** — FR-017 done, CI/CD done, FR-001 done, BUG-018 done.
 
 See docs/BACKLOG.md for known bugs and feature requests.
 See docs/ROADMAP.md for full epic planning.

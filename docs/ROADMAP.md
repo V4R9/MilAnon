@@ -116,9 +116,9 @@
 | BUG-013: Strassennamen ohne Suffix erkennen | P2 | Open |
 | BUG-018: Rich Output für `pack --workflow` | P2 | Open |
 | FR-003: Interactive A/B/C Optionen | P1 | ✅ Done (in rules.md) |
-| FR-017: Two-Tier Anonymization (DSG/Full) | P0 | Spec approved, implementation pending |
+| FR-017: Two-Tier Anonymization (DSG/Full) | P0 | ✅ Done (v0.6.0) |
 | Code Review (19 findings) | P0 | ✅ Done (2026-03-25) |
-| CI/CD Pipeline (GitHub Actions) | P1 | Open |
+| CI/CD Pipeline (GitHub Actions) | P1 | ✅ Done (v0.6.0) |
 | GUI Overhaul | P1 | ✅ Done (Paket G) |
 
 ---

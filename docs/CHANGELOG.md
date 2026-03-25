@@ -3,6 +3,22 @@
 All notable changes to MilAnon are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.0] — 2026-03-25
+
+### Added
+- **FR-017: Two-Tier Anonymization** — `--level dsg|full` flag on `milanon anonymize` and `milanon pack`
+  - DSG mode (default): anonymizes only personal data (names, AHV, phone, email, address, medical, family)
+  - Full mode: anonymizes all entities including units, locations, functions (previous behavior)
+  - Domain: `AnonymizationLevel` enum, `DSG_ENTITY_TYPES`/`ISG_ENTITY_TYPES` frozensets, `filter_entities_by_level()`
+  - Config: `milanon config set level dsg|full` for persistent default
+- **FR-001: Dossier Quality Check** — wired `dossier-check` workflow into INDEX.yaml
+- **BUG-018: Rich output** for `milanon pack --workflow` command
+- **CI/CD: GitHub Actions pipeline** — pytest + ruff on Python 3.11/3.12
+- Templates updated with anonymization level awareness (rules.md, CHEAT_SHEET.md, generate_context.py)
+- 13 new tests for two-tier anonymization (705 total)
+
+---
+
 ## [0.5.0-stable] — 2026-03-25
 
 ### Added

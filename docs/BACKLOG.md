@@ -1,6 +1,6 @@
 # MilAnon — Backlog
 
-> Last updated: 2026-03-25 (post code review)
+> Last updated: 2026-03-25 (v0.6.0 — FR-017 Two-Tier Anonymization)
 > Prioritization: P0 = Blocker for 31.03, P1 = Important for WK, P2 = Nice-to-have, P3 = Future
 > Status: ✅ Done, 🔧 In Progress, ❌ Open
 
@@ -27,7 +27,7 @@
 | BUG-015 | Project Generator: INSTRUCTIONS.md + SYSTEM_PROMPT.md confusing (2 files, only 1 field in Claude.ai) | 🟡 | ✅ Fixed (Paket L) |
 | BUG-016 | Project Generator: CHEAT_SHEET.md missing from output | 🟡 | ✅ Fixed (Paket L) |
 | BUG-017 | Project Generator: PNGs (WAP) missing from output | 🟡 | ✅ Fixed (Paket L) |
-| BUG-018 | Rich CLI output missing on `pack --workflow` (shows old format instead of Rich panels) | 🟡 | ❌ Open |
+| BUG-018 | Rich CLI output missing on `pack --workflow` (shows old format instead of Rich panels) | 🟡 | ✅ Fixed (v0.6.0) |
 
 ---
 
@@ -75,7 +75,7 @@ All findings from the post-v0.5.0 code review session.
 - Security-relevant checks (threat levels, ROE, alarm org)
 
 **Output:** `00_dossier_check.md` with traffic-light rating (Red/Yellow/Green)
-**Status:** Template created, not yet wired into INDEX.yaml
+**Status:** ✅ Done (v0.6.0 — wired into INDEX.yaml)
 
 ---
 
@@ -185,7 +185,7 @@ All findings from the post-v0.5.0 code review session.
 
 Commander selects mode based on use case: DSG for legal compliance, Full for operational security.
 **Spec:** `docs/specs/FR-017_two_tier_anonymization.md` — approved
-**Status:** ❌ Open (spec approved, implementation pending)
+**Status:** ✅ Done (v0.6.0 — `--level dsg|full` on anonymize + pack, config default, templates updated)
 
 ---
 
@@ -213,12 +213,12 @@ Commander selects mode based on use case: DSG for legal compliance, Full for ope
 
 | Feature | Prio | Status |
 |---|---|---|
-| FR-001: Dossier Quality Check | P0 | Template created, not wired |
+| FR-001: Dossier Quality Check | P0 | ✅ Done (v0.6.0) |
 | FR-004: DOCX Writer Rewrite | P1 | Open |
-| FR-017: Two-Tier Anonymization | P0 | Spec approved, implementation pending |
+| FR-017: Two-Tier Anonymization | P0 | ✅ Done (v0.6.0) |
 | BUG-012: Single names without rank | P2 | Open |
 | BUG-013: Street names without suffix | P2 | Open |
-| BUG-018: Rich output for `pack --workflow` | P2 | Open |
+| BUG-018: Rich output for `pack --workflow` | P2 | ✅ Done (v0.6.0) |
 | CR-016: CLI integration tests | P2 | Open |
 | GUI Overhaul | P1 | ✅ Done (Paket G) |
 
