@@ -189,6 +189,32 @@ Commander selects mode based on use case: DSG for legal compliance, Full for ope
 
 ---
 
+### FR-018: Claude Code Workspace Generator — P1
+
+**Description:** Generate a VS Code workspace folder that Claude Code can work with directly — no copy-paste needed. `milanon workspace generate` creates a self-contained folder with CLAUDE.md (auto-read by Claude Code), anonymized dossier in `context/`, doctrine in `knowledge/`, workflow tasks in `tasks/`, and an empty `output/` folder. The commander opens VS Code, works interactively with Claude Code through each 5+2 step, and de-anonymizes + exports at the end.
+
+**Motivation:** Eliminates the copy-paste loop between terminal and Claude.ai. Claude Code reads CLAUDE.md automatically, has full file access, and can call `milanon` CLI commands directly. Iterative, versionable (git), no context loss between steps.
+
+**Command:**
+```bash
+milanon workspace generate --unit "Inf Kp 56/1" --input anon/ --output workspace/
+```
+
+**Output structure:**
+```
+workspace/
+├── CLAUDE.md              — Layer 1 (Role) + Layer 5 (Rules) + Placeholder Map
+├── context/               — Anonymized Bat Dossier files
+├── knowledge/             — Doctrine extracts, skeletons, CHEAT_SHEET
+├── output/                — Claude Code writes here
+└── tasks/                 — Workflow step instructions (00_dossier_check → 05_einsatzbefehl)
+```
+
+**Effort:** M (80% reuse from GenerateProjectUseCase — CLAUDE.md template + task file formatting + new UseCase ~150 LOC)
+**Status:** ❌ Open
+
+---
+
 ## EPICS — Status
 
 ### Phase 1: Core Engine (v0.3.0) — DONE
