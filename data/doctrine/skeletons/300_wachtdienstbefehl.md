@@ -49,22 +49,62 @@ Ich will
 #### Wachtoffizier (Wacht Of)
 <!-- FILL: Aufgaben, Verantwortlichkeiten, Stellvertretung -->
 
+| Aspekt | Detail |
+|---|---|
+| Einsatzort | Gemäss Standortliste |
+| Einsatztätigkeit | Kontrolliert die Wache bei Ablösung und periodisch |
+| Einsatzverhalten | Kontrolliert Mannschaft vor Antritt |
+
 #### Wachtkommandant / Stv
 <!-- FILL: Führung der Wache, Kontrolle, Rapportierung -->
+
+| Aspekt | Detail |
+|---|---|
+| Einsatzort | Wachtlokal |
+| Einsatztätigkeit | Führt die Wache im Einsatz |
+| Einsatzverhalten | Regelt Dienstbetrieb, plant Ablösung, führt Gefechtsjournal |
 
 #### Zutrittskontrolle Unterkunft
 <!-- FILL: Posten, Regeln, Ausweissystem -->
 
+| Aspekt | Detail |
+|---|---|
+| Einsatzort | Eingang Ukft |
+| Einsatztätigkeit | Bewacht Ukft und kontrolliert Zutritt |
+| Einsatzverhalten | Identifiziert Personen, überprüft Ausweise |
+
 #### Zutrittskontrolle Fz Park
 <!-- FILL: Posten, Schlüsselregelung -->
+
+| Aspekt | Detail |
+|---|---|
+| Einsatzort | Eingang Fz Park |
+| Einsatztätigkeit | Bewacht Fz Park |
+| Einsatzverhalten | Identifiziert Personen, überprüft Ausweise, kontrolliert Fz |
 
 #### Patrouille
 <!-- FILL: Route, Fixpunkte, Meldeintervall, Stärke -->
 
+| Aspekt | Detail |
+|---|---|
+| Einsatzort | Gem Beilage Patrouillentätigkeit |
+| Einsatztätigkeit | Überwacht Mat Mag, Mun Mag und Umgebung |
+| Einsatzverhalten | Schützt Munitionsfassung und -rückfassung |
+
 #### Eingreifreserve
 <!-- FILL: Stärke, Bereitschaftsgrad, Ausrüstung, Alarmierung -->
 
+| Aspekt | Detail |
+|---|---|
+| Einsatzort | Aufenthalts-/Verpflegungsraum, Ruheraum |
+| Einsatztätigkeit | Hält sich bereit für Reserveeinsätze |
+| Einsatzverhalten | Verstärkung der Wache |
+
 ### Besondere Anordnungen
+
+#### Bedrohungsstufen und Schutzmassnahmen
+Die Bedrohungsstufen "ALPHA", "BRAVO", "CHARLIE", "DELTA" mit den entsprechenden Schutzmassnahmen werden in der Beilage <!-- FILL: Nr --> geregelt.
+<!-- FILL: Oder inline Tabelle mit Ausrüstungs-/Bewaffnungs-/Bewegungscodes pro Stufe -->
 
 #### Rahmen / Recht / ROE, ROB
 <!-- FILL: Aus Bat Bf oder eigene Regelung -->
@@ -82,6 +122,14 @@ Ich will
 - Die ganze Mannschaft der Wache bezieht Ukft im Geb <!-- FILL: Gebäude -->.
 - Angehörige der Wache ausserhalb des Einsatzes halten sich im Aufenthaltsraum auf.
 - Regelung der Einsatzlänge ist Sache des Wachtkommandanten.
+
+##### Wachtübergabe / -ablösung
+
+| Antritt | Zeit |
+|---|---|
+| Wochentage | <!-- FILL: z.B. 0600 --> |
+| Freitag (Wochenendwache) | <!-- FILL: z.B. 1800 --> |
+| Montag | <!-- FILL: z.B. 0600 --> |
 
 ##### Bestände der Wache unter der Woche
 <!-- FILL: Tabelle mit Funktionen und Beständen Mo-Fr -->
@@ -118,6 +166,18 @@ Führungsraster gemäss Beilage 3.
 
 #### ABC
 <!-- FILL: Bereitschaftsgrad (Maske dabei oder nicht) -->
+
+#### Schusswaffengebrauch
+Wenn andere verfügbare Mittel nicht ausreichen, ist als letztes Mittel in folgenden Fällen in einer den Umständen angemessenen Weise von der Schusswaffe Gebrauch zu machen:
+- wenn die Wache oder andere Personen mit einem gefährlichen Angriff unmittelbar bedroht oder gefährlich angegriffen werden;
+- wenn die widerrechtliche Wegnahme von Material <!-- FILL: abschliessend aufführen -->, das eine schwere Gefahr für die Allgemeinheit darstellt, verhindert werden muss;
+- wenn Personen, welche ein schweres Verbrechen oder ein schweres Vergehen gegen Leib und Leben von Angehörigen der Armee begangen haben, an der Flucht gehindert werden müssen.
+
+#### Massnahmen nach dem Schusswaffeneinsatz
+Gemäss Regl 51.301 Wachtdienst aller Trp Zif 5.11.4.
+
+#### Vorläufig festgenommene Personen
+Vorläufig festgenommene Zivilpersonen sind so rasch als möglich der zivilen Polizei zu übergeben. In allen Fällen ist unverzüglich dem vorgesetzten Kdr Meldung zu erstatten.
 
 ### Logistik
 
