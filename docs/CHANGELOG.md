@@ -3,6 +3,21 @@
 All notable changes to MilAnon are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.3] — 2026-03-25
+
+### Fixed
+- **GUI Alignment Sprint** — all CLI features now available in Streamlit GUI:
+  - `--level dsg|full` radio button on Anonymize page (FR-017)
+  - `--include-spreadsheets` checkbox on Anonymize page
+  - `--input` path field on Project Generator page
+  - `--include-images` checkbox on Project Generator page
+  - `dossier-check` workflow added to LLM Workflow dropdown
+  - `level` setting on Config page (persistent default)
+  - Workflows sorted by 5+2 step order (1→2→3→5→Wachtdienst→Dossier-Check)
+  - Removed hardcoded `test_output/` default paths
+
+---
+
 ## [0.6.2] — 2026-03-25
 
 ### Added

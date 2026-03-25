@@ -1,6 +1,6 @@
 # MilAnon — Backlog
 
-> Last updated: 2026-03-25 (v0.6.0 — FR-017 Two-Tier Anonymization)
+> Last updated: 2026-03-25 (v0.6.3 — GUI Alignment Sprint)
 > Prioritization: P0 = Blocker for 31.03, P1 = Important for WK, P2 = Nice-to-have, P3 = Future
 > Status: ✅ Done, 🔧 In Progress, ❌ Open
 
@@ -195,32 +195,33 @@ Commander selects mode based on use case: DSG for legal compliance, Full for ope
 
 685 tests. All 17 CLI commands. 8 GUI pages.
 
-### Phase 2: Doctrine + Workflows (v0.5.0) — CODE COMPLETE
+### Phase 2: Doctrine + Workflows (v0.5.0) — DONE ✅
 
 | Epic | Status | Tests | Open Bugs |
 |---|---|---|---|
 | E14: Doctrine KB | ✅ Done | 14 extracts generated | — |
-| E15: 5+2 Workflows | ✅ Done (3 workflows + infra) | 685 tests | BUG-018 (Rich output) |
+| E15: 5+2 Workflows | ✅ Done (5 workflows + infra + 6 BFE skeletons) | 730 tests | — |
 | E16: Claude Project Generator | ✅ Done | — | — |
 
-### Phase 3: DOCX Pipeline (v0.7.0) — PARTIAL
+### Phase 3: DOCX Pipeline (v0.7.0) — DONE ✅
 
 | Epic | Status | Open Bugs |
 |---|---|---|
-| E17: DOCX Export | Functional but not production-ready | BUG-005 to BUG-011 (Writer Rewrite needed) |
+| E17: DOCX Export | ✅ Done — FR-004 Writer Rewrite with CH Armee styles | — |
 
-### Phase 4: Quality + Polish (v0.8.0) — OPEN
+### Phase 4: Quality + Polish (v0.8.0) — ~90% DONE
 
 | Feature | Prio | Status |
 |---|---|---|
 | FR-001: Dossier Quality Check | P0 | ✅ Done (v0.6.0) |
-| FR-004: DOCX Writer Rewrite | P1 | ✅ Done (FR-004) |
+| FR-004: DOCX Writer Rewrite | P1 | ✅ Done (v0.6.1) |
 | FR-017: Two-Tier Anonymization | P0 | ✅ Done (v0.6.0) |
 | BUG-012: Single names without rank | P2 | Open |
 | BUG-013: Street names without suffix | P2 | Open |
 | BUG-018: Rich output for `pack --workflow` | P2 | ✅ Done (v0.6.0) |
 | CR-016: CLI integration tests | P2 | Open |
 | GUI Overhaul | P1 | ✅ Done (Paket G) |
+| GUI Alignment (FR-017 + Project Gen) | P1 | ✅ Done (v0.6.3) |
 
 ### Phase 5: Distribution (v1.0) — OPEN
 

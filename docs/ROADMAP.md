@@ -2,7 +2,7 @@
 
 > Central Concept: **5+2 Aktionsplanungsprozess** (BFE 52.080 Kap 5)
 > Core Architecture: Cloud Intelligence + Local Security + Local DOCX Generation
-> Last updated: 2026-03-25 (v0.5.0-stable — code review complete)
+> Last updated: 2026-03-25 (v0.6.3 — GUI Alignment complete)
 
 ---
 
@@ -110,16 +110,17 @@
 
 | Feature | Prio | Status |
 |---|---|---|
-| FR-001: Dossier Quality Check — wire into INDEX.yaml | P0 | Template done, not wired |
-| FR-004: DOCX Writer Rewrite | P1 | Open |
+| FR-001: Dossier Quality Check — wire into INDEX.yaml | P0 | ✅ Done (v0.6.0) |
+| FR-004: DOCX Writer Rewrite | P1 | ✅ Done (v0.6.1) |
 | BUG-012: Einzelnamen ohne Rang erkennen | P2 | Open |
 | BUG-013: Strassennamen ohne Suffix erkennen | P2 | Open |
-| BUG-018: Rich Output für `pack --workflow` | P2 | Open |
+| BUG-018: Rich Output für `pack --workflow` | P2 | ✅ Done (v0.6.0) |
 | FR-003: Interactive A/B/C Optionen | P1 | ✅ Done (in rules.md) |
 | FR-017: Two-Tier Anonymization (DSG/Full) | P0 | ✅ Done (v0.6.0) |
 | Code Review (19 findings) | P0 | ✅ Done (2026-03-25) |
 | CI/CD Pipeline (GitHub Actions) | P1 | ✅ Done (v0.6.0) |
 | GUI Overhaul | P1 | ✅ Done (Paket G) |
+| GUI Alignment (CLI Feature Parity) | P1 | ✅ Done (v0.6.3) |
 
 ---
 

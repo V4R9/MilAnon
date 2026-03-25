@@ -361,12 +361,12 @@ milanon gui [--port 8501]
 
 ## Current Phase
 
-v0.6.0 — Two-Tier Anonymization (FR-017) implemented.
+v0.6.3 — GUI Alignment Sprint complete. All CLI features available in GUI.
 
 **Phase 1 (Core Engine) — DONE** (v0.3.0): Anonymization, de-anonymization, GUI, round-trip.
-**Phase 2 (Doctrine + 5+2 Workflows) — DONE** (v0.5.0): E14, E15, E16 complete. Code review applied.
-**Phase 3 (DOCX Pipeline) — PARTIAL** (v0.7.0): E17 functional, Writer Rewrite needed (FR-004).
-**Phase 4 (Quality)** — FR-017 done, CI/CD done, FR-001 done, BUG-018 done.
+**Phase 2 (Doctrine + 5+2 Workflows) — DONE** (v0.5.0-v0.6.2): E14, E15 (5 workflows + 6 BFE skeletons), E16 complete.
+**Phase 3 (DOCX Pipeline) — DONE** (v0.6.1): FR-004 Writer Rewrite with official CH Armee styles.
+**Phase 4 (Quality) — ~90% DONE**: FR-017, CI/CD, FR-001, FR-004, BUG-018, GUI Alignment all done. Open: BUG-012/013.
 
 See docs/BACKLOG.md for known bugs and feature requests.
 See docs/ROADMAP.md for full epic planning.

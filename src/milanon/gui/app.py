@@ -179,10 +179,11 @@ if page == "🎯 LLM Workflow":
             "Workflow",
             [
                 "analyse — Problemerfassung (5+2 Schritt 1)",
-                "ei-bf — Einsatzbefehl (5+2 Schritt 5)",
-                "wachtdienst — Wachtdienstbefehl",
                 "bdl — Beurteilung der Lage (5+2 Schritt 2)",
                 "entschluss — Entschlussfassung (5+2 Schritt 3)",
+                "ei-bf — Einsatzbefehl (5+2 Schritt 5)",
+                "wachtdienst — Wachtdienstbefehl",
+                "dossier-check — Dossier-Qualitätsprüfung (Schritt 0)",
             ],
             key="wf_workflow",
         )
@@ -199,7 +200,7 @@ if page == "🎯 LLM Workflow":
 
         wf_input = st.text_input(
             "Anonymisierte Dokumente",
-            value="test_output/",
+            value="",
             placeholder="/path/to/anonymized/output",
             key="wf_input",
         )
@@ -288,7 +289,8 @@ if page == "🎯 LLM Workflow":
 
             ctx_output = st.text_input(
                 "Save context file to",
-                value="test_output/CONTEXT.md",
+                value="",
+                placeholder="z.B. output/CONTEXT.md",
                 help="Path where CONTEXT.md will be written.",
             )
 
@@ -457,7 +459,18 @@ elif page == "🔒 Anonymize":
             help="Where anonymized files are written.",
         )
 
-    col3, col4, col5, col6 = st.columns(4)
+    col_level, col_opts = st.columns([1, 3])
+    with col_level:
+        anon_level = st.radio(
+            "Anonymisierungsstufe",
+            ["dsg", "full"],
+            index=0 if _get_config_value("level", "dsg") == "dsg" else 1,
+            horizontal=True,
+            key="anon_level",
+            help="DSG = nur Personendaten (DSGVO), Full = alle Entitäten inkl. Einheiten/Orte",
+        )
+
+    col3, col4, col5, col6, col7 = st.columns(5)
     with col3:
         recursive = st.checkbox("Recursive (include subfolders)")
     with col4:
@@ -468,6 +481,11 @@ elif page == "🔒 Anonymize":
         embed_images = st.checkbox(
             "Embed visual pages as PNG",
             help="Renders WAP/schedule pages as PNG images in the output (NOT anonymized).",
+        )
+    with col7:
+        include_spreadsheets = st.checkbox(
+            "Include CSV/XLSX",
+            help="CSV/XLSX are excluded by default. Enable to anonymize them too.",
         )
 
     if st.button("Start Anonymization", type="primary", disabled=not (input_path and output_path)):
@@ -484,7 +502,9 @@ elif page == "🔒 Anonymize":
                 progress.progress(10, text="Pipeline ready — processing files…")
                 result = uc.execute(
                     input_p, output_p,
-                    recursive=recursive, force=force, dry_run=dry_run, embed_images=embed_images,
+                    recursive=recursive, force=force, dry_run=dry_run,
+                    embed_images=embed_images, level=anon_level,
+                    include_spreadsheets=include_spreadsheets,
                 )
                 progress.progress(100, text="Done.")
 
@@ -744,18 +764,38 @@ elif page == "🚀 Project Generator":
         key="proj_unit",
     )
 
-    proj_output = st.text_input(
-        "Ausgabeordner",
-        value=str(Path.home() / "claude_project"),
-        key="proj_output",
+    proj_input = st.text_input(
+        "Anonymisierte Dokumente (optional)",
+        value="",
+        placeholder="/path/to/anonymized/output",
+        key="proj_input",
+        help="Pfad zu anonymisierten Dateien — werden in knowledge/ kopiert.",
     )
+
+    col_proj1, col_proj2 = st.columns(2)
+    with col_proj1:
+        proj_output = st.text_input(
+            "Ausgabeordner",
+            value=str(Path.home() / "claude_project"),
+            key="proj_output",
+        )
+    with col_proj2:
+        proj_include_images = st.checkbox(
+            "Bilder einbinden (PNG)",
+            key="proj_images",
+            help="WAP/Karten als PNG-Dateien in knowledge/ kopieren.",
+        )
 
     if st.button("🚀 Projekt generieren", type="primary", key="btn_proj", disabled=not (proj_unit and proj_output)):
         try:
             from milanon.usecases.generate_project import GenerateProjectUseCase
 
             uc = GenerateProjectUseCase(_DATA_DIR)
-            result = uc.execute(proj_unit.strip(), Path(_clean_path(proj_output)))
+            input_p = Path(_clean_path(proj_input)) if proj_input.strip() else None
+            result = uc.execute(
+                proj_unit.strip(), Path(_clean_path(proj_output)),
+                input_path=input_p, include_images=proj_include_images,
+            )
 
             st.success(f"Project generated for: **{result.unit}**")
             st.markdown(f"Output: `{result.output_dir}`")
@@ -996,6 +1036,15 @@ elif page == "⚙️ Config":
         key="cfg_mode",
     )
 
+    cfg_level = st.radio(
+        "Standard-Anonymisierungsstufe",
+        ["dsg", "full"],
+        index=0 if current_config.get("level", "dsg") == "dsg" else 1,
+        horizontal=True,
+        key="cfg_level",
+        help="DSG = nur Personendaten (DSGVO), Full = alle Entitäten inkl. Einheiten/Orte",
+    )
+
     cfg_unit = st.text_input(
         "Standard-Einheit",
         value=current_config.get("unit", ""),
@@ -1006,6 +1055,7 @@ elif page == "⚙️ Config":
     if st.button("💾 Speichern", type="primary", key="btn_cfg_save"):
         new_config = _load_config()
         new_config["mode"] = cfg_mode
+        new_config["level"] = cfg_level
         if cfg_unit.strip():
             new_config["unit"] = cfg_unit.strip()
         elif "unit" in new_config:
