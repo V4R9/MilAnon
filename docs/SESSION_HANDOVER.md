@@ -1,196 +1,184 @@
 # MilAnon — Session Handover
 
-Last updated: 2026-03-25 (Design Session: 5+2 + Doctrine + Berrm + Template + Strategy)
-Version: 0.3.0 (code unchanged this session — pure design + documentation)
-
-**ALL 10 DESIGN DECISIONS RESOLVED. READY FOR IMPLEMENTATION.**
+Last updated: 2026-03-25 (Marathon Session: v0.5.0 built in ~17 Claude Code sessions)
+Version: 0.5.0 (code complete, branches to merge)
 
 ---
 
 ## Project Status
 
-MilAnon is a local Python CLI+GUI tool for Swiss Army unit commanders to securely use public LLMs for command document creation — with local anonymization, doctrine-aware workflows, and structured output following BFE/WAT/TF standards.
+MilAnon is a local Python CLI+GUI tool for Swiss Army unit commanders to securely use public LLMs for command document creation — with local anonymization, doctrine-aware 5+2 workflows, and structured output following BFE/WAT/TF standards.
 
-**Repository:** https://github.com/V4R9/MilAnon
-**Tests:** 520+ passing
-**CLI commands:** 13
-**GUI pages:** 5
-
----
-
-## What Was Done This Session (Design, no code)
-
-### 1. Deep Doctrine Reading
-- Read BFE 52.080 Kap 5 (Aktionsplanung) in full — understood every sub-step
-- Cross-referenced every BFE section with FSO 17 Kap 4.2 (Zif 110-245)
-- Read TF 50.030 Kap 5 in full — Einsatzgrundsätze, Taktische Grundsätze, Raumordnung, Taktische Aufgaben
-- Mapped: BFE 5.1→FSO 4.2.1, BFE 5.4→FSO 4.2.4 Zif 146-179, BFE 5.5→FSO 4.2.5 Zif 206, etc.
-
-### 2. Product Design: 5+2 as Central Concept
-- Designed the complete 5+2 workflow with all 5 steps + 2 begleitende Tätigkeiten
-- Defined outputs per step (15+ intermediate products)
-- Designed 5-Layer System Prompt architecture
-- Created Product Design v3.1 with two parts:
-  - `PRODUCT_DESIGN_COMMAND_ASSISTANT.md` — 5+2 process design, workflow architecture
-  - `PRODUCT_DESIGN_TF17_APPENDIX.md` — Tactical knowledge base (Einsatzgrundsätze, Raumordnung, etc.)
-
-### 3. Bereitschaftsraum Paradigm Integration
-- Read and analyzed the Paradigmenwechsel document (472 lines)
-- Understood: Berrm = Ei Bf as Grundbefehl, Dienstrad replaces WAP, 3 Phasen, 2 Pflicht-EP
-- Key insight: Berrm makes the 5+2 MORE valuable (AP is real, not just for Übungsanlage)
-- Decision: Universal skeleton with mode markers, not separate skeletons
-
-### 4. CH Armee DOCX Template Analysis
-- Extracted and analyzed both DOCX Vorlagen (Befehl + Übung)
-- Verified: Structurally IDENTICAL (same styles, same hierarchy)
-- Understood Punkt 3 Aufträge table pattern: Nx2 table (links=Einheit, rechts=Bullet List)
-- Mapped all DOCX styles to Markdown equivalents
-- Designed the local DOCX generation pipeline (ADR-011)
-
-### 5. Strategic Analysis (IMD Frameworks)
-- Applied Rumelt, PESTEL, VRIO, Sweet Spot to MilAnon
-- Identified 3 sustainable competitive advantages (VRIO): 5+2 Workflows, Reglement KB, Round-Trip
-- Mapped IMD Strategic Thinking ↔ Militärischer 5+2 (same structure)
-- Created `STRATEGIC_ANALYSIS.md` with complete framework application
-
-### 6. User Journey WK 2026
-- Walkthrough: 13 steps from receiving Bat Dossier (31.03) through WK completion
-- Identified all gaps per step (what works today vs what's missing)
-- Prioritized: what must work Day 1, Week 1-2, and what can wait
-- Updated with Berrm paradigm context
-
-### 7. Architecture Decisions (5 ADRs)
-- ADR-009: 5+2 as central concept
-- ADR-010: Universal 5-Punkte-Befehl with mode markers
-- ADR-011: Local DOCX generation pipeline
-- ADR-012: 5-Layer System Prompt architecture
-- ADR-013: Doctrine chapter extraction
-
-### 8. Design Decisions Resolved (10/10)
-
-| # | Decision | Choice |
-|---|---|---|
-| D-001 | Context Window Budget | ✅ Passt (25% bei vollem Dossier, 34% kumulativ) |
-| D-002 | Kumulative Context-Kette | ✅ Passt (kein Summarization nötig) |
-| D-003 | Prompt-Sprache | Layer 1+5 English, Layer 3+4 Deutsch, Output Deutsch |
-| D-004 | Default Mode | Konfigurierbar pro Projekt via `milanon config` |
-| D-005 | Vault-Struktur | Nach Dokumenttyp: Planung/, Dossier/, Personelles/ |
-| D-006 | DOCX-Handling | Diff-Import: Änderungen erkennen + selektiv zurückspielen (P2) |
-| D-007 | User ↔ Claude | Copy-Paste Default, API später optional |
-| D-008 | Lizenz | MIT — Repo vorerst privat, bei Bedarf mit MIT öffnen |
-| D-009 | Karten im PDF | Karten sind Sache des Kdt (manuell interpretieren) |
-| D-010 | Doctrine Extracts | Semi-automatisch: Script + Human Review (~3-4h) |
-
-Full documentation: [OPEN_DECISIONS.md](OPEN_DECISIONS.md)
+**Tests:** 648 passing
+**CLI commands:** 17 (added: pack --workflow, doctrine, export --docx, project generate)
+**GUI pages:** 6 (added: LLM Workflow page)
+**Branches to merge:** feat/gui-overhaul, fix/e2e-bugs, fix/project-generator (docs/final-update-v050)
 
 ---
 
-## Files Created/Updated This Session
+## What Was Built Today (~17 Claude Code Sessions)
 
-### New Files
+### Marathon Structure (parallel + sequential sessions)
+
+**Parallel Pakete (morning):**
+- **Paket A** — Doctrine Extraction Engine (E14.3): 14 chapter-level extracts from 4 regulation files
+- **Paket B** — Workflow Infrastructure (E15.I1-I7): `--workflow` flag, 5-layer assembly, `--mode`, `--context`, `--step`
+- **Paket C** — First Workflows (E15.W1/W4/W5): analyse.md, ei-bf.md, wachtdienst.md Layer 4 templates
+- **Paket D** — DOCX Export (E17.1-5): Markdown→DOCX pipeline, de-anonymize in-place
+- **Paket E** — Skeletons (E15.S1-S3): 5-Punkte-Befehl universal, Allgemeiner Befehl, Wachtdienstbefehl
+- **Paket F** — CLI Integration: All new commands integrated, test suite updated
+
+**Sequential sessions (midday):**
+- **Paket G** — GUI Overhaul: Streamlit LLM Workflow page, embed-images checkbox
+- **Paket H** — Rich Terminal Output: All CLI output replaced with Rich panels/tables, token estimates in pack
+- **Session 1** (earlier) — Doctrine extracts generated and committed
+- **Paket I** (not explicitly named) — E2E testing with real 70-page Bat Dossier
+
+**Bug Fix sessions (afternoon):**
+- **Paket K** — E2E Bug Fixes:
+  - BUG-001: `{user_unit}` not replaced in Layer 4 templates → fixed
+  - BUG-002: Layer 3 (doctrine extracts) empty for `analyse` workflow → fixed (INDEX.yaml)
+  - BUG-003: CSVs anonymized by default → excluded, `--include-spreadsheets` flag added
+  - BUG-004: CSVs in pack prompts (37% token waste) → excluded from `_SUPPORTED_INPUT_EXTENSIONS`
+- **Paket L** — Project Generator Fix:
+  - BUG-014: Anonymized dossier missing from output → `--input` flag added
+  - BUG-015: INSTRUCTIONS.md + SYSTEM_PROMPT.md confusing → replaced with README.md
+  - BUG-016: CHEAT_SHEET.md not in output → CHEAT_SHEET.md included from templates
+  - BUG-017: PNGs (WAP) not in output → `--include-images` flag added
+- **Paket M** — Documentation Update (this session)
+
+---
+
+## E2E Test Results (with Real Bat Dossier — 25.03.2026)
+
+**Input:** 70-page Bat Dossier PDF (WK 2026, real document)
+**Anonymization:** 2795 entities detected, 1.2 MB → 450 KB anonymized
+**Claude.ai Session:** Opus 4.6, Project with full Knowledge Base
+
+### 5+2 Workflow Run (4 prompts):
+1. **Analyse** (Schritt 1): Problemerfassung + 4-Farben-Bewertung + SOMA + Zeitplan → `00_analyse.md`
+2. **BdL** (Schritt 2, manual): AUGEZ-Analyse mit AEK, Konsequenzen → `10_bdl.md`
+3. **Entschluss** (Schritt 3, manual): Varianten A/B, Entschluss mit Begründung → `20_entschluss.md`
+4. **Ei Bf** (Schritt 5): Vollständiger 5-Punkte-Befehl → `30_ei_bf.md`
+
+**12 documents produced** in total (including Wachtdienstbefehl, EP-Entwürfe)
+
+### Quality Assessment:
+- ✅ Analysis: Production-ready (AUGEZ complete, AEK methodology correct)
+- ✅ Entschluss: Proper variants with A/B comparison, commander decision preserved
+- ✅ Anonymization: Zero PII leakage confirmed
+- ⚠️ DOCX Export: Functional but formatting quality insufficient (BUG-005 to BUG-011)
+- ⚠️ Token Budget: ~68% of 200K context at Step 5 (fine for today, monitor with longer dossiers)
+
+---
+
+## Key Insights from Session
+
+### 1. The real product is the Claude Project, not the CLI
+The `milanon project generate` command is the most important UX step. The flow:
+```
+anonymize → project generate --input anon/ → upload to Claude.ai → work → export --docx
+```
+The CLI Pack flow (`milanon pack --workflow`) works but is more complex for non-technical Kdt.
+
+### 2. CHEAT_SHEET.md is the most valuable artifact
+Print it out and lay it next to the laptop. It contains all commands, all workflow prompts,
+and the KDT ENTSCHEID reminders. This is what makes the tool usable in a WK context.
+
+### 3. Dossier Quality Check (FR-001) should be Schritt 0
+Before any 5+2 analysis: check the Dossier for logical errors, timeline conflicts, missing
+appendices, and inconsistencies. Template `dossier-check.md` created but not wired into INDEX.yaml.
+
+### 4. Auftragsanalyse (BFE 5.4.1) was missing, now anchored
+The 4-column table (Bedeutung | Erwartete Leistung | Handlungsspielraum | Unterstützung) with
+AEK-Methode is now explicit in role.md, analyse.md, and CHEAT_SHEET.md.
+
+### 5. Interactive options (A/B/C) beat plain KDT ENTSCHEID markers
+Rules.md updated: Claude now presents 2-3 concrete options with recommendation at each
+decision point. Kdt says "A" or "B mit Anpassung X". Much more efficient than free-form.
+
+### 6. CSV exclusion was the right call
+Before Paket K, anonymizing a folder with the PISA list would corrupt the CSV with placeholders.
+Now CSV/XLSX are opt-in only. This also cleans up the pack output significantly.
+
+---
+
+## Files Created/Modified This Session
+
+### New Source Files
 | File | Content |
 |---|---|
-| `docs/PRODUCT_DESIGN_COMMAND_ASSISTANT.md` | Product Design v3.1 — 5+2 process design (735 lines) |
-| `docs/PRODUCT_DESIGN_TF17_APPENDIX.md` | TF 17 Kap 5 integration — Einsatzgrundsätze, Taktik, Raumordnung |
-| `docs/STRATEGIC_ANALYSIS.md` | IMD frameworks applied (Rumelt, PESTEL, VRIO, Sweet Spot) |
-| `docs/USER_JOURNEY_WK2026.md` | 13-step walkthrough with gap analysis + Berrm |
-| `docs/architecture/ADR-009-5plus2-central-concept.md` | 5+2 as central product concept |
-| `docs/architecture/ADR-010-universal-5-punkte-befehl.md` | Universal skeleton with mode markers |
-| `docs/architecture/ADR-011-local-docx-pipeline.md` | Local DOCX generation from Markdown |
-| `docs/architecture/ADR-012-5-layer-system-prompt.md` | 5-Layer prompt assembly |
-| `docs/architecture/ADR-013-doctrine-chapter-extraction.md` | Chapter extraction for token efficiency |
-| `data/doctrine/skeletons/5_punkte_befehl_universal.md` | Universal 5-Punkte-Befehl skeleton (ADF+Berrm) |
-| `data/doctrine/skeletons/500_einsatzbefehl_berrm.md` | Berrm-specific skeleton (superseded by universal) |
-| `data/doctrine/skeletons/README.md` | Skeleton architecture + DOCX style mapping |
-| `data/doctrine/paradigmenwechsel_berrm.md` | Bereitschaftsraum paradigm reference |
-| `docs/OPEN_DECISIONS.md` | All 10 design decisions documented + 4 implicit assumptions |
+| `src/milanon/usecases/workflow_pack.py` | `WorkflowPackUseCase` — 5-layer prompt assembly engine |
+| `src/milanon/usecases/generate_project.py` | `GenerateProjectUseCase` — Claude.ai Project folder generator |
+| `src/milanon/usecases/export_docx.py` | `ExportDocxUseCase` — Markdown → DOCX pipeline |
+| `src/milanon/cli/output.py` | Rich terminal output helpers (console, panels, tables) |
+| `data/templates/role.md` | Layer 1: LLM role definition (TF 17 tactical competence) |
+| `data/templates/rules.md` | Layer 5: Placeholder + KDT ENTSCHEID rules (with A/B/C options) |
+| `data/templates/CHEAT_SHEET.md` | Quick reference for Kdt — most valuable artifact |
+| `data/templates/workflows/analyse.md` | Layer 4: Schritt 1 Problemerfassung |
+| `data/templates/workflows/ei-bf.md` | Layer 4: Schritt 5 Einsatzbefehl |
+| `data/templates/workflows/wachtdienst.md` | Layer 4: Wachtdienstbefehl (WAT-konform) |
+| `data/templates/workflows/dossier-check.md` | Layer 4: Pre-flight Dossier Check (not yet in INDEX.yaml) |
+| `data/doctrine/extracts/*.md` | 14 chapter extracts (bfe_*, tf_*, fso_*, wat_*) |
+| `data/doctrine/skeletons/5_punkte_befehl_universal.md` | Universal skeleton (ADF+Berrm mode markers) |
+| `data/doctrine/skeletons/000_allgemeiner_befehl.md` | Allgemeiner Befehl skeleton |
+| `data/doctrine/skeletons/300_wachtdienstbefehl.md` | Wachtdienstbefehl skeleton |
 
-### Updated Files
+### Modified Source Files
 | File | What changed |
 |---|---|
-| `docs/ROADMAP.md` | Complete rewrite — v2 with ADR references, Berrm mode, DOCX pipeline, all user stories |
-| `data/doctrine/INDEX.yaml` | Complete rewrite — 5+2 as core, ADF/Berrm mode support, 11 doctrine files mapped |
-| `data/doctrine/INDEX.md` | Updated — 11 doctrine files documented |
+| `src/milanon/cli/main.py` | All new commands: pack --workflow, doctrine, export --docx, project generate, config; Rich output throughout |
+| `src/milanon/usecases/anonymize.py` | CSV/XLSX excluded by default; `--include-spreadsheets` flag; `--clean` flag |
+| `data/doctrine/INDEX.yaml` | Added doctrine entries for analyse workflow (was empty, causing BUG-002) |
+| `pyproject.toml` | Added `rich>=13.0` dependency |
 
-### Doctrine Files (copied to repo)
-All 11 .md files in `data/doctrine/` — totaling ~3 MB. See INDEX.md for full list.
-
-### DOCX Templates (need manual copy)
-```bash
-cp "Unterlagen Review Product Design/Vorlagen CH Armee/Befehl Vorlage .docx" data/templates/docx/befehl_vorlage.docx
-cp "Unterlagen Review Product Design/Vorlagen CH Armee/Befehl Vorlage übung.docx" data/templates/docx/befehl_vorlage_uebung.docx
-```
+### New Test Files
+| File | Tests |
+|---|---|
+| `tests/usecases/test_workflow_pack.py` | 18 tests — 5-layer assembly, mode markers, error handling |
+| `tests/usecases/test_generate_project.py` | 11 tests — project generation, --input, --include-images |
+| `tests/e2e/test_workflow_e2e.py` | 16 slow E2E tests — full CLI subprocess integration |
 
 ---
 
 ## Critical Path to 31.03.2026
 
-### What MUST be built (6 days, parallelizable):
+**What must work on Day 1 (Bat Dossier arrives):**
+1. ✅ `milanon anonymize` — works, tested with real 70-page dossier
+2. ✅ `milanon project generate --input anon/ --output claude_project/` — works
+3. ✅ Upload to Claude.ai Project → 5+2 analysis — works
+4. ⚠️ `milanon export --docx --deanonymize` — functional but formatting rough
 
-**Paket A: Doctrine Extraction Engine (E14.3) — 2 days**
-- Input: Full doctrine .md files (~3 MB)
-- Output: Chapter-level extracts in `data/doctrine/extracts/` (~5-30 KB each)
-- 14 extract files needed (see ADR-013 for list)
-- Semi-automated: script finds heading boundaries, human verifies
+**What to fix before WK:**
+- FR-004: DOCX Writer Rewrite (BUG-005 to BUG-011)
+- FR-001: Wire dossier-check.md into INDEX.yaml
+- BUG-012/013: Better PII detection for names without rank, addresses without suffix
 
-**Paket B: Workflow Infrastructure (E15.I1-I7) — 2 days**
-- `--workflow` flag reads INDEX.yaml, loads 5 layers, assembles prompt
-- `--mode berrm|adf` strips irrelevant mode markers
-- `--context` flag includes previous Vault files
-- `--step 1-5` selects which 5+2 step
-- Layer 1 (role.md) and Layer 5 (rules.md) templates
-- Integration with existing `milanon pack` architecture
-
-**Paket C: First Workflows (E15.W1 + W4 + W5) — 2 days**
-- Analyse workflow (4-Farben + Problemerfassung + SOMA + Zeitplan)
-- Ei Bf workflow (5-Punkte-Befehl from all products, mode-aware)
-- Wachtdienst workflow (WAT-conform, Berrm: taktische Sicherung)
-- Each = 1 Layer 4 template file
-
-### What SHOULD be built (Week 1-2 after 31.03):
-- E17.1-5: DOCX export + de-anonymize (the "sexy" feature)
-- E15.W2-W3: BdL and Entschluss workflows
-- E15.W6-W7: EP templates (Berrm-Pflicht)
+**Can wait:**
+- BdL/Entschluss as dedicated workflows (currently done manually in Claude.ai)
+- MCP integration
+- Starter Kit
 
 ---
 
-## Key Insights for Next Developer
+## Branch State
 
-1. **The 5-Punkte-Befehl is the 5-Punkte-Befehl** — ADF and Berrm use the SAME structure. Only content differs. One skeleton, mode markers.
+All code changes are on feature branches:
+- `feat/gui-overhaul` — GUI changes (Paket G)
+- `feat/cli-rich-output` — Rich terminal output (Paket H)
+- `fix/e2e-bugs` — BUG-001 to BUG-004 fixes (Paket K)
+- `fix/project-generator` — BUG-014 to BUG-017 fixes (Paket L)
+- `docs/final-update-v050` — this docs update (Paket M)
 
-2. **LLM = Content, Code = Formatting** — Claude writes the Befehl (anonymized). python-docx generates the DOCX (locally). De-anonymization happens in the DOCX, not in the cloud. This is the core value proposition.
+Merge order: feat/* first, then fix/*, then docs/*. Main branch is the integration target.
 
-3. **The Aufträge table (Punkt 3) has a specific DOCX pattern** — Nx2 table, left column ~4cm for Einheitsbezeichnung, right column for Bullet List 1 with Aufträge. Every element (Kdt, Z Ambos, Z Canale, etc.) gets its own row.
-
-4. **The Berrm paradigm is POSITIVE for the product** — It makes the 5+2 real (not just for Übungsanlage). BFE Teil 1 (which we've deeply integrated) becomes the primary reference.
-
-5. **The IMD ↔ Military parallel is real** — PESTEL ≈ AUGEZ, AEK ≈ Facts→Interpretation→"So what?", Varianten ≈ Strategic Options. This validates the 5+2 as a universal decision-making framework.
-
----
-
-## Repo Structure (relevant parts)
-
-```
-data/
-  doctrine/
-    INDEX.yaml                          # Workflow → chapter → mode mapping
-    INDEX.md                            # Human-readable overview
-    *.md                                # 11 reglement files (~3 MB)
-    paradigmenwechsel_berrm.md          # Berrm context document
-    extracts/                           # 🔴 EMPTY — needs E14.3
-    skeletons/
-      5_punkte_befehl_universal.md      # THE primary skeleton
-      000_allgemeiner_befehl.md
-      300_wachtdienstbefehl.md
-      README.md                         # Architecture + DOCX style mapping
-  templates/
-    docx/                               # 🔴 NEEDS manual copy of DOCX templates
-docs/
-  ROADMAP.md                            # v2 — complete with ADRs + all stories
-  PRODUCT_DESIGN_COMMAND_ASSISTANT.md   # 5+2 process design
-  PRODUCT_DESIGN_TF17_APPENDIX.md      # Tactical knowledge base
-  STRATEGIC_ANALYSIS.md                 # IMD frameworks applied
-  USER_JOURNEY_WK2026.md               # 13-step walkthrough + gaps
-  architecture/
-    ADR-009 through ADR-013             # This session's decisions
+```bash
+git checkout main
+git merge feat/cli-rich-output
+git merge feat/gui-overhaul
+git merge fix/e2e-bugs
+git merge fix/project-generator
+git merge docs/final-update-v050
+git tag v0.5.0
+git push origin main --tags
 ```

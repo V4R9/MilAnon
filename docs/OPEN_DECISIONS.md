@@ -1,7 +1,10 @@
-# Open Decisions — To Be Resolved Before Implementation
+# Open Decisions — Architecture Decision Log
 
-> Status: Created 2026-03-25. Each item needs a decision before the relevant Epic can start.
-> Format: Decision needed → Options → Recommendation → Impact if wrong
+> Status: Created 2026-03-25.
+> Last updated: 2026-03-25 (v0.5.0 complete)
+
+## STATUS: ALL 10 DECISIONS RESOLVED ✅
+Resolved on: 25.03.2026
 
 ---
 

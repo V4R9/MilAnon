@@ -1,172 +1,173 @@
-# MilAnon — Post-MVP Backlog
+# MilAnon — Backlog v3 (Post E2E-Test, 25.03.2026)
 
-> Items for iteration after MVP completion.
-> Priority: P0 (critical), P1 (next), P2 (soon), P3 (later)
-> Status: 🔴 Open, 🟡 In Progress, ✅ Done
-
----
-
-## Iteration 1 — Done ✅
-
-- B-007: PDF Tables as Markdown ✅
-- B-004: Initial.NACHNAME Pattern ✅
-- B-005: Municipality Stopwords ✅
-- B-006: GEBURTSDATUM context-only ✅
-- B-001: GUI Database Reset ✅
-- B-002: Documentation Cleanup ✅
-- B-003: Real-World Verification ✅
+> Priorisierung: P0 = Blocker für 31.03, P1 = Wichtig für WK, P2 = Nice-to-have, P3 = Zukunft
+> Status: ✅ Done, 🔧 In Progress, ❌ Open, 🐛 Bug
 
 ---
 
-## Iteration 2 — Done ✅
+## BUGS (aus E2E-Test 25.03.2026)
 
-- B-008: Generic Name CSV Import ✅
-- B-009: Quick-Add Names in GUI ✅
-
----
-
-## Iteration 2b — Done ✅
-
-- B-008-fix: Combined "Name / Vorname" column format ✅
-- B-011: Visual PDF page detection + optional image embed ✅
-- "Alle" municipality completely excluded from matching ✅
-- "Adj" added as standalone rank ✅
-- Per-file progress output in CLI ✅
-- Version number in GUI sidebar ✅
-- CSV delimiter auto-detection (csv.Sniffer) ✅
-
----
-
-## Iteration 2c — Done ✅
-
-- B-011-fix: --embed-images rendering PNGs ✅
-- B-012: LLM Context Generator with interactive unit selection ✅
-- B-012-fix: EINHEIT duplicate normalization + Context output path ✅
-- B-011-fix2: Visual page heuristic tightened (AND logic) ✅
-- Code Review: All 14 findings addressed (refactoring) ✅
+| ID | Bug | Severity | Status |
+|---|---|---|---|
+| BUG-001 | `{user_unit}` nicht ersetzt in Workflow-Templates (Layer 4) | 🔴 | ✅ Fixed (Paket K) |
+| BUG-002 | Layer 3 (Doctrine Extracts) fehlte im Prompt-Output | 🔴 | ✅ Fixed (Paket K) |
+| BUG-003 | CSVs (PISA, Hilfsliste) werden anonymisiert in Output-Ordner | 🟡 | ✅ Fixed (Paket K) |
+| BUG-004 | CSVs werden in den Prompt gepackt (37% Token-Verschwendung) | 🟡 | ✅ Fixed (Paket K) |
+| BUG-005 | DOCX Writer: `**bold**` wird nicht konvertiert, bleibt als Markdown | 🔴 | ❌ Open |
+| BUG-006 | DOCX Writer: `---` Trennlinien werden als leere Paragraphen gerendert | 🟡 | ❌ Open |
+| BUG-007 | DOCX Writer: `<!-- FILL: -->` und `<!-- KDT ENTSCHEID: -->` als sichtbarer Text | 🟡 | ❌ Open |
+| BUG-008 | DOCX Writer: `> Blockquotes` nicht erkannt | 🟡 | ❌ Open |
+| BUG-009 | DOCX Writer: Tabellen mit >2 Spalten werden falsch geparst | 🔴 | ❌ Open |
+| BUG-010 | DOCX Writer: Keine Absatzabstände — alles klebt zusammen | 🟡 | ❌ Open |
+| BUG-011 | DOCX Writer: Aufträge-Tabelle (Pt 3) vs. Info-Tabellen nicht differenziert | 🟡 | ❌ Open |
+| BUG-012 | PII-Leaks: Einzelne Vor-/Nachnamen ohne Rang werden nicht erkannt (Ciardo, Megevand, Nicolas, Stéphane, Etienne) | 🟡 | ❌ Open |
+| BUG-013 | PII-Leaks: Strassennamen ohne "strasse"/"weg" werden nicht als Adressen erkannt (Fesenacker 3, Avenue D'Aire 73, Tumma 9) | 🟡 | ❌ Open |
+| BUG-014 | Project Generator: Anonymisiertes Dossier fehlt im Output | 🔴 | ✅ Fixed (Paket L) |
+| BUG-015 | Project Generator: INSTRUCTIONS.md + SYSTEM_PROMPT.md verwirrend (2 Files, nur 1 Feld in Claude.ai) | 🟡 | ✅ Fixed (Paket L) |
+| BUG-016 | Project Generator: CHEAT_SHEET.md nicht im Output | 🟡 | ✅ Fixed (Paket L) |
+| BUG-017 | Project Generator: PNGs (WAP) nicht im Output | 🟡 | ✅ Fixed (Paket L) |
+| BUG-018 | Rich CLI Output fehlt bei `pack --workflow` (zeigt altes Format statt Rich Panels) | 🟡 | ❌ Open |
 
 ---
 
-## Iteration 4 — Output Quality — Done ✅ (2026-03-25)
+## FEATURE REQUESTS (aus heutiger Session)
 
-- B-013: Mega-Cell Visual Detection (Organigramm/Gliederung >500 chars) ✅
-- B-014: Remove Empty Columns from PDF Tables (15→5 cols) ✅
-- B-022: EML Display Names anonymized (From/To/Cc/Bcc headers) ✅
+### FR-001: Dossier Quality Check (Pre-Flight Validation) — P0
+**Beschreibung:** Vor der Aktionsplanung das Bat Dossier auf Logikfehler, fehlende Infos, Inkonsistenzen und Widersprüche prüfen.
+**Workflow:** `milanon pack --workflow dossier-check` oder im Claude Project: "Prüfe mein Bat Dossier"
+**Template:** `data/templates/workflows/dossier-check.md` — ✅ Erstellt
+**Prüfbereiche:**
+- Terminprüfung (WAP vs. Befehle: Überlappungen, verstrichene Fristen)
+- Vollständigkeits-Check (referenzierte Beilagen vorhanden?)
+- Konsistenz-Check (Widersprüche zwischen den Befehlen)
+- Logik-Check (physische Machbarkeit: Kdt an 3 Orten gleichzeitig?)
+- Informationslücken (was braucht meine Einheit, wo anfordern?)
+- Sicherheitsrelevante Prüfungen (Bedrohungsstufen, ROE, Alarmorg)
+**Output:** `00_dossier_check.md` mit Ampel-Bewertung (🔴/🟡/🟢)
+**Status:** Template erstellt, noch nicht in INDEX.yaml gewired
 
----
+### FR-002: Auftragsanalyse als fixes Produkt — P0
+**Beschreibung:** Die BFE 5.4.1 Auftragsanalyse (fixe 4-Zeilen-Tabelle) muss IMMER produziert werden.
+**Tabelle:** Bedeutung der Aufgabe | Erwartete Leistung | Handlungsspielraum | Unterstützung
+**Spalten:** Aussagen | Erkenntnisse | Konsequenzen (Mittel, Räume, Zeit, Info — muss zeichenbar sein!)
+**Status:** ✅ In role.md, analyse.md und CHEAT_SHEET.md verankert. Output: `15_auftragsanalyse.md`
 
-## Iteration 7 — De-Anonymization Quality — Done ✅ (2026-03-25)
+### FR-003: Interaktive Optionen bei KDT ENTSCHEID — P1
+**Beschreibung:** Claude soll bei jeder Entscheidung 2-3 konkrete Optionen (A, B, C) mit Empfehlung zeigen. Kdt sagt nur "A" oder "B mit Anpassung X".
+**Status:** ✅ In rules.md verankert (mit Beispiel). Wird bei nächstem `project generate` automatisch im System Prompt sein.
 
-- B-023: De-Anonymize Filenames ([PERSON_005].md → Brüngger_Xenia.md) ✅
-- B-024: Obsidian Wiki-Link Compatibility ([[PERSON_005]] → [[Brüngger_Xenia|Xenia BRÜNGGER]]) ✅
-- B-025: In-Place De-Anonymization (--in-place flag with .milanon_backup/) ✅
+### FR-004: DOCX Writer Rewrite — P1
+**Beschreibung:** Der DOCX Writer ist zu simpel für den komplexen Markdown den Claude produziert. Braucht:
+- Markdown Bold/Italic → DOCX Runs mit Bold/Italic
+- HTML-Kommentare (`<!-- -->`) ausblenden oder als Hervorhebung
+- Blockquotes → eingerückter Text oder spezieller Style
+- Multi-Spalten-Tabellen (nicht nur 2-spaltig)
+- Aufträge-Tabelle (Pt 3) als spezielle Nx2-Tabelle mit Einheit links + Bullets rechts
+- Absatzabstände korrekt
+- `---` als Section Break oder ignorieren
+**Aufwand:** L (Opus, 4-6h)
 
----
+### FR-005: PNG/Bilder in Claude Project Knowledge — P2
+**Beschreibung:** WAP-Seiten und Karten als PNG in die Knowledge Files des Claude Projects aufnehmen. Claude kann Bilder lesen und die Terminplanung aus dem WAP direkt in die Analyse einfliessen lassen.
+**Implementierung:** `--include-images` Flag auf `project generate`
+**Status:** ✅ Done (Paket L)
 
-## Iteration 8 — GUI Enhancements — Done ✅ (2026-03-25)
+### FR-006: Dossier als Input für Project Generate — P0
+**Beschreibung:** `milanon project generate --input test_output/anon/` soll das anonymisierte Dossier automatisch in den `knowledge/` Ordner kopieren.
+**Status:** ✅ Done (Paket L)
 
-- B-026: Embed Images Checkbox on Anonymize Page ✅
-- B-027: LLM Workflow Page (3 tabs: Pack, Work with LLM, Unpack) ✅
+### FR-007: One-Shot Full 5+2 Prompt — P2
+**Beschreibung:** Ein einziger Mega-Prompt der den gesamten 5+2-Prozess in einem Shot durchführt (ohne interaktive Schritte). Nützlich für Batch-Verarbeitung oder wenn der Kdt keine Zeit für interaktives Review hat.
+**Trade-off:** Weniger Kdt-Kontrolle, aber schneller.
 
----
+### FR-008: Vault-Export als ZIP — P2
+**Beschreibung:** `milanon dossier assemble` sammelt alle Produkte (Befehle, Beilagen, EP) und erstellt ein nummeriertes ZIP-Dossier wie es der Bat Kdt erwartet.
+**Struktur:** 000_Allg_Bf.docx, 100_Ei_Bf.docx, 200_Wachtdienst_Bf.docx, etc.
 
-## Iteration 9 — Military Reference Data (Epic E13) — Done ✅ (2026-03-25)
+### FR-009: Starter Kit für andere Kdt — P3
+**Beschreibung:** `milanon starter-kit export` erstellt ein PII-freies Paket mit Doktrin, Templates, Config das an andere Kdt im Bat verteilt werden kann. `milanon starter-kit import` importiert es.
 
-- B-028: Consolidate Redundant Data Files (swiss_military_ranks.md deprecated, CSV extended with parent/level) ✅
-- B-029: CSV as Source of Truth (military_patterns.py reads from CSV, fallback to hardcoded) ✅
-- B-030: Concrete Swiss Army Formations (~100 units with hierarchy: Kdo Op → Ter Div → Bat → Kp) ✅
-- B-031: Hierarchy-Aware Context Generator (full command chain, siblings, children from DB) ✅
+### FR-010: Claude Desktop MCP Integration — P3
+**Beschreibung:** Claude Desktop kann über MCP direkt auf das Filesystem zugreifen. MilAnon könnte als MCP-Server fungieren und Claude Desktop die Befehle direkt ausführen lassen (anonymize, pack, export) ohne Terminal.
 
----
+### FR-011: Desktop App (Electron/Tauri) — P3
+**Beschreibung:** Drag & Drop PDF → 5+2 durchklicken → DOCX raus. Kein Terminal nötig. Das Unicorn-Produkt.
 
-## Iteration 10 — Self-Improving Recognition — Done ✅ (2026-03-25)
+### FR-012: Erkennung Strassennamen ohne Suffix — P2
+**Beschreibung:** Adressen wie "Fesenacker 3", "Tumma 9", "Falken 3" werden nicht erkannt weil sie nicht auf "-strasse", "-weg" etc. enden. Pattern: `[A-Z][a-z]+\s+\d{1,3}` in der Nähe von Personendaten.
 
-- B-010: Post-Anonymization Review Loop (scan for ALLCAPS/Titlecase candidates, interactive confirmation, auto-add to DB) ✅
-- CLI: `milanon review` command with --auto-add and --dry-run flags ✅
-
----
-
-## Iteration 11 — LLM Workflow Automation (Epic E10) — Done ✅ (2026-03-25)
-
-- E10.1: Pack CLI (`milanon pack --template obsidian-notes --input anon/ --unit "Inf Kp 56/1"`) ✅
-- E10.2: Templates (4 built-in: obsidian-notes, befehl-entwurf, analyse, frei + custom ~/.milanon/templates/) ✅
-- E10.3: Unpack CLI (`milanon unpack --clipboard --output vault/` with split support) ✅
-- E10.4: GUI Integration (Pack Builder + Unpack in LLM Workflow page) ✅
-
----
-
-## Documentation & Polish — Done ✅ (2026-03-25)
-
-- Version bump 0.1.0 → 0.3.0 ✅
-- CHANGELOG.md v0.3.0 section ✅
-- README.md updated (all CLI commands, features, Git URL) ✅
-- CLAUDE.md updated ✅
-- SESSION_HANDOVER.md created ✅
-- CLI colored output + ref data in db stats ✅
-- Stale files cleaned up ✅
-
----
-
-## Still Open 🔴
-
-## Iteration 5 — EINHEIT Alias System
-
-## B-018: Military Unit Alias Table (P2) 🔴
-
-**Problem:** Multiple placeholders for same unit due to naming variants ("Inf Ustü Kp 56/4" vs "Inf Ustü Kp 56"). With E13 hierarchy data now in the DB, this could leverage the parent-child relationships for automatic alias resolution.
-
-**Commit:** `feat(mapping): military unit alias table for duplicate EINHEIT resolution`
-
----
-
-## Iteration 6 — Incremental Processing Improvements
-
-## B-019: Clean Up Orphaned Output Files (P2) 🔴
-
-`--clean` flag to remove output files whose source input was deleted/renamed.
-
-## B-020: Entity Count Total Across All Outputs (P3) 🔴
-
-Show total entity count across all tracked files, not just current batch.
-
-## B-021: Detect Renamed Files via Content Hash (P3) 🔴
-
-Reuse existing output when a file is renamed but content is identical.
+### FR-013: Erkennung Einzelnamen ohne Rang — P2
+**Beschreibung:** Vor-/Nachnamen die ohne Rang-Prefix auftreten (z.B. in Adresslisten-Tabellen) werden nicht erkannt. Lösung: Kontext-basierte Erkennung — wenn in einer Tabelle mit AHV-Nr, Telefon, PLZ steht, sind Wörter in bestimmten Spalten sehr wahrscheinlich Namen.
 
 ---
 
-## Iteration 4b — Recognition Gaps
+## EPICS — Status nach E2E-Test
 
-## B-015: International Phone Numbers (P2) 🔴
+### Phase 1: Core Engine (v0.3.0) — ✅ DONE
+520 Tests. Alle 13 CLI Commands. 5 GUI Pages.
 
-Generic pattern for +49, +33, +43 etc. At least one German number found in real-world test.
+### Phase 2: Doctrine + Workflows (v0.5.0) — ✅ CODE COMPLETE
 
-## B-016: c/o Name Detection in Address Fields (P2) 🔴
+| Epic | Status | Tests | Offene Bugs |
+|---|---|---|---|
+| E14: Doctrine KB | ✅ Done | 14 Extracts generiert | — |
+| E15: 5+2 Workflows | ✅ Done (3 Workflows + Infra) | 672+ Tests | BUG-018 (Rich Output) |
+| E16: Claude Project Generator | ✅ Done (Basis) | 5 Tests | BUG-014 bis BUG-017 (Paket L) |
 
-"c/o Walter Fanger" pattern → PERSON entity with confidence 0.8.
+### Phase 3: DOCX Pipeline (v0.7.0) — 🔧 PARTIAL
 
-## B-017: Near-AHV Warning for Transposed Digits (P3) 🔴
+| Epic | Status | Offene Bugs |
+|---|---|---|
+| E17: DOCX Export | 🔧 Funktional aber nicht production-ready | BUG-005 bis BUG-011 (Writer Rewrite) |
 
-Detect 765.xxxx.xxxx.xx (transposed 756) and emit warning without anonymizing.
+### Phase 4: Quality + Polish (v0.8.0) — ❌ OPEN
+
+| Feature | Prio | Status |
+|---|---|---|
+| FR-001: Dossier Quality Check | P0 | Template erstellt, nicht gewired |
+| FR-004: DOCX Writer Rewrite | P1 | Mega-Prompt nötig |
+| FR-012: Strassennamen-Erkennung | P2 | Open |
+| FR-013: Einzelnamen-Erkennung | P2 | Open |
+| GUI Overhaul | P1 | 🔧 Paket G läuft |
+
+### Phase 5: Distribution (v1.0) — ❌ OPEN
+
+| Feature | Prio | Status |
+|---|---|---|
+| FR-008: Dossier Assembly ZIP | P2 | Open |
+| FR-009: Starter Kit | P3 | Open |
+| FR-010: MCP Integration | P3 | Open |
+| FR-011: Desktop App | P3 | Open |
 
 ---
 
-## Epic E10 — Remaining Items
+## ERKENNTNISSE AUS E2E-TEST (25.03.2026)
 
-## E10.5: Update Template — Preserve User Edits (P2) 🔴
+### Der Einsatzbefehl war nicht wirklich ein WK-Befehl
+Claude hat einen Ei Bf für die Kp Übungen "DIFESA" und "ATTACO" geschrieben — das ist ein Ausbildungsbefehl für eine spezifische Übung, kein WK-Gesamtbefehl. Was der Kdt tatsächlich braucht ist ein **Kp-Dossier** mit mehreren Befehlen:
 
-Template that instructs Claude to merge updated data with existing vault content without losing manual edits. Critical for the Round-Trip workflow.
+| Dok | Befehl | Wann | Status |
+|---|---|---|
+| 000 | Allgemeiner Befehl (Dienstbetrieb, Ordnung, Sicherheit) | Vor Einrücken | Template vorhanden, nicht getestet |
+| 100 | Befehl Ausbildung KVK | KVK-Woche | Fehlt als Workflow |
+| 200 | Befehl Erstausbildung Trp | Wo 1 | Fehlt als Workflow |
+| 300 | Wachtdienstbefehl | Permanent | Template vorhanden, nicht getestet |
+| 500 | Ei Bf Kp Ü "DIFESA" (Vtg) | Wo 2 | Getestet — Output war OK aber gemischt mit "ATTACO" |
+| 501 | Ei Bf Kp Ü "ATTACO" (Ag) | Wo 2-3 | Fehlt als separater Befehl |
+| EP1 | EP Halten Standort | Permanent | Fehlt als Workflow |
+| EP2 | EP Kampf Interessenraum | Permanent | Fehlt als Workflow |
+
+**Erkenntnis:** Der Workflow `ei-bf` muss klärer spezifizieren WELCHER Befehl geschrieben wird. Der Prompt muss den Kdt fragen: "Welchen Befehl willst du jetzt schreiben?" statt einfach "den Einsatzbefehl".
+
+**TODO:** Layer 4 Template `ei-bf.md` überarbeiten — Optionen anbieten (Allg Bf, Ausb Bf KVK, Erstausb, Kp Ü Vtg, Kp Ü Ag) oder als separate Workflows aufteilen.
 
 ---
 
-## Future Ideas (P3)
+## NÄCHSTE SCHRITTE (Prioritätsreihenfolge)
 
-- **B-100**: NLP-based entity recognition (spaCy) for unknown names
-- **B-101**: Fuzzy matching for typos
-- **B-102**: Image OCR in DOCX/PDF for embedded text
-- **B-103**: Manual entity management — edit/delete via GUI
-- **B-104**: Reporting & Audit trail
-- **B-105**: Import summary with delta info
-- **B-106**: GUI Finder dialog for folder/file selection (tkinter.filedialog)
-- **B-107**: --exclude pattern for anonymize
-- **B-108**: CLI UX polish — ASCII banner, Kali-style terminal
+1. ✅ **Paket L mergen** (Project Generator Fix) — Done
+2. **Paket G mergen** (GUI Overhaul) — Branch ready
+3. **Alle Feature-Branches mergen** → main, `git tag v0.5.0`, `git push --tags`
+4. **FR-001 in INDEX.yaml wiren** (Dossier Check Workflow) — Template vorhanden
+5. **FR-004: DOCX Writer Rewrite** (Opus Mega-Prompt, ~4h)
+6. **Manueller Test mit echtem Bat Dossier als Claude Project** (31.03)

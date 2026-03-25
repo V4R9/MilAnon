@@ -1,12 +1,12 @@
-# MilAnon — Product Roadmap v2
+# MilAnon — Product Roadmap v3
 
 > Central Concept: **5+2 Aktionsplanungsprozess** (BFE 52.080 Kap 5)
 > Core Architecture: Cloud Intelligence + Local Security + Local DOCX Generation
-> Last updated: 2026-03-25 (Session: Deep Doctrine + Berrm + Template Analysis)
+> Last updated: 2026-03-25 (v0.5.0 code complete — all E14/E15/E16 done, E17 partial)
 
 ---
 
-## Architecture Decisions (this session)
+## Architecture Decisions
 
 | ADR | Decision | Impact |
 |---|---|---|
@@ -20,128 +20,137 @@
 
 ## Phase 1: Core Engine — DONE ✅ (v0.3.0)
 
-520+ tests, 13 CLI commands, 5 GUI pages. See [BACKLOG.md](BACKLOG.md) for details.
+648 tests, 17 CLI commands, 6 GUI pages. Full anonymize→validate→deanonymize round-trip.
 
 ---
 
-## Phase 2: Doctrine + 5+2 Workflows (v0.5.0 — April 2026)
+## Phase 2: Doctrine + 5+2 Workflows — DONE ✅ (v0.5.0)
 
-### Epic E14: Doctrine Knowledge Base
+### Epic E14: Doctrine Knowledge Base ✅
 
-| ID | Story | Size | Prio | Status |
-|---|---|---|---|---|
-| US-14.1 | Store 11 doctrine files as .md in data/doctrine/ | S | P0 | ✅ Done |
-| US-14.2 | INDEX.yaml with workflow→chapter→mode mapping | M | P0 | ✅ Done |
-| US-14.3 | Chapter extraction engine (full .md → relevant sections) | L | P0 | ✅ Done |
-| US-14.4 | `milanon doctrine list` CLI | S | P2 | ✅ Done |
-| US-14.5 | `milanon doctrine extract --workflow analyse` preview | M | P2 | ✅ Done |
-| US-14.6 | Paradigmenwechsel Berrm document in doctrine KB | S | P0 | ✅ Done |
+| ID | Story | Status |
+|---|---|---|
+| US-14.1 | Store 11 doctrine files as .md in data/doctrine/ | ✅ Done |
+| US-14.2 | INDEX.yaml with workflow→chapter→mode mapping | ✅ Done |
+| US-14.3 | Chapter extraction engine (14 extract files in data/doctrine/extracts/) | ✅ Done |
+| US-14.4 | `milanon doctrine list` CLI | ✅ Done |
+| US-14.5 | `milanon doctrine extract --all|--workflow <name>` | ✅ Done |
+| US-14.6 | Paradigmenwechsel Berrm document in doctrine KB | ✅ Done |
 
-### Epic E15: 5+2 Command Workflows
+### Epic E15: 5+2 Command Workflows ✅
 
-**Infrastructure (must-have for ANY workflow):**
+**Infrastructure:**
 
-| ID | Story | Size | Prio | Status |
-|---|---|---|---|---|
-| US-15.I1 | `--workflow` flag on `milanon pack` — reads INDEX.yaml, assembles 5-layer prompt | L | **P0** | ✅ Done |
-| US-15.I2 | 5-Layer System Prompt assembly engine (Role+Context+Doctrine+Task+Rules) | L | **P0** | ✅ Done |
-| US-15.I3 | `--context` flag — include Vault files from previous steps as additional input | M | **P0** | ✅ Done |
-| US-15.I4 | `--mode berrm\|adf` flag — selects skeleton mode markers + doctrine chapters | M | **P0** | ✅ Done |
-| US-15.I5 | `--step 1-5` flag — selects which 5+2 step to execute | S | **P0** | ✅ Done |
-| US-15.I6 | Layer 1 template: `templates/role.md` (static, with TF 17 taktische Kompetenz) | M | **P0** | ✅ Done |
-| US-15.I7 | Layer 5 template: `templates/rules.md` (static, placeholder + KDT ENTSCHEID rules) | S | **P0** | ✅ Done |
+| ID | Story | Status |
+|---|---|---|
+| US-15.I1 | `--workflow` flag on `milanon pack` — reads INDEX.yaml, assembles 5-layer prompt | ✅ Done |
+| US-15.I2 | 5-Layer System Prompt assembly engine (Role+Context+Doctrine+Task+Rules) | ✅ Done |
+| US-15.I3 | `--context` flag — include Vault files from previous steps | ✅ Done |
+| US-15.I4 | `--mode berrm\|adf` flag — mode marker stripping | ✅ Done |
+| US-15.I5 | `--step 1-5` flag — selects 5+2 step (skeleton at step 5) | ✅ Done |
+| US-15.I6 | Layer 1 template: `templates/role.md` (with TF 17 taktische Kompetenz) | ✅ Done |
+| US-15.I7 | Layer 5 template: `templates/rules.md` (placeholder + KDT ENTSCHEID + A/B/C options) | ✅ Done |
 
-**Workflows (content — each is a Layer 4 template):**
+**Workflows:**
 
-| ID | Story | 5+2 Step | Size | Prio | Status |
-|---|---|---|---|---|---|
-| US-15.W1 | **Analyse** — 4-Farben-Initialisierung + Problemerfassung + SOMA + Zeitplan | Step 1 | L | **P0** | ✅ Done |
-| US-15.W2 | **BdL** — AUGEZ-Analyse mit AEK, Konsequenzen ROT/BLAU | Step 2 | L | P1 | Open |
-| US-15.W3 | **Entschluss** — Varianten (ROS), Einsatzgrundsätze-Bewertung, Absicht+Aufträge | Step 3 | L | P1 | Open |
-| US-15.W4 | **Ei Bf** — 5-Punkte-Befehl aus allen Produkten (universal, mode-aware) | Step 5 | L | **P0** | ✅ Done |
-| US-15.W5 | **Wachtdienst** — WAT-konformer Befehl (Berrm: taktische Sicherung) | Full cycle | L | **P0** | ✅ Done |
-| US-15.W6 | **EP Halten** — Eventualplanung Halten Standort | Sub-product | M | P1 |
-| US-15.W7 | **EP Interessenraum** — Eventualplanung Kampf im Interessenraum | Sub-product | M | P1 |
-| US-15.W8 | Dienstbetrieb (Erg Bf im Berrm, Grundbefehl im ADF) | Full cycle | M | P2 |
-| US-15.W9 | Ausbildung (Erg Bf im Berrm, eigener Bf im ADF) | Full cycle | M | P2 |
+| ID | Story | 5+2 Step | Status |
+|---|---|---|---|
+| US-15.W1 | **Analyse** — Problemerfassung + 4-Farben + SOMA + Auftragsanalyse + Zeitplan | Step 1 | ✅ Done |
+| US-15.W2 | **BdL** — AUGEZ-Analyse mit AEK, Konsequenzen ROT/BLAU | Step 2 | ❌ Open |
+| US-15.W3 | **Entschluss** — Varianten (ROS), Absicht+Aufträge | Step 3 | ❌ Open |
+| US-15.W4 | **Ei Bf** — Universal 5-Punkte-Befehl (mode-aware) | Step 5 | ✅ Done |
+| US-15.W5 | **Wachtdienst** — WAT-konformer Befehl (Berrm: taktische Sicherung) | Full cycle | ✅ Done |
+| US-15.W6 | **EP Halten** — Eventualplanung Halten Standort | Sub-product | ❌ Open |
+| US-15.W7 | **EP Interessenraum** — Eventualplanung Kampf im Interessenraum | Sub-product | ❌ Open |
+| FR-001 | **Dossier Check** — Pre-flight Validation (Schritt 0) | Pre-analysis | Template ✅, INDEX.yaml ❌ |
 
 **Skeletons:**
 
-| ID | Story | Size | Prio | Status |
-|---|---|---|---|---|
-| US-15.S1 | Universal 5-Punkte-Befehl skeleton with mode markers | L | P0 | ✅ Done |
-| US-15.S2 | Allgemeiner Befehl skeleton (Dok 000) | M | P0 | ✅ Done |
-| US-15.S3 | Wachtdienstbefehl skeleton (WAT structure) | M | P0 | ✅ Done |
-| US-15.S4 | EP Halten Standort skeleton | S | P1 | Open |
-| US-15.S5 | EP Kampf Interessenraum skeleton | S | P1 | Open |
+| ID | Story | Status |
+|---|---|---|
+| US-15.S1 | Universal 5-Punkte-Befehl skeleton with ADF/Berrm mode markers | ✅ Done |
+| US-15.S2 | Allgemeiner Befehl skeleton (Dok 000) | ✅ Done |
+| US-15.S3 | Wachtdienstbefehl skeleton (WAT structure) | ✅ Done |
+| US-15.S4 | EP Halten Standort skeleton | ❌ Open |
+| US-15.S5 | EP Kampf Interessenraum skeleton | ❌ Open |
+
+### Epic E16: Claude Project Generator ✅
+
+| ID | Story | Status |
+|---|---|---|
+| US-16.1 | `milanon project generate --unit --output` — basic project folder | ✅ Done |
+| US-16.2 | System Prompt assembler (Layer 1+2+5 → SYSTEM_PROMPT.md) | ✅ Done |
+| US-16.3 | Knowledge file merger (doctrine extracts → per-domain files) | ✅ Done |
+| US-16.4 | README.md + CHEAT_SHEET.md (replaced INSTRUCTIONS.md + WORKFLOWS.md) | ✅ Done (Paket L) |
+| US-16.5 | `--input` flag — copy anonymized docs into knowledge/ | ✅ Done (Paket L) |
+| US-16.6 | `--include-images` flag — copy PNG files into knowledge/ | ✅ Done (Paket L) |
 
 ---
 
-## Phase 3: DOCX Pipeline + Claude Projects (v0.7.0 — May 2026)
+## Phase 3: DOCX Pipeline (v0.7.0 — May 2026)
 
 ### Epic E17: Local DOCX Generation (ADR-011)
 
-| ID | Story | Size | Prio | Status |
-|---|---|---|---|---|
-| US-17.1 | `milanon export vault/befehl.md --docx --template befehl_vorlage.docx` | L | P1 | ✅ Done |
-| US-17.2 | Markdown→DOCX style mapping engine (### → "1. Main title", etc.) | L | P1 | ✅ Done |
-| US-17.3 | Aufträge-Tabelle: Nx2 DOCX table (links=Einheit, rechts=Bullet List) | M | P1 | ✅ Done |
-| US-17.4 | `--deanonymize` flag on export — replace [PLACEHOLDER] → cleartext in DOCX | M | P1 | ✅ Done |
-| US-17.5 | Combined: `milanon export --docx --deanonymize` in one step | S | P1 | ✅ Done |
-| US-17.6 | XLSX export for WAP/Personalplanung/Synchronisationsmatrix | M | P2 |
-| US-17.7 | Dossier assembly: `milanon dossier assemble` — all docs, numbered, as ZIP | L | P2 |
-
-### Epic E16: Claude Project Generator
-
-| ID | Story | Size | Prio |
+| ID | Story | Status | Known Bugs |
 |---|---|---|---|
-| US-16.1 | `milanon project generate --unit "Inf Kp 56/1" --output ~/project/` | M | P2 |
-| US-16.2 | System Prompt assembler (Layer 1+2+5 → SYSTEM_PROMPT.md) | M | P2 |
-| US-16.3 | Knowledge file merger (doctrine → per-domain extracts for Project KB) | M | P2 |
-| US-16.4 | INSTRUCTIONS.md + WORKFLOWS.md generator | S | P2 |
+| US-17.1 | `milanon export <file> --docx` | ✅ Done | BUG-005 to BUG-011 |
+| US-17.2 | Markdown→DOCX style mapping engine | ✅ Done | BUG-005, BUG-008, BUG-010 |
+| US-17.3 | Aufträge-Tabelle: Nx2 DOCX table | ✅ Done | BUG-011 |
+| US-17.4 | `--deanonymize` flag on export | ✅ Done | — |
+| US-17.5 | Combined: `--docx --deanonymize` in one step | ✅ Done | — |
+| FR-004 | **DOCX Writer Rewrite** — fix BUG-005 to BUG-011 | ❌ Open (P1, Opus session) | — |
+| US-17.6 | XLSX export for WAP/Personalplanung | ❌ Open | — |
+| US-17.7 | Dossier assembly: all docs numbered as ZIP | ❌ Open | — |
 
 ---
 
-## Phase 4: Sharing + Community (v1.0 — Q3 2026)
+## Phase 4: Quality + Polish (v0.8.0)
 
-### Epic E18: Starter Kit & Onboarding
+| Feature | Prio | Status |
+|---|---|---|
+| FR-001: Dossier Quality Check — wire into INDEX.yaml | P0 | Template done, not wired |
+| FR-004: DOCX Writer Rewrite | P1 | Open |
+| BUG-012: Einzelnamen ohne Rang erkennen | P2 | Open |
+| BUG-013: Strassennamen ohne Suffix erkennen | P2 | Open |
+| BUG-018: Rich Output für `pack --workflow` | P2 | Open |
+| FR-003: Interactive A/B/C Optionen | P1 | ✅ Done (in rules.md) |
+| GUI Overhaul | P1 | ✅ Done (Paket G) |
 
-| ID | Story | Size | Prio |
-|---|---|---|---|
-| US-18.1 | `milanon starter-kit export` (doctrine+templates+config, no PII) | M | P3 |
-| US-18.2 | `milanon starter-kit import` | M | P3 |
-| US-18.3 | Bat-level shared configuration | S | P3 |
+---
+
+## Phase 5: Distribution (v1.0 — Q3 2026)
+
+| Feature | Prio | Status |
+|---|---|---|
+| FR-008: Dossier Assembly ZIP | P2 | Open |
+| FR-009: Starter Kit export/import | P3 | Open |
+| FR-010: Claude Desktop MCP Integration | P3 | Open |
+| FR-011: Desktop App (Electron/Tauri) | P3 | Open |
 
 ---
 
 ## Critical Path for 31.03.2026 (Bat Dossier arrives)
 
-**Must work on Day 1:**
-1. ✅ Anonymization (works today)
-2. ✅ Review Loop (works today)
-3. E14.3 Chapter Extraction — doctrine extracts for prompts
-4. E15.I1-I7 Workflow Infrastructure — `--workflow`, 5-layer prompt, `--mode`, `--context`
-5. E15.W1 Workflow Analyse — first step of the 5+2
+**Must work on Day 1 — ALL DONE ✅:**
+1. ✅ Anonymization (tested with real 70-page dossier, 2795 entities)
+2. ✅ Project Generate (--input, --include-images, README, CHEAT_SHEET)
+3. ✅ Claude.ai Project (Knowledge uploaded, System Prompt working)
+4. ✅ 5+2 Analysis in Claude.ai (4 prompts → 12 documents)
+5. ⚠️ DOCX Export (functional, formatting rough — acceptable for Day 1)
 
-**Must work in Week 1-2:**
-6. E15.W4 Workflow Ei Bf — the primary document
-7. E15.W5 Workflow Wachtdienst — most time-consuming document
-8. E17.1-5 DOCX Export + De-Anonymize — for distribution
-
-**Can wait until WK (June):**
-9. All other workflows (BdL, Entschluss, EP, Dienstbetrieb, Ausbildung)
-10. Claude Project Generator
-11. Starter Kit
+**Must improve in Week 1-2:**
+- FR-004: DOCX Writer Rewrite
+- FR-001: Dossier Check wired into CLI
 
 ---
 
-## Delivery Channels (all use the same core)
+## Delivery Channels
 
 | Channel | Zielgruppe | How it works |
 |---|---|---|
-| **CLI + Clipboard** | Any Kdt | `milanon pack` → paste in Claude.ai → `milanon unpack` |
-| **Claude Code** | Tech-savvy Kdt | Claude Code calls milanon CLI directly, reads/writes Vault |
-| **Claude Desktop + MCP** | Advanced | Claude Desktop accesses filesystem via MCP |
-| **Claude Project** | Less technical Kdt | Pre-built Project with System Prompt + Knowledge |
+| **CLI + Clipboard** | Tech-savvy Kdt | `milanon pack --workflow` → paste in Claude.ai |
+| **Claude Project** | Any Kdt | `project generate` → Upload Knowledge → Claude.ai |
+| **Claude Code** | Developer | Claude Code calls milanon CLI directly via shell |
+| **Claude Desktop + MCP** | Advanced | Claude Desktop accesses filesystem via MCP (future) |
 
-The core flow is always: **Anonymize → LLM writes content → De-anonymize → Local DOCX generation.**
+The core flow is always: **anonymize → project generate → Claude.ai → export --docx**
