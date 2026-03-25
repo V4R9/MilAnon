@@ -3,6 +3,26 @@
 All notable changes to MilAnon are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.2] — 2026-03-25
+
+### Added
+- **US-15.W2: BdL Workflow** — `milanon pack --workflow bdl` for AUGEZ factor analysis (Step 2 of 5+2)
+- **US-15.W3: Entschluss Workflow** — `milanon pack --workflow entschluss` for variant generation + Absicht (Step 3 of 5+2)
+- **6 BFE Skeleton Templates** from official Swiss Army forms:
+  - `010_problemerfassung.md` — IST/SOLL problem analysis matrix (BFE 5.1.2)
+  - `011_leistungsprofil_ppqqzd.md` — Priorität/Produkt/Quantität/Qualität/Zeitpunkt/Dauer (BFE 5.1)
+  - `024_abspracherapport.md` — 33-point coordination meeting checklist (BFE 5.4)
+  - `025_mittelbedarfsrechnung.md` — Resource request table for Bat (BFE 5.4/5.6)
+  - `060_einh_rap_einsatz.md` — 32-point company rapport checklist (BFE Kap 4)
+  - `505_rze.md` — Rasch zusammengestellter Einsatzbefehl / one-page emergency format (BFE 5.7)
+- **Wachtdienst Skeleton enriched** with BFE Vorlage detail:
+  - Posten-specific tables (Einsatzort/Einsatztätigkeit/Einsatzverhalten per post)
+  - Schusswaffengebrauch section (WAT 51.301)
+  - Bedrohungsstufen ALPHA/BRAVO/CHARLIE/DELTA
+  - Wachtübergabe/-ablösung timing table
+
+---
+
 ## [0.6.1] — 2026-03-25
 
 ### Fixed

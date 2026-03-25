@@ -58,8 +58,8 @@
 | ID | Story | 5+2 Step | Status |
 |---|---|---|---|
 | US-15.W1 | **Analyse** — Problemerfassung + 4-Farben + SOMA + Auftragsanalyse + Zeitplan | Step 1 | ✅ Done |
-| US-15.W2 | **BdL** — AUGEZ-Analyse mit AEK, Konsequenzen ROT/BLAU | Step 2 | ❌ Open |
-| US-15.W3 | **Entschluss** — Varianten (ROS), Absicht+Aufträge | Step 3 | ❌ Open |
+| US-15.W2 | **BdL** — AUGEZ-Analyse mit AEK, Konsequenzen ROT/BLAU | Step 2 | ✅ Done |
+| US-15.W3 | **Entschluss** — Varianten (ROS), Absicht+Aufträge | Step 3 | ✅ Done |
 | US-15.W4 | **Ei Bf** — Universal 5-Punkte-Befehl (mode-aware) | Step 5 | ✅ Done |
 | US-15.W5 | **Wachtdienst** — WAT-konformer Befehl (Berrm: taktische Sicherung) | Full cycle | ✅ Done |
 | US-15.W6 | **EP Halten** — Eventualplanung Halten Standort | Sub-product | ❌ Open |
