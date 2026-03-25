@@ -97,12 +97,20 @@ def cli(ctx: click.Context) -> None:
 )
 @click.option("--clean", is_flag=True, help="Remove output files that no longer have a corresponding input file.")
 @click.option("--include-spreadsheets", "include_spreadsheets", is_flag=True, help="Also process .csv and .xlsx files (skipped by default — use 'milanon db import' for PISA/name-list CSVs).")
+@click.option(
+    "--level", "-l",
+    type=click.Choice(["dsg", "full"], case_sensitive=False),
+    default=None,
+    help="Anonymization level: 'dsg' (personal data only, default) or 'full' (all entities).",
+)
 def anonymize(
     input_path: str, output: str, recursive: bool, force: bool, dry_run: bool,
-    embed_images: bool, clean: bool, include_spreadsheets: bool,
+    embed_images: bool, clean: bool, include_spreadsheets: bool, level: str | None,
 ) -> None:
     """Anonymize documents by replacing sensitive entities with placeholders."""
     logging.basicConfig(level=logging.INFO, format="%(message)s")
+    resolved_level = level or _get_config_value("level") or "dsg"
+
     with _make_repo() as repo:
         use_case = _make_anonymize_use_case(repo)
 
@@ -115,11 +123,14 @@ def anonymize(
             embed_images=embed_images,
             clean=clean,
             include_spreadsheets=include_spreadsheets,
+            level=resolved_level,
         )
 
     prefix = "[dim][dry-run][/dim] " if dry_run else ""
+    level_display = "[green]DSG[/green] (personal data)" if resolved_level == "dsg" else "[yellow]FULL[/yellow] (all entities)"
     errors_val = f"[red bold]{result.files_error}[/red bold]" if result.files_error > 0 else f"[green]{result.files_error}[/green]"
     rows = [
+        (f"{prefix}Level", level_display),
         (f"{prefix}Scanned", str(result.files_scanned)),
         (f"{prefix}New", f"[green]{result.files_new}[/green]"),
         (f"{prefix}Changed", f"[yellow]{result.files_changed}[/yellow]"),
@@ -460,6 +471,12 @@ def context(unit_name: str | None, output_path: str) -> None:
 @click.option("--output", "-o", "output_path", default=None, type=click.Path(), help="Write pack to this file in addition to clipboard.")
 @click.option("--no-clipboard", is_flag=True, help="Do not copy to clipboard.")
 @click.option("--list-templates", "list_templates_flag", is_flag=True, help="Show available templates and exit.")
+@click.option(
+    "--level", "-l",
+    type=click.Choice(["dsg", "full"], case_sensitive=False),
+    default=None,
+    help="Anonymization level: 'dsg' (personal data only) or 'full' (all entities). Shown in pack metadata.",
+)
 def pack(
     input_path: str,
     template_name: str,
@@ -472,6 +489,7 @@ def pack(
     output_path: str | None,
     no_clipboard: bool,
     list_templates_flag: bool,
+    level: str | None,
 ) -> None:
     """Build a prompt pack (context + template + docs) and copy to clipboard."""
     from milanon.usecases.pack import PackUseCase, list_templates
@@ -539,11 +557,13 @@ def pack(
                 print_error(str(exc))
                 sys.exit(1)
 
+    resolved_pack_level = level or _get_config_value("level") or "dsg"
     token_estimate = result.total_chars // 4
     ctx_pct = token_estimate * 100 // 200_000
     print_result_table([
         ("Workflow", workflow or template_name),
         ("Mode", (mode or _get_config_value("mode") or "berrm") if workflow else "classic"),
+        ("Level", resolved_pack_level.upper()),
         ("Step", str(step) if step else "—"),
         ("Context", "[green]✅ included[/green]" if result.context_included else "[dim]—[/dim]"),
         ("Documents", str(result.documents_included)),

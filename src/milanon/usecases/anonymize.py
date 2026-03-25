@@ -16,7 +16,7 @@ from milanon.adapters.writers.docx_writer import DocxWriter
 from milanon.adapters.writers.eml_writer import EmlWriter
 from milanon.adapters.writers.markdown_writer import MarkdownWriter
 from milanon.domain.anonymizer import Anonymizer
-from milanon.domain.entities import DocumentFormat
+from milanon.domain.entities import AnonymizationLevel, DocumentFormat, filter_entities_by_level
 from milanon.domain.recognition import RecognitionPipeline
 
 logger = logging.getLogger(__name__)
@@ -42,6 +42,7 @@ class ProcessingOptions:
     dry_run: bool = False
     embed_images: bool = False
     include_spreadsheets: bool = False
+    level: AnonymizationLevel = AnonymizationLevel.DSG
 
 
 @dataclass
@@ -138,6 +139,7 @@ class AnonymizeUseCase:
         embed_images: bool = False,
         clean: bool = False,
         include_spreadsheets: bool = False,
+        level: str | AnonymizationLevel = AnonymizationLevel.DSG,
     ) -> AnonymizeResult:
         """Anonymize documents in input_path.
 
@@ -150,13 +152,16 @@ class AnonymizeUseCase:
             embed_images: If True, rasterize visual PDF pages and embed as PNG.
             clean: If True, remove output files with no corresponding input file.
             include_spreadsheets: If True, also process .csv and .xlsx files.
+            level: Anonymization level — 'dsg' (personal data) or 'full' (all entities).
 
         Returns:
             AnonymizeResult with processing statistics.
         """
+        resolved_level = AnonymizationLevel(level) if isinstance(level, str) else level
         options = ProcessingOptions(
             force=force, dry_run=dry_run, embed_images=embed_images,
             include_spreadsheets=include_spreadsheets,
+            level=resolved_level,
         )
         result = AnonymizeResult()
 
@@ -260,6 +265,9 @@ class AnonymizeUseCase:
 
         # Recognize
         entities = self._pipeline.recognize(document)
+
+        # Filter by anonymization level (DSG = personal data only, FULL = all)
+        entities = filter_entities_by_level(entities, options.level)
         result.entities_found += len(entities)
 
         # Anonymize
