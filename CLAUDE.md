@@ -1,7 +1,7 @@
 # CLAUDE.md — MilAnon Project Context
 
 > This file provides context for Claude Code sessions.
-> Last updated: 2026-03-25 (v0.5.0 — Code complete: Doctrine KB, 5+2 Workflows, DOCX Export, Claude Project Generator)
+> Last updated: 2026-03-26 (v0.6.4 — DOCX Befehl Writer fixes: heading detection, PDF artifacts, inline formatting)
 
 ## What is this project?
 
@@ -21,8 +21,8 @@ The primary flow is: **anonymize → project generate → Claude.ai → export -
 - **DOCX:** python-docx
 - **XLSX:** openpyxl
 - **EML:** email (stdlib)
-- **Testing:** pytest (648+ tests)
-- **Linting:** ruff
+- **Testing:** pytest (725+ tests)
+- **Linting:** ruff (rules: E, F, I, N, W, UP, B, SIM — line-length 100)
 
 ## Architecture
 
@@ -269,8 +269,12 @@ Uses `befehl_vorlage.docx` as base template (official CH Armee styles).
 | `**bold**` / `*italic*` | Bold/Italic Runs |
 | `> blockquote` | `Text Indent` (italic) |
 | `| table |` | DOCX Table (any column count) |
+| `1. Orientierung` | `1. Main title` (auto-detected from PDF) |
+| `1.1. Grundlagen` | `1.1 Title` (auto-detected from PDF) |
+| `1.2.1. Xyz` | `1.1.1 Title` (auto-detected from PDF) |
 | `---` | Page break |
 | `<!-- comment -->` | Stripped |
+| PDF artifacts | Stripped (page footers, filenames, page numbers) |
 | Other text | `Text Indent` |
 
 ## Claude Project Generator
@@ -361,11 +365,11 @@ milanon gui [--port 8501]
 
 ## Current Phase
 
-v0.6.3 — GUI Alignment Sprint complete. All CLI features available in GUI.
+v0.6.4 — DOCX Befehl Writer bug fixes (BUG-019/020/021).
 
 **Phase 1 (Core Engine) — DONE** (v0.3.0): Anonymization, de-anonymization, GUI, round-trip.
 **Phase 2 (Doctrine + 5+2 Workflows) — DONE** (v0.5.0-v0.6.2): E14, E15 (5 workflows + 6 BFE skeletons), E16 complete.
-**Phase 3 (DOCX Pipeline) — DONE** (v0.6.1): FR-004 Writer Rewrite with official CH Armee styles.
+**Phase 3 (DOCX Pipeline) — DONE** (v0.6.1-v0.6.4): FR-004 Writer Rewrite + BUG-019/020/021 Befehl Writer fixes.
 **Phase 4 (Quality) — ~90% DONE**: FR-017, CI/CD, FR-001, FR-004, BUG-018, GUI Alignment all done. Open: BUG-012/013.
 
 See docs/BACKLOG.md for known bugs and feature requests.

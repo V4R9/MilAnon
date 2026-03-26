@@ -3,6 +3,16 @@
 All notable changes to MilAnon are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.4] — 2026-03-26
+
+### Fixed
+- **BUG-019: Numbered heading recognition** — `DocxBefehlWriter` now detects numbered section patterns from PDF extraction (`1. Orientierung` → `1. Main title`, `1.1. Grundlagen` → `1.1 Title`, `1.2.1. Erhaltener Auftrag` → `1.1.1 Title`). Capital letter heuristic prevents false positives with ordered list items.
+- **BUG-020: PDF artifact stripping** — Page footers, source `.docx` filenames, and standalone page numbers from PDF extraction are automatically filtered out before DOCX rendering.
+- **BUG-021: Inline formatting** — `DocxBefehlWriter` now renders `**bold**`, `*italic*`, `***bold+italic***`, and `` `code` `` as proper DOCX runs (ported from `DocxWriter`).
+- **Additional improvements** — `DocxBefehlWriter` now handles horizontal rules (`---` → page breaks), blockquotes (`>` → italic), HTML comment stripping, and MILANON legend block stripping.
+
+---
+
 ## [0.6.3] — 2026-03-25
 
 ### Fixed

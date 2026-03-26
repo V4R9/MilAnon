@@ -1,6 +1,6 @@
 # MilAnon — Backlog
 
-> Last updated: 2026-03-25 (v0.6.3 — GUI Alignment Sprint)
+> Last updated: 2026-03-26 (v0.6.4 — DOCX Befehl Writer Bug Fixes)
 > Prioritization: P0 = Blocker for 31.03, P1 = Important for WK, P2 = Nice-to-have, P3 = Future
 > Status: ✅ Done, 🔧 In Progress, ❌ Open
 
@@ -28,6 +28,9 @@
 | BUG-016 | Project Generator: CHEAT_SHEET.md missing from output | 🟡 | ✅ Fixed (Paket L) |
 | BUG-017 | Project Generator: PNGs (WAP) missing from output | 🟡 | ✅ Fixed (Paket L) |
 | BUG-018 | Rich CLI output missing on `pack --workflow` (shows old format instead of Rich panels) | 🟡 | ✅ Fixed (v0.6.0) |
+| BUG-019 | DOCX Befehl Writer: Numbered headings (`1. Orientierung`, `1.1. Grundlagen`, `1.2.1. Xyz`) from PDF extraction not detected — rendered as plain text | 🔴 | ✅ Fixed (v0.6.4) |
+| BUG-020 | DOCX Befehl Writer: PDF page artifacts (footers, filenames, page numbers) leak into DOCX output | 🟡 | ✅ Fixed (v0.6.4) |
+| BUG-021 | DOCX Befehl Writer: No inline formatting (`**bold**`, `*italic*`) — Markdown syntax stays as raw text | 🟡 | ✅ Fixed (v0.6.4) |
 
 ---
 
