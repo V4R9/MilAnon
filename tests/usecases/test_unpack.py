@@ -1,12 +1,12 @@
 """Tests for the Unpack use case."""
 
+
 import pytest
-from pathlib import Path
 
 from milanon.adapters.repositories.sqlite_repository import SqliteMappingRepository
+from milanon.domain.deanonymizer import DeAnonymizer
 from milanon.domain.entities import EntityType
 from milanon.domain.mapping_service import MappingService
-from milanon.domain.deanonymizer import DeAnonymizer
 from milanon.usecases.unpack import UnpackUseCase
 
 
@@ -91,7 +91,7 @@ class TestUnpackFromFile:
         input_file.write_text("[ORT_001] is the location.", encoding="utf-8")
         output_dir = tmp_path / "other"
 
-        result = uc.execute(
+        uc.execute(
             output_dir=output_dir,
             input_file=input_file,
             in_place=True,

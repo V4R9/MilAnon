@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from milanon.adapters.parsers.docx_parser import DocxParser
 from milanon.domain.entities import DocumentFormat
 from milanon.domain.protocols import DocumentParser

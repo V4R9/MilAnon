@@ -21,7 +21,6 @@ from pathlib import Path
 from docx import Document
 from docx.shared import Cm
 
-
 # Regex to detect Markdown table rows (pipe-delimited)
 _TABLE_ROW_RE = re.compile(r"^\|(.+)\|$")
 # Separator row in Markdown tables (e.g. |---|---|)
@@ -155,9 +154,6 @@ class DocxBefehlWriter:
                 auftrag_lines = [auftrag_text]
 
             for line_idx, aline in enumerate(auftrag_lines):
-                if line_idx == 0:
-                    p = right_cell.paragraphs[0]
-                else:
-                    p = right_cell.add_paragraph()
+                p = right_cell.paragraphs[0] if line_idx == 0 else right_cell.add_paragraph()
                 p.text = aline
                 p.style = doc.styles["Bullet List 1"]

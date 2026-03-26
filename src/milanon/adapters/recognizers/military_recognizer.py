@@ -60,7 +60,6 @@ class MilitaryRecognizer:
         entities: list[DetectedEntity] = []
         for match in RANK_NAME_PATTERN.finditer(text):
             rank_value = match.group(1)
-            name_value = match.group(2).strip()
 
             rank_start = match.start(1)
             rank_end = match.end(1)
@@ -128,7 +127,7 @@ class MilitaryRecognizer:
     def _detect_functions(self, text: str) -> list[DetectedEntity]:
         """Detect standalone function designations like 'Bat Kdt', 'Kdt Stv'."""
         entities: list[DetectedEntity] = []
-        for fn_value, pattern in _FUNCTION_PATTERNS:
+        for _fn_value, pattern in _FUNCTION_PATTERNS:
             for match in pattern.finditer(text):
                 entities.append(
                     DetectedEntity(

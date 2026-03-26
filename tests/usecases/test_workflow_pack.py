@@ -59,7 +59,9 @@ def dirs(tmp_path) -> dict:
     (templates_dir / "rules.md").write_text("LAYER_5_RULES_CONTENT", encoding="utf-8")
 
     # Workflow template (Layer 4) — includes {user_unit} placeholder for Bug 1 test
-    (workflows_dir / "test-wf.md").write_text("LAYER_4_TASK_CONTENT for {user_unit}", encoding="utf-8")
+    (workflows_dir / "test-wf.md").write_text(
+        "LAYER_4_TASK_CONTENT for {user_unit}", encoding="utf-8"
+    )
     (workflows_dir / "no-doctrine.md").write_text("LAYER_4_NODOCTRINE", encoding="utf-8")
 
     # Doctrine extract (Layer 3)
@@ -392,7 +394,7 @@ class TestClipboard:
         input_dir.mkdir()
         (input_dir / "doc.md").write_text("Doc.", encoding="utf-8")
 
-        with patch("milanon.usecases.workflow_pack._copy_to_clipboard") as mock_clip:
+        with patch("milanon.usecases.workflow_pack._copy_to_clipboard"):
             uc.execute(
                 workflow="test-wf",
                 input_path=input_dir,

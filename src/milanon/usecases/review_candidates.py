@@ -92,7 +92,7 @@ class ReviewCandidatesUseCase:
             pass
 
         # Common German/military words that are NOT names
-        _COMMON_WORDS = {
+        _common_words = {
             "ALLE", "ODER", "UND", "FÜR", "MIT", "VON", "DER", "DIE", "DAS",
             "NICHT", "SIND", "WIRD", "WURDE", "KANN", "MUSS", "SOLL", "HAT",
             "HABEN", "WERDEN", "SEIN", "NACH", "AUS", "BEI", "ZUR", "ZUM",
@@ -121,7 +121,7 @@ class ReviewCandidatesUseCase:
             "ELBONIA", "ELBONIAN",  # Fictional country from exercises
             "FEP", "ELTI",  # Fictional factions
         }
-        self._exclusions.update(_COMMON_WORDS)
+        self._exclusions.update(_common_words)
 
         # Add all existing DB values (already anonymized — no need to flag)
         try:
@@ -248,10 +248,7 @@ class ReviewCandidatesUseCase:
         for candidate in candidates:
             value = candidate.value
             # Determine entity type based on case
-            if value.isupper():
-                entity_type = EntityType.NACHNAME
-            else:
-                entity_type = EntityType.VORNAME
+            entity_type = EntityType.NACHNAME if value.isupper() else EntityType.VORNAME
 
             # Check if already exists before creating
             already_exists = self._mapping_service.has_mapping(entity_type, value)

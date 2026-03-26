@@ -96,10 +96,7 @@ class Anonymizer:
                 )
 
         legend = self._build_legend(placeholder_map, entities)
-        if legend:
-            content = _LEGEND_HEADER_TEMPLATE.format(entries=legend) + text
-        else:
-            content = text
+        content = _LEGEND_HEADER_TEMPLATE.format(entries=legend) + text if legend else text
 
         return AnonymizedDocument(
             source_path=document.source_path,

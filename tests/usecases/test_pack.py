@@ -1,7 +1,7 @@
 """Tests for the Pack use case."""
 
+
 import pytest
-from pathlib import Path
 
 from milanon.usecases.pack import PackUseCase, list_templates
 

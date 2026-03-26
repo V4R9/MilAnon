@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from milanon.domain.entities import EntityMapping, EntityType
@@ -94,7 +95,7 @@ _normalize = normalize_value
 
 def _now_iso() -> str:
     """Return current UTC time as ISO 8601 string."""
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 class SqliteMappingRepository:
@@ -128,10 +129,8 @@ class SqliteMappingRepository:
             "ALTER TABLE ref_military_units ADD COLUMN category TEXT DEFAULT ''",
         ]
         for sql in migrations:
-            try:
+            with contextlib.suppress(sqlite3.OperationalError):
                 self._conn.execute(sql)
-            except sqlite3.OperationalError:
-                pass  # Column already exists
         self._conn.commit()
 
     def close(self) -> None:
@@ -140,20 +139,11 @@ class SqliteMappingRepository:
             self._conn.close()
             self._conn = None
 
-    def __enter__(self) -> "SqliteMappingRepository":
+    def __enter__(self) -> SqliteMappingRepository:
         """Support use as a context manager."""
         return self
 
     def __exit__(self, exc_type: object, exc_val: object, exc_tb: object) -> bool:
-        """Close connection on context manager exit."""
-        self.close()
-        return False
-
-    def __enter__(self):
-        """Support use as context manager."""
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
         """Close connection on context manager exit."""
         self.close()
         return False
@@ -368,7 +358,8 @@ class SqliteMappingRepository:
     def get_unit_by_abbreviation(self, abbreviation: str) -> dict | None:
         """Look up a concrete unit by its abbreviation."""
         row = self._conn.execute(
-            "SELECT * FROM ref_military_units WHERE abbreviation = ? AND unit_type = 'concrete_unit'",
+            "SELECT * FROM ref_military_units"
+            " WHERE abbreviation = ? AND unit_type = 'concrete_unit'",
             (abbreviation,),
         ).fetchone()
         return dict(row) if row else None
@@ -390,7 +381,7 @@ class SqliteMappingRepository:
             if row is None:
                 break
             chain.append(dict(row))
-            current = row["parent_unit"] if "parent_unit" in row.keys() else ""
+            current = dict(row).get("parent_unit", "")
         chain.reverse()  # root first
         return chain
 
@@ -412,7 +403,8 @@ class SqliteMappingRepository:
             return []
         parent = row["parent_unit"]
         rows = self._conn.execute(
-            "SELECT * FROM ref_military_units WHERE parent_unit = ? AND full_name != ? ORDER BY abbreviation",
+            "SELECT * FROM ref_military_units"
+            " WHERE parent_unit = ? AND full_name != ? ORDER BY abbreviation",
             (parent, full_name),
         ).fetchall()
         return [dict(r) for r in rows]

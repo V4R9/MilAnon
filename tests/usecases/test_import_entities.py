@@ -24,7 +24,7 @@ def use_case(repo):
 
 
 def _write_csv(path: Path, rows: list[list[str]]) -> Path:
-    """Write a semicolon-delimited CSV with PISA 410 structure (title row, header row, data rows)."""
+    """Write a semicolon-delimited CSV with PISA 410 structure (title, header, data rows)."""
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [";".join(r) for r in rows]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -209,7 +209,7 @@ class TestImportEntitiesEdgeCases:
         result = use_case.execute(csv_path)
         assert result.rows_processed == 2
         # Second row duplicates first — no new entities on second row
-        first_run_count = result.entities_imported
+        _first_run_count = result.entities_imported
         csv_path2 = _write_csv(
             tmp_path / "pisa2.csv",
             [_TITLE_ROW, _HEADER_ROW, _make_pisa_row()],

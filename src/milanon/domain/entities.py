@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import Enum, StrEnum
 
 
-class AnonymizationLevel(str, Enum):
+class AnonymizationLevel(StrEnum):
     """Anonymization level — DSG (personal data only) or FULL (all entities)."""
 
     DSG = "dsg"
@@ -185,7 +185,7 @@ ISG_ENTITY_TYPES: frozenset[EntityType] = frozenset({
 })
 
 # Exhaustiveness assertion: every EntityType must appear in exactly one set.
-assert DSG_ENTITY_TYPES | ISG_ENTITY_TYPES == set(EntityType), (
+assert set(EntityType) == DSG_ENTITY_TYPES | ISG_ENTITY_TYPES, (
     "DSG_ENTITY_TYPES and ISG_ENTITY_TYPES do not cover all EntityType values. "
     "Update one of the sets when adding a new EntityType."
 )

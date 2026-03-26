@@ -1,5 +1,7 @@
 """Tests for SqliteMappingRepository — CRUD, persistence, import."""
 
+import sqlite3
+
 import pytest
 
 from milanon.adapters.repositories.sqlite_repository import SqliteMappingRepository
@@ -63,7 +65,7 @@ class TestCreateMapping:
 
     def test_create_duplicate_raises(self, repo: SqliteMappingRepository):
         repo.create_mapping(EntityType.PERSON, "Hans Muster")
-        with pytest.raises(Exception):
+        with pytest.raises(sqlite3.IntegrityError):
             repo.create_mapping(EntityType.PERSON, "Hans Muster")
 
 

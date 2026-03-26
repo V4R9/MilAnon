@@ -16,7 +16,7 @@ from milanon.adapters.recognizers.military_recognizer import MilitaryRecognizer
 from milanon.adapters.recognizers.pattern_recognizer import PatternRecognizer
 from milanon.adapters.repositories.sqlite_repository import SqliteMappingRepository
 from milanon.domain.anonymizer import Anonymizer
-from milanon.domain.entities import DocumentFormat, EntityType, ExtractedDocument
+from milanon.domain.entities import EntityType
 from milanon.domain.mapping_service import MappingService
 from milanon.domain.recognition import RecognitionPipeline
 from milanon.usecases.anonymize import AnonymizeUseCase
@@ -56,7 +56,8 @@ def _make_pisa_csv(tmp_path: Path, name: str, city: str, ahv: str = "") -> Path:
     """Create a minimal PISA 410 CSV with one person."""
     path = tmp_path / "pisa.csv"
     # PISA format: title row, header row, data rows
-    # Col indices from import_entities: 0=AHV,1=Einheit,3=Grad,4=i_gst,5=Nachname,6=Vorname,15=Wohnort
+    # Col indices from import_entities:
+    # 0=AHV, 1=Einheit, 3=Grad, 4=i_gst, 5=Nachname, 6=Vorname, 15=Wohnort
     row = [""] * 32
     row[0] = ahv
     row[5] = name

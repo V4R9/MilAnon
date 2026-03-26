@@ -229,7 +229,9 @@ class TestCleanOrphans:
         (output_dir / "file1.csv").write_text("Anon 1", encoding="utf-8")
         (output_dir / "file2.md").write_text("Orphan", encoding="utf-8")
 
-        result = use_case.execute(input_dir, output_dir, force=True, clean=True, include_spreadsheets=True)
+        result = use_case.execute(
+            input_dir, output_dir, force=True, clean=True, include_spreadsheets=True
+        )
 
         assert not (output_dir / "file2.md").exists()
         assert result.files_cleaned == 1
@@ -244,7 +246,9 @@ class TestCleanOrphans:
         output_dir.mkdir()
         (output_dir / "file1.csv").write_text("Anon 1", encoding="utf-8")
 
-        result = use_case.execute(input_dir, output_dir, force=True, clean=True, include_spreadsheets=True)
+        result = use_case.execute(
+            input_dir, output_dir, force=True, clean=True, include_spreadsheets=True
+        )
 
         assert (output_dir / "file1.csv").exists()
         assert result.files_cleaned == 0
@@ -259,7 +263,9 @@ class TestCleanOrphans:
         output_dir.mkdir()
         (output_dir / "CONTEXT.md").write_text("Context file", encoding="utf-8")
 
-        result = use_case.execute(input_dir, output_dir, force=True, clean=True, include_spreadsheets=True)
+        use_case.execute(
+            input_dir, output_dir, force=True, clean=True, include_spreadsheets=True
+        )
 
         assert (output_dir / "CONTEXT.md").exists()
 
@@ -273,7 +279,9 @@ class TestCleanOrphans:
         output_dir.mkdir()
         (output_dir / "orphan.md").write_text("Orphan", encoding="utf-8")
 
-        result = use_case.execute(input_dir, output_dir, force=True, clean=False, include_spreadsheets=True)
+        result = use_case.execute(
+            input_dir, output_dir, force=True, clean=False, include_spreadsheets=True
+        )
 
         assert (output_dir / "orphan.md").exists()
         assert result.files_cleaned == 0

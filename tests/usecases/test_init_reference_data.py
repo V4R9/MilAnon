@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from milanon.adapters.repositories.sqlite_repository import SqliteMappingRepository
 from milanon.adapters.recognizers.list_recognizer import ListRecognizer
-from milanon.domain.entities import ExtractedDocument, DocumentFormat
+from milanon.adapters.repositories.sqlite_repository import SqliteMappingRepository
+from milanon.domain.entities import DocumentFormat, ExtractedDocument
 from milanon.usecases.init_reference_data import InitReferenceDataUseCase
 
 

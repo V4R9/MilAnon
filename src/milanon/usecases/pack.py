@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 _TEMPLATES_DIR = Path(__file__).parent.parent.parent.parent / "data" / "templates"
 _USER_TEMPLATES_DIR = Path.home() / ".milanon" / "templates"
 
-_SUPPORTED_INPUT_EXTENSIONS = {".md", ".eml", ".txt"}  # CSV excluded — use 'milanon db import' for PISA/name-list CSVs
+# CSV excluded — use 'milanon db import' for PISA/name-list CSVs
+_SUPPORTED_INPUT_EXTENSIONS = {".md", ".eml", ".txt"}
 
 
 @dataclass

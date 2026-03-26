@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from docx import Document as open_docx
+from docx import Document as OpenDocx
 from docx.document import Document as DocxDocument
 from docx.enum.shape import WD_INLINE_SHAPE
 from docx.oxml.ns import qn
@@ -28,7 +28,7 @@ class DocxParser:
 
     def parse(self, path: Path) -> ExtractedDocument:
         """Parse a .docx file and return its extracted content."""
-        doc = open_docx(str(path))
+        doc = OpenDocx(str(path))
 
         header_text, footer_text = self._extract_headers_footers(doc)
         body_text, tables = self._extract_body(doc)

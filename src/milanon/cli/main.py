@@ -12,7 +12,15 @@ from rich.panel import Panel
 from rich.table import Table
 
 from milanon import __version__
-from milanon.cli.output import console, print_error, print_file_list, print_header, print_result_table, print_success, print_warning
+from milanon.cli.output import (
+    console,
+    print_error,
+    print_file_list,
+    print_header,
+    print_result_table,
+    print_success,
+    print_warning,
+)
 from milanon.config.settings import ensure_db_dir
 
 # Path to bundled reference data
@@ -95,8 +103,20 @@ def cli(ctx: click.Context) -> None:
     is_flag=True,
     help="Embed visual PDF pages (WAP/schedules) as PNG images in the output (NOT anonymized).",
 )
-@click.option("--clean", is_flag=True, help="Remove output files that no longer have a corresponding input file.")
-@click.option("--include-spreadsheets", "include_spreadsheets", is_flag=True, help="Also process .csv and .xlsx files (skipped by default — use 'milanon db import' for PISA/name-list CSVs).")
+@click.option(
+    "--clean",
+    is_flag=True,
+    help="Remove output files that no longer have a corresponding input file.",
+)
+@click.option(
+    "--include-spreadsheets",
+    "include_spreadsheets",
+    is_flag=True,
+    help=(
+        "Also process .csv and .xlsx files (skipped by default"
+        " — use 'milanon db import' for PISA/name-list CSVs)."
+    ),
+)
 @click.option(
     "--level", "-l",
     type=click.Choice(["dsg", "full"], case_sensitive=False),
@@ -127,8 +147,16 @@ def anonymize(
         )
 
     prefix = "[dim][dry-run][/dim] " if dry_run else ""
-    level_display = "[green]DSG[/green] (personal data)" if resolved_level == "dsg" else "[yellow]FULL[/yellow] (all entities)"
-    errors_val = f"[red bold]{result.files_error}[/red bold]" if result.files_error > 0 else f"[green]{result.files_error}[/green]"
+    level_display = (
+        "[green]DSG[/green] (personal data)"
+        if resolved_level == "dsg"
+        else "[yellow]FULL[/yellow] (all entities)"
+    )
+    errors_val = (
+        f"[red bold]{result.files_error}[/red bold]"
+        if result.files_error > 0
+        else f"[green]{result.files_error}[/green]"
+    )
     rows = [
         (f"{prefix}Level", level_display),
         (f"{prefix}Scanned", str(result.files_scanned)),
@@ -139,16 +167,21 @@ def anonymize(
         (f"{prefix}Entities", f"[bold cyan]{result.entities_found}[/bold cyan]"),
     ]
     if result.entities_total > result.entities_found:
-        rows.append((f"{prefix}Total", f"[cyan]{result.entities_total}[/cyan] (across all tracked files)"))
+        rows.append(
+            (f"{prefix}Total", f"[cyan]{result.entities_total}[/cyan] (across all tracked files)")
+        )
     if result.files_cleaned > 0:
-        rows.append((f"{prefix}Cleaned", f"[yellow]{result.files_cleaned}[/yellow] orphaned output(s)"))
+        rows.append(
+            (f"{prefix}Cleaned", f"[yellow]{result.files_cleaned}[/yellow] orphaned output(s)")
+        )
 
     print_header("MilAnon Anonymize", input_path)
     print_result_table(rows, title="Results")
 
     if result.visual_page_count > 0:
         if embed_images:
-            print_warning(f"{result.visual_page_count} visual page(s) embedded as PNG images (NOT anonymized).")
+            n_vis = result.visual_page_count
+            print_warning(f"{n_vis} visual page(s) embedded as PNG images (NOT anonymized).")
         else:
             print_warning(
                 f"{result.visual_page_count} visual page(s) detected (WAP/schedules — "
@@ -164,11 +197,26 @@ def anonymize(
 
 @cli.command()
 @click.argument("input_path", type=click.Path(exists=True))
-@click.option("--output", "-o", default=None, type=click.Path(), help="Output directory (ignored with --in-place).")
+@click.option(
+    "--output", "-o",
+    default=None,
+    type=click.Path(),
+    help="Output directory (ignored with --in-place).",
+)
 @click.option("--force", is_flag=True, help="Reprocess all files, ignoring cache.")
 @click.option("--dry-run", is_flag=True, help="Show what would be processed without doing it.")
-@click.option("--in-place", "in_place", is_flag=True, help="De-anonymize files directly in their current location. Creates .milanon_backup/ before modifying.")
-def deanonymize(input_path: str, output: str | None, force: bool, dry_run: bool, in_place: bool) -> None:
+@click.option(
+    "--in-place",
+    "in_place",
+    is_flag=True,
+    help=(
+        "De-anonymize files directly in their current location."
+        " Creates .milanon_backup/ before modifying."
+    ),
+)
+def deanonymize(
+    input_path: str, output: str | None, force: bool, dry_run: bool, in_place: bool
+) -> None:
     """De-anonymize LLM outputs by restoring original entity values."""
     if not in_place and not output:
         print_error("--output is required unless --in-place is used.")
@@ -194,7 +242,11 @@ def deanonymize(input_path: str, output: str | None, force: bool, dry_run: bool,
         )
 
     prefix = "[dim][dry-run][/dim] " if dry_run else ""
-    errors_val = f"[red bold]{result.files_error}[/red bold]" if result.files_error > 0 else f"[green]{result.files_error}[/green]"
+    errors_val = (
+        f"[red bold]{result.files_error}[/red bold]"
+        if result.files_error > 0
+        else f"[green]{result.files_error}[/green]"
+    )
     print_result_table([
         (f"{prefix}Scanned", str(result.files_scanned)),
         (f"{prefix}New", f"[green]{result.files_new}[/green]"),
@@ -318,7 +370,11 @@ def db_reset(include_ref_data: bool) -> None:
     "import_format",
     type=click.Choice(["pisa", "names", "miloffice"]),
     default="pisa",
-    help="CSV format: 'pisa' = PISA 410 / MilOffice export; 'names' = simple Grad;Vorname;Nachname list. 'miloffice' is an alias for 'pisa'.",
+    help=(
+        "CSV format: 'pisa' = PISA 410 / MilOffice export;"
+        " 'names' = simple Grad;Vorname;Nachname list."
+        " 'miloffice' is an alias for 'pisa'."
+    ),
 )
 def db_import(csv_path: str, import_format: str) -> None:
     """Import entities from a CSV file (PISA 410 or simple name list)."""
@@ -434,7 +490,9 @@ def context(unit_name: str | None, output_path: str) -> None:
         table.add_column("Level", style="dim")
         for i, u in enumerate(units, 1):
             table.add_row(str(i), u.original_value, u.level)
-        console.print(Panel(table, title="Known units in database", box=box.ROUNDED, border_style="cyan"))
+        console.print(
+            Panel(table, title="Known units in database", box=box.ROUNDED, border_style="cyan")
+        )
 
         choice = click.prompt("Which is your unit? Enter number", type=int)
         if not 1 <= choice <= len(units):
@@ -461,21 +519,42 @@ def context(unit_name: str | None, output_path: str) -> None:
 
 @cli.command()
 @click.argument("input_path", type=click.Path(exists=True))
-@click.option("--template", "-t", "template_name", default="frei", help="Template name (frei, obsidian-notes, befehl-entwurf, analyse).")
-@click.option("--workflow", default=None, help="Workflow name: analyse, ei-bf, wachtdienst, bdl, entschluss.")
+@click.option(
+    "--template", "-t", "template_name", default="frei",
+    help="Template name (frei, obsidian-notes, befehl-entwurf, analyse).",
+)
+@click.option(
+    "--workflow", default=None,
+    help="Workflow name: analyse, ei-bf, wachtdienst, bdl, entschluss.",
+)
 @click.option("--mode", default=None, help="Mode: berrm or adf (default from config or 'berrm').")
 @click.option("--step", default=None, type=int, help="5+2 step number (1-5).")
 @click.option("--unit", "user_unit", default="", help='Your unit, e.g. "Inf Kp 56/1".')
-@click.option("--prompt", "user_prompt", default="", help="Custom prompt text (used with template 'frei').")
-@click.option("--context", "context_path", default=None, type=click.Path(), help="Path to CONTEXT.md or previous step outputs.")
-@click.option("--output", "-o", "output_path", default=None, type=click.Path(), help="Write pack to this file in addition to clipboard.")
+@click.option(
+    "--prompt", "user_prompt", default="",
+    help="Custom prompt text (used with template 'frei').",
+)
+@click.option(
+    "--context", "context_path", default=None, type=click.Path(),
+    help="Path to CONTEXT.md or previous step outputs.",
+)
+@click.option(
+    "--output", "-o", "output_path", default=None, type=click.Path(),
+    help="Write pack to this file in addition to clipboard.",
+)
 @click.option("--no-clipboard", is_flag=True, help="Do not copy to clipboard.")
-@click.option("--list-templates", "list_templates_flag", is_flag=True, help="Show available templates and exit.")
+@click.option(
+    "--list-templates", "list_templates_flag", is_flag=True,
+    help="Show available templates and exit.",
+)
 @click.option(
     "--level", "-l",
     type=click.Choice(["dsg", "full"], case_sensitive=False),
     default=None,
-    help="Anonymization level: 'dsg' (personal data only) or 'full' (all entities). Shown in pack metadata.",
+    help=(
+        "Anonymization level: 'dsg' (personal data only) or 'full' (all entities)."
+        " Shown in pack metadata."
+    ),
 )
 def pack(
     input_path: str,
@@ -580,11 +659,25 @@ def pack(
 
 
 @cli.command()
-@click.option("--output", "-o", "output_dir", required=True, type=click.Path(), help="Output directory for de-anonymized files.")
-@click.option("--clipboard", "from_clipboard", is_flag=True, help="Read LLM output from system clipboard.")
-@click.option("--input", "input_file", default=None, type=click.Path(exists=True), help="Read LLM output from a file.")
-@click.option("--split", "split_sections", is_flag=True, help="Split on --- separators and write separate files.")
-@click.option("--in-place", "in_place", is_flag=True, help="Overwrite the input file in-place (requires --input).")
+@click.option(
+    "--output", "-o", "output_dir", required=True, type=click.Path(),
+    help="Output directory for de-anonymized files.",
+)
+@click.option(
+    "--clipboard", "from_clipboard", is_flag=True, help="Read LLM output from system clipboard."
+)
+@click.option(
+    "--input", "input_file", default=None, type=click.Path(exists=True),
+    help="Read LLM output from a file.",
+)
+@click.option(
+    "--split", "split_sections", is_flag=True,
+    help="Split on --- separators and write separate files.",
+)
+@click.option(
+    "--in-place", "in_place", is_flag=True,
+    help="Overwrite the input file in-place (requires --input).",
+)
 def unpack(
     output_dir: str,
     from_clipboard: bool,
@@ -637,7 +730,10 @@ def unpack(
 
 @cli.command()
 @click.argument("input_path", type=click.Path(exists=True))
-@click.option("--auto-add", is_flag=True, help="Automatically add all candidates to the database without confirmation.")
+@click.option(
+    "--auto-add", is_flag=True,
+    help="Automatically add all candidates to the database without confirmation.",
+)
 @click.option("--dry-run", is_flag=True, help="Show candidates without adding to database.")
 def review(input_path: str, auto_add: bool, dry_run: bool) -> None:
     """Scan anonymized output for potential name leaks and add confirmed candidates to DB."""
@@ -652,7 +748,9 @@ def review(input_path: str, auto_add: bool, dry_run: bool) -> None:
 
     console.print(
         f"  Scanned [cyan]{result.files_scanned}[/cyan] file(s). "
-        f"Found [{'yellow' if result.candidates else 'green'}]{len(result.candidates)}[/{'yellow' if result.candidates else 'green'}] candidate(s)."
+        f"Found [{'yellow' if result.candidates else 'green'}]"
+        f"{len(result.candidates)}"
+        f"[/{'yellow' if result.candidates else 'green'}] candidate(s)."
     )
 
     if not result.candidates:
@@ -680,7 +778,10 @@ def review(input_path: str, auto_add: bool, dry_run: bool) -> None:
         print_success(f"Added {count} new entities to database.")
     else:
         console.print("")
-        console.print("  Enter numbers to confirm (e.g. [cyan]1 3 5[/cyan]), [cyan]all[/cyan], or press Enter to skip:")
+        console.print(
+            "  Enter numbers to confirm (e.g. [cyan]1 3 5[/cyan]),"
+            " [cyan]all[/cyan], or press Enter to skip:"
+        )
         choice = click.prompt("Your choice", default="")
         if not choice.strip():
             console.print("  [dim]No changes made.[/dim]")
@@ -691,7 +792,9 @@ def review(input_path: str, auto_add: bool, dry_run: bool) -> None:
         else:
             try:
                 indices = [int(x) - 1 for x in choice.split()]
-                confirmed = [result.candidates[i] for i in indices if 0 <= i < len(result.candidates)]
+                confirmed = [
+                    result.candidates[i] for i in indices if 0 <= i < len(result.candidates)
+                ]
             except ValueError:
                 print_error("Invalid input. No changes made.")
                 return
@@ -718,10 +821,19 @@ cli.add_command(doctrine)
 @cli.command()
 @click.argument("input_path", type=click.Path(exists=True))
 @click.option("--docx", is_flag=True, help="Export as DOCX.")
-@click.option("--template", "template_path", default=None, type=click.Path(), help="DOCX template file (default: bundled befehl_vorlage.docx).")
+@click.option(
+    "--template", "template_path", default=None, type=click.Path(),
+    help="DOCX template file (default: bundled befehl_vorlage.docx).",
+)
 @click.option("--deanonymize", is_flag=True, help="Replace placeholders with real values.")
 @click.option("--output", "-o", default=None, type=click.Path(), help="Output file path.")
-def export(input_path: str, docx: bool, template_path: str | None, deanonymize: bool, output: str | None) -> None:
+def export(
+    input_path: str,
+    docx: bool,
+    template_path: str | None,
+    deanonymize: bool,
+    output: str | None,
+) -> None:
     """Export Markdown to DOCX with optional de-anonymization."""
     if not docx:
         print_error("specify --docx for export format.")
@@ -731,7 +843,11 @@ def export(input_path: str, docx: bool, template_path: str | None, deanonymize: 
     from milanon.usecases.export_docx import ExportDocxUseCase
 
     in_path = Path(input_path)
-    tpl_path = Path(template_path) if template_path else _DATA_DIR / "templates" / "docx" / "befehl_vorlage.docx"
+    tpl_path = (
+        Path(template_path)
+        if template_path
+        else _DATA_DIR / "templates" / "docx" / "befehl_vorlage.docx"
+    )
     out_path = Path(output) if output else in_path.with_suffix(".docx")
 
     if not tpl_path.exists():
@@ -761,9 +877,17 @@ def project() -> None:
 
 @project.command("generate")
 @click.option("--unit", required=True, help='Your unit, e.g. "Inf Kp 56/1".')
-@click.option("--input", "input_path", default=None, type=click.Path(exists=True), help="Path to anonymized documents (from milanon anonymize) to include in knowledge/.")
-@click.option("--output", "-o", required=True, type=click.Path(), help="Output directory for the project folder.")
-@click.option("--include-images", is_flag=True, help="Include PNG images (WAP, maps) as Knowledge files.")
+@click.option(
+    "--input", "input_path", default=None, type=click.Path(exists=True),
+    help="Path to anonymized documents (from milanon anonymize) to include in knowledge/.",
+)
+@click.option(
+    "--output", "-o", required=True, type=click.Path(),
+    help="Output directory for the project folder.",
+)
+@click.option(
+    "--include-images", is_flag=True, help="Include PNG images (WAP, maps) as Knowledge files."
+)
 def project_generate(unit: str, input_path: str | None, output: str, include_images: bool) -> None:
     """Generate a ready-to-import Claude.ai Project folder."""
     from milanon.usecases.generate_project import GenerateProjectUseCase
@@ -853,7 +977,10 @@ def gui(port: int) -> None:
         print_error(f"GUI app not found at {app_path}")
         sys.exit(2)
 
-    console.print(f"  Starting [bold cyan]MilAnon GUI[/bold cyan] at [link]http://localhost:{port}[/link]")
+    console.print(
+        f"  Starting [bold cyan]MilAnon GUI[/bold cyan]"
+        f" at [link]http://localhost:{port}[/link]"
+    )
     console.print("  [dim]Press Ctrl+C to stop.[/dim]")
     subprocess.run(
         [sys.executable, "-m", "streamlit", "run", str(app_path), "--server.port", str(port)],

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from milanon.adapters.repositories.sqlite_repository import SqliteMappingRepository
@@ -87,7 +85,7 @@ class TestGetAvailableUnits:
         levels = [u.level for u in units]
         # Battalion must come before Companies
         bat_idx = levels.index("Battalion")
-        kp_indices = [i for i, l in enumerate(levels) if l == "Company"]
+        kp_indices = [i for i, lvl in enumerate(levels) if lvl == "Company"]
         assert bat_idx < min(kp_indices)
 
     def test_returns_empty_list_when_no_units(self, use_case):
@@ -175,7 +173,9 @@ class TestGenerateParentDetection:
         content = out.read_text(encoding="utf-8")
         assert "Parent unit" not in content
 
-    def test_battalion_filtering_uses_parent_not_random_battalion(self, use_case, service, tmp_path):
+    def test_battalion_filtering_uses_parent_not_random_battalion(
+        self, use_case, service, tmp_path
+    ):
         # When multiple battalions exist, "Battalion level only" must use the
         # identified parent — not just the first Battalion in the list.
         placeholders = _standard_units(service)
@@ -191,7 +191,9 @@ class TestGenerateParentDetection:
         assert placeholders["Inf Bat 56"] in bat_line
         assert other_bat not in bat_line
 
-    def test_battalion_filtering_falls_back_to_user_when_no_parent(self, use_case, service, tmp_path):
+    def test_battalion_filtering_falls_back_to_user_when_no_parent(
+        self, use_case, service, tmp_path
+    ):
         # When user IS the battalion (no slash), "Battalion level only" → user's own placeholder
         placeholders = _standard_units(service)
         out = tmp_path / "CONTEXT.md"
@@ -269,7 +271,9 @@ def _build_ter_div2_hierarchy(repo: SqliteMappingRepository) -> None:
     _insert_concrete_unit(repo, "Infanteriekompanie 56/1", "Inf Kp 56/1", "Infanteriebataillon 56")
     _insert_concrete_unit(repo, "Infanteriekompanie 56/2", "Inf Kp 56/2", "Infanteriebataillon 56")
     _insert_concrete_unit(repo, "Infanteriekompanie 56/3", "Inf Kp 56/3", "Infanteriebataillon 56")
-    _insert_concrete_unit(repo, "Infanterie Stabskompanie 56", "Inf Stabskp 56", "Infanteriebataillon 56")
+    _insert_concrete_unit(
+        repo, "Infanterie Stabskompanie 56", "Inf Stabskp 56", "Infanteriebataillon 56"
+    )
 
 
 class TestHierarchyFromDB:

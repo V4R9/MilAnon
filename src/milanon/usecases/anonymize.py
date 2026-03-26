@@ -7,8 +7,6 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from milanon.domain.protocols import FileTrackingRepository, MappingRepository
-
 from milanon.adapters.parsers import get_parser
 from milanon.adapters.parsers.pdf_parser import VISUAL_PAGE_EMBED_MARKER, VISUAL_PAGE_SKIP_MARKER
 from milanon.adapters.writers.csv_writer import CsvWriter
@@ -17,6 +15,7 @@ from milanon.adapters.writers.eml_writer import EmlWriter
 from milanon.adapters.writers.markdown_writer import MarkdownWriter
 from milanon.domain.anonymizer import Anonymizer
 from milanon.domain.entities import AnonymizationLevel, DocumentFormat, filter_entities_by_level
+from milanon.domain.protocols import FileTrackingRepository
 from milanon.domain.recognition import RecognitionPipeline
 
 logger = logging.getLogger(__name__)
@@ -165,7 +164,9 @@ class AnonymizeUseCase:
         )
         result = AnonymizeResult()
 
-        allowed_extensions = _SUPPORTED_EXTENSIONS | (_SPREADSHEET_EXTENSIONS if include_spreadsheets else set())
+        allowed_extensions = _SUPPORTED_EXTENSIONS | (
+            _SPREADSHEET_EXTENSIONS if include_spreadsheets else set()
+        )
 
         if input_path.is_file():
             files = [input_path]

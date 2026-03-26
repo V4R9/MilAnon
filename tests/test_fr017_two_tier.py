@@ -4,17 +4,15 @@ Covers unit tests for the filter function, integration tests for the
 anonymization pipeline, and edge case tests for the enum and entity sets.
 """
 
-import pytest
 
 from milanon.domain.entities import (
+    DSG_ENTITY_TYPES,
+    ISG_ENTITY_TYPES,
     AnonymizationLevel,
     DetectedEntity,
-    DSG_ENTITY_TYPES,
     EntityType,
-    ISG_ENTITY_TYPES,
     filter_entities_by_level,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

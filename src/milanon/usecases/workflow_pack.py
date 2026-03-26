@@ -17,7 +17,8 @@ _DATA_DIR = Path(__file__).parent.parent.parent.parent / "data"
 _TEMPLATES_DIR = _DATA_DIR / "templates"
 _DOCTRINE_DIR = _DATA_DIR / "doctrine"
 
-_SUPPORTED_INPUT_EXTENSIONS = {".md", ".eml", ".txt"}  # CSV excluded — use 'milanon db import' for PISA/name-list CSVs
+# CSV excluded — use 'milanon db import' for PISA/name-list CSVs
+_SUPPORTED_INPUT_EXTENSIONS = {".md", ".eml", ".txt"}
 
 
 def _strip_mode_markers(text: str, mode: str) -> str:

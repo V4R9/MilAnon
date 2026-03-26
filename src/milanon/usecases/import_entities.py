@@ -8,10 +8,9 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-from milanon.utils.csv_helpers import detect_delimiter
-
 from milanon.domain.entities import EntityType
 from milanon.domain.mapping_service import MappingService
+from milanon.utils.csv_helpers import detect_delimiter
 
 logger = logging.getLogger(__name__)
 

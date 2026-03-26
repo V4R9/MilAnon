@@ -1,6 +1,5 @@
 """Tests for EINHEIT alias resolution."""
 
-import pytest
 
 from milanon.adapters.repositories.sqlite_repository import SqliteMappingRepository
 from milanon.domain.entities import EntityType

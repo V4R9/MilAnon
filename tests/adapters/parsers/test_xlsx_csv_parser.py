@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from milanon.adapters.parsers.xlsx_csv_parser import XlsxCsvParser
 from milanon.domain.entities import DocumentFormat
 from milanon.domain.protocols import DocumentParser

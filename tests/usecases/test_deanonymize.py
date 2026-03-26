@@ -139,9 +139,9 @@ class TestFilenameDeanonymization:
     def test_placeholder_filename_resolved(self, tmp_path):
         """[PERSON_001].md → Wegmüller_Thomas.md"""
         from milanon.adapters.repositories.sqlite_repository import SqliteMappingRepository
+        from milanon.domain.deanonymizer import DeAnonymizer
         from milanon.domain.entities import EntityType
         from milanon.domain.mapping_service import MappingService
-        from milanon.domain.deanonymizer import DeAnonymizer
         from milanon.usecases.deanonymize import DeAnonymizeUseCase
 
         repo = SqliteMappingRepository(":memory:")
@@ -156,7 +156,7 @@ class TestFilenameDeanonymization:
         input_file.write_text("# [PERSON_001]\nSome content about [PERSON_001].", encoding="utf-8")
 
         output_dir = tmp_path / "output"
-        result = uc.execute(input_dir, output_dir)
+        uc.execute(input_dir, output_dir)
 
         assert (output_dir / "Wegmüller_Thomas.md").exists()
         assert not (output_dir / "[PERSON_001].md").exists()
@@ -167,8 +167,8 @@ class TestFilenameDeanonymization:
     def test_normal_filename_unchanged(self, tmp_path):
         """dashboard.md stays dashboard.md."""
         from milanon.adapters.repositories.sqlite_repository import SqliteMappingRepository
-        from milanon.domain.mapping_service import MappingService
         from milanon.domain.deanonymizer import DeAnonymizer
+        from milanon.domain.mapping_service import MappingService
         from milanon.usecases.deanonymize import DeAnonymizeUseCase
 
         repo = SqliteMappingRepository(":memory:")
@@ -181,7 +181,7 @@ class TestFilenameDeanonymization:
         (input_dir / "dashboard.md").write_text("# Dashboard", encoding="utf-8")
 
         output_dir = tmp_path / "output"
-        result = uc.execute(input_dir, output_dir)
+        uc.execute(input_dir, output_dir)
 
         assert (output_dir / "dashboard.md").exists()
 
@@ -211,7 +211,7 @@ class TestInPlaceDeanonymization:
         test_file = input_dir / "note.md"
         test_file.write_text("# [PERSON_001]\nContent about [PERSON_001].", encoding="utf-8")
 
-        result = uc.execute(input_dir, in_place=True)
+        uc.execute(input_dir, in_place=True)
 
         content = test_file.read_text(encoding="utf-8")
         assert "Thomas WEGMÜLLER" in content
@@ -297,7 +297,7 @@ class TestInPlaceDeanonymization:
         backup_count_before = len(list((input_dir / ".milanon_backup").rglob("*")))
 
         # Second run — backup dir must not be scanned
-        result2 = uc.execute(input_dir, in_place=True, force=True)
+        uc.execute(input_dir, in_place=True, force=True)
         backup_count_after = len(list((input_dir / ".milanon_backup").rglob("*")))
 
         # Backup count must not have grown from second run

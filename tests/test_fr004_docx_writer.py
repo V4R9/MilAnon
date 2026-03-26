@@ -8,12 +8,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 from docx import Document
 
 from milanon.adapters.writers.docx_writer import DocxWriter
 from milanon.domain.entities import AnonymizedDocument, DocumentFormat
-
 
 # ---------------------------------------------------------------------------
 # Helpers

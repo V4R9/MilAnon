@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from milanon.adapters.writers.csv_writer import CsvWriter
 from milanon.adapters.writers.docx_writer import DocxWriter
 from milanon.adapters.writers.eml_writer import EmlWriter
@@ -44,7 +42,9 @@ class TestMarkdownWriter:
         assert MarkdownWriter().default_extension() == ".md"
 
     def test_legend_preserved_in_markdown(self, tmp_path: Path):
-        content = "<!-- MILANON LEGEND START\n[PERSON_001] = PERSON\nMILANON LEGEND END -->\n\nText."
+        content = (
+            "<!-- MILANON LEGEND START\n[PERSON_001] = PERSON\nMILANON LEGEND END -->\n\nText."
+        )
         out = tmp_path / "out.md"
         MarkdownWriter().write(_anon_doc(content), out)
         assert "MILANON LEGEND" in out.read_text(encoding="utf-8")

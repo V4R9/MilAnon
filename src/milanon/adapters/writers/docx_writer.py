@@ -11,6 +11,7 @@ Fixes: BUG-005 (bold), BUG-006 (---), BUG-007 (HTML comments),
 
 from __future__ import annotations
 
+import contextlib
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -158,10 +159,8 @@ def _emit_table(doc: DocxDocument, rows: list[list[str]]) -> None:
     table = doc.add_table(rows=n_rows, cols=n_cols)
 
     # Apply Table Grid style if available.
-    try:
+    with contextlib.suppress(KeyError):
         table.style = "Table Grid"
-    except KeyError:
-        pass
 
     for row_idx, row_data in enumerate(rows):
         for col_idx, cell_text in enumerate(row_data):

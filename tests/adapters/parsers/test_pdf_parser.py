@@ -6,17 +6,17 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from milanon.adapters.parsers.pdf_parser import (
-    PdfParser,
     _MEGA_CELL_CHAR_THRESHOLD,
     _OCR_CHAR_THRESHOLD,
-    _VISUAL_TABLE_MAX_COLS,
     _VISUAL_TABLE_EMPTY_THRESHOLD,
+    _VISUAL_TABLE_MAX_COLS,
+    PdfParser,
     _remove_empty_columns,
 )
 from milanon.domain.entities import DocumentFormat
 from milanon.domain.protocols import DocumentParser
 
-from .conftest import MULTI_PAGE_PDF_TEXTS, SIMPLE_PDF_TEXT, TESSERACT_AVAILABLE
+from .conftest import MULTI_PAGE_PDF_TEXTS, TESSERACT_AVAILABLE
 
 
 class TestPdfParserProtocol:
@@ -183,21 +183,20 @@ class TestPdfParserOcrThreshold:
             ocr_called.append(page_num)
             return ""  # simulate OCR unavailable
 
-        with patch.object(pdf_parser, "_try_ocr", side_effect=stub_try_ocr):
-            with patch(
-                "milanon.adapters.parsers.pdf_parser.pdfplumber"
-            ) as mock_pdfplumber:
-                mock_page = MagicMock()
-                mock_page.find_tables.return_value = []
-                mock_page.extract_text.return_value = "short"  # < threshold
-                mock_page.images = []
-                mock_pdf = MagicMock()
-                mock_pdf.pages = [mock_page]
-                mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
-                mock_pdf.__exit__ = MagicMock(return_value=False)
-                mock_pdfplumber.open.return_value = mock_pdf
+        with patch.object(pdf_parser, "_try_ocr", side_effect=stub_try_ocr), patch(
+            "milanon.adapters.parsers.pdf_parser.pdfplumber"
+        ) as mock_pdfplumber:
+            mock_page = MagicMock()
+            mock_page.find_tables.return_value = []
+            mock_page.extract_text.return_value = "short"  # < threshold
+            mock_page.images = []
+            mock_pdf = MagicMock()
+            mock_pdf.pages = [mock_page]
+            mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
+            mock_pdf.__exit__ = MagicMock(return_value=False)
+            mock_pdfplumber.open.return_value = mock_pdf
 
-                pdf_parser.parse(simple_pdf_path)
+            pdf_parser.parse(simple_pdf_path)
 
         assert len(ocr_called) == 1
 
@@ -216,21 +215,20 @@ class TestPdfParserOcrFallback:
             pdf_parser,
             "_try_ocr",
             return_value="OCR extracted text with enough characters to count",
-        ):
-            with patch(
-                "milanon.adapters.parsers.pdf_parser.pdfplumber"
-            ) as mock_pdfplumber:
-                mock_page = MagicMock()
-                mock_page.find_tables.return_value = []
-                mock_page.extract_text.return_value = ""  # trigger OCR
-                mock_page.images = []
-                mock_pdf = MagicMock()
-                mock_pdf.pages = [mock_page]
-                mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
-                mock_pdf.__exit__ = MagicMock(return_value=False)
-                mock_pdfplumber.open.return_value = mock_pdf
+        ), patch(
+            "milanon.adapters.parsers.pdf_parser.pdfplumber"
+        ) as mock_pdfplumber:
+            mock_page = MagicMock()
+            mock_page.find_tables.return_value = []
+            mock_page.extract_text.return_value = ""  # trigger OCR
+            mock_page.images = []
+            mock_pdf = MagicMock()
+            mock_pdf.pages = [mock_page]
+            mock_pdf.__enter__ = MagicMock(return_value=mock_pdf)
+            mock_pdf.__exit__ = MagicMock(return_value=False)
+            mock_pdfplumber.open.return_value = mock_pdf
 
-                doc = pdf_parser.parse(simple_pdf_path)
+            doc = pdf_parser.parse(simple_pdf_path)
 
         assert "ocr_pages" in doc.metadata
         assert "1" in doc.metadata["ocr_pages"]
@@ -280,7 +278,9 @@ class TestPdfParserVisualLayout:
 
     def test_visual_layout_detected_when_both_conditions_met(self, pdf_parser: PdfParser):
         # >20 cols AND >70% empty → WAP/schedule grid
-        table = self._make_table_mock(_VISUAL_TABLE_MAX_COLS + 1, _VISUAL_TABLE_EMPTY_THRESHOLD + 0.05)
+        table = self._make_table_mock(
+            _VISUAL_TABLE_MAX_COLS + 1, _VISUAL_TABLE_EMPTY_THRESHOLD + 0.05
+        )
         assert pdf_parser._is_visual_layout([table]) is True
 
     def test_many_columns_but_dense_data_is_not_visual(self, pdf_parser: PdfParser):
@@ -299,7 +299,9 @@ class TestPdfParserVisualLayout:
 
     def test_visual_page_marker_in_output(self, pdf_parser: PdfParser, simple_pdf_path: Path):
         """A page whose tables are visual must produce the warning marker."""
-        visual_table = self._make_table_mock(_VISUAL_TABLE_MAX_COLS + 5, _VISUAL_TABLE_EMPTY_THRESHOLD + 0.05)
+        visual_table = self._make_table_mock(
+            _VISUAL_TABLE_MAX_COLS + 5, _VISUAL_TABLE_EMPTY_THRESHOLD + 0.05
+        )
         with patch("milanon.adapters.parsers.pdf_parser.pdfplumber") as mock_pdfplumber:
             mock_page = MagicMock()
             mock_page.find_tables.return_value = [visual_table]
@@ -316,7 +318,9 @@ class TestPdfParserVisualLayout:
         assert "not extractable as text" in doc.text_content
 
     def test_visual_pages_list_populated(self, pdf_parser: PdfParser, simple_pdf_path: Path):
-        visual_table = self._make_table_mock(_VISUAL_TABLE_MAX_COLS + 5, _VISUAL_TABLE_EMPTY_THRESHOLD + 0.05)
+        visual_table = self._make_table_mock(
+            _VISUAL_TABLE_MAX_COLS + 5, _VISUAL_TABLE_EMPTY_THRESHOLD + 0.05
+        )
         with patch("milanon.adapters.parsers.pdf_parser.pdfplumber") as mock_pdfplumber:
             mock_page = MagicMock()
             mock_page.find_tables.return_value = [visual_table]

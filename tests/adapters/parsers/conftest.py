@@ -161,7 +161,9 @@ def docx_with_images_path(tmp_path: Path) -> Path:
 # ---------------------------------------------------------------------------
 
 # Known text used in the simple PDF fixture (must produce >= 50 chars after extraction)
-SIMPLE_PDF_TEXT = "Kommandant: Hptm Marco BERNASCONI\nAHV-Nr: 756.1234.5678.97\nEinheit: Inf Kp 56/1"
+SIMPLE_PDF_TEXT = (
+    "Kommandant: Hptm Marco BERNASCONI\nAHV-Nr: 756.1234.5678.97\nEinheit: Inf Kp 56/1"
+)
 
 # Text used on each page of the multi-page PDF fixture
 MULTI_PAGE_PDF_TEXTS = [
@@ -272,7 +274,8 @@ def _make_minimal_png() -> bytes:
 
     def chunk(tag: bytes, data: bytes) -> bytes:
         body = tag + data
-        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body) & 0xFFFFFFFF)
+        crc = zlib.crc32(body) & 0xFFFFFFFF
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", crc)
 
     signature = b"\x89PNG\r\n\x1a\n"
     ihdr = chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0))

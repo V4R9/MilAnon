@@ -9,7 +9,6 @@ from pathlib import Path
 from milanon.domain.entities import EntityType
 from milanon.domain.protocols import MappingRepository
 
-
 # Level definitions: keyword → (display name, sort order)
 # Checked in order so "Stabskp" is tested before "Kp" (substring safety).
 _LEVEL_RULES: list[tuple[str, str, int]] = [
@@ -95,7 +94,10 @@ class GenerateContextUseCase:
         """
         units = self.get_available_units()
         user_entry = next(
-            (u for u in units if u.original_value.strip().lower() == user_unit_value.strip().lower()),
+            (
+                u for u in units
+                if u.original_value.strip().lower() == user_unit_value.strip().lower()
+            ),
             None,
         )
         if user_entry is None:
@@ -253,7 +255,9 @@ class GenerateContextUseCase:
                 s.get("abbreviation") or s.get("pattern", "?") for s in siblings
             )
             parent_abbrev = chain[-2].get("abbreviation") if len(chain) >= 2 else ""
-            label = f"**Sibling units ({parent_abbrev}):**" if parent_abbrev else "**Sibling units:**"
+            label = (
+                f"**Sibling units ({parent_abbrev}):**" if parent_abbrev else "**Sibling units:**"
+            )
             lines.append(f"\n{label} {sibling_abbrevs}")
 
         # Children (subordinate units)

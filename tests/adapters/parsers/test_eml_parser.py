@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from milanon.adapters.parsers.eml_parser import EmlParser
 from milanon.domain.entities import DocumentFormat
 from milanon.domain.protocols import DocumentParser

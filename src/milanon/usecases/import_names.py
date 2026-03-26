@@ -7,11 +7,10 @@ import io
 import logging
 from pathlib import Path
 
-from milanon.utils.csv_helpers import detect_delimiter
-
 from milanon.domain.entities import EntityType
 from milanon.domain.mapping_service import MappingService
 from milanon.usecases.import_entities import ImportResult
+from milanon.utils.csv_helpers import detect_delimiter
 
 logger = logging.getLogger(__name__)
 

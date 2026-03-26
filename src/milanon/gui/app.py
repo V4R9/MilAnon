@@ -9,6 +9,8 @@ from pathlib import Path
 
 import streamlit as st
 
+from milanon import __version__
+
 # Path to bundled reference data
 _DATA_DIR = Path(__file__).parent.parent.parent.parent / "data"
 
@@ -135,7 +137,6 @@ page = st.sidebar.radio(
 
 st.sidebar.divider()
 st.sidebar.caption("All processing is local. No data leaves your machine.")
-from milanon import __version__
 st.sidebar.caption(f"Version {__version__}")
 
 
@@ -220,7 +221,9 @@ if page == "🎯 LLM Workflow":
             key="wf_output",
         )
 
-        if st.button("📋 Prompt generieren", type="primary", key="btn_wf_pack", disabled=not wf_input):
+        if st.button(
+            "📋 Prompt generieren", type="primary", key="btn_wf_pack", disabled=not wf_input
+        ):
             try:
                 from milanon.usecases.generate_context import GenerateContextUseCase
                 from milanon.usecases.workflow_pack import WorkflowPackUseCase
@@ -257,7 +260,8 @@ if page == "🎯 LLM Workflow":
                     st.info(f"Gespeichert: `{pack_result.output_path}`")
 
                 with st.expander("Prompt-Vorschau", expanded=False):
-                    st.code(pack_text[:5000] + ("\n\n[... truncated ...]" if len(pack_text) > 5000 else ""), language="markdown")
+                    truncated = "\n\n[... truncated ...]" if len(pack_text) > 5000 else ""
+                    st.code(pack_text[:5000] + truncated, language="markdown")
 
             except Exception as exc:
                 st.error(f"Fehler: {exc}")
@@ -313,10 +317,12 @@ if page == "🎯 LLM Workflow":
         st.divider()
         st.subheader("Pack Builder")
         st.markdown(
-            "Assemble context + template + anonymized documents into a single clipboard-ready prompt."
+            "Assemble context + template + anonymized documents"
+            " into a single clipboard-ready prompt."
         )
 
-        from milanon.usecases.pack import PackUseCase, list_templates as _list_templates
+        from milanon.usecases.pack import PackUseCase
+        from milanon.usecases.pack import list_templates as _list_templates
 
         pack_templates = _list_templates()
         template_options = [t["name"] for t in pack_templates] if pack_templates else ["frei"]
@@ -352,7 +358,10 @@ if page == "🎯 LLM Workflow":
             key="pack_output",
         )
 
-        if st.button("Build Pack & Copy to Clipboard", type="primary", key="btn_pack", disabled=not pack_input):
+        if st.button(
+            "Build Pack & Copy to Clipboard",
+            type="primary", key="btn_pack", disabled=not pack_input,
+        ):
             try:
                 repo_pack = _make_repo()
                 pack_uc = PackUseCase(repo_pack)
@@ -430,7 +439,8 @@ if page == "🎯 LLM Workflow":
                 for f in unpack_result.output_files:
                     st.caption(f"→ `{f}`")
                 if unpack_result.warnings:
-                    with st.expander(f"⚠️ {len(unpack_result.warnings)} unresolved placeholder(s)"):
+                    n_warn = len(unpack_result.warnings)
+                    with st.expander(f"⚠️ {n_warn} unresolved placeholder(s)"):
                         for w in unpack_result.warnings:
                             st.warning(w)
             except Exception as exc:
@@ -562,7 +572,9 @@ elif page == "🔓 De-Anonymize":
     with col4:
         dry_run = st.checkbox("Dry run (no files written)")
 
-    if st.button("Start De-Anonymization", type="primary", disabled=not (input_path and output_path)):
+    if st.button(
+        "Start De-Anonymization", type="primary", disabled=not (input_path and output_path)
+    ):
         input_p = Path(_clean_path(input_path))
         output_p = Path(_clean_path(output_path))
 
@@ -634,7 +646,9 @@ elif page == "📄 DOCX Export":
         key="export_deanonymize",
     )
 
-    if st.button("📄 DOCX generieren", type="primary", key="btn_export", disabled=not export_input):
+    if st.button(
+        "📄 DOCX generieren", type="primary", key="btn_export", disabled=not export_input
+    ):
         try:
             from milanon.adapters.writers.docx_befehl_writer import DocxBefehlWriter
             from milanon.usecases.export_docx import ExportDocxUseCase
@@ -670,14 +684,19 @@ elif page == "📄 DOCX Export":
 
                     st.success(f"DOCX generated: `{result_path}`")
                     if export_deanonymize:
-                        st.info("De-anonymization applied — placeholders replaced with real values.")
+                        st.info(
+                            "De-anonymization applied — placeholders replaced with real values."
+                        )
 
                     docx_bytes = Path(result_path).read_bytes()
                     st.download_button(
                         "⬇️ DOCX herunterladen",
                         data=docx_bytes,
                         file_name=Path(result_path).name,
-                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        mime=(
+                            "application/vnd.openxmlformats-officedocument"
+                            ".wordprocessingml.document"
+                        ),
                     )
         except Exception as exc:
             st.error(f"Error: {exc}")
@@ -786,7 +805,10 @@ elif page == "🚀 Project Generator":
             help="WAP/Karten als PNG-Dateien in knowledge/ kopieren.",
         )
 
-    if st.button("🚀 Projekt generieren", type="primary", key="btn_proj", disabled=not (proj_unit and proj_output)):
+    if st.button(
+        "🚀 Projekt generieren",
+        type="primary", key="btn_proj", disabled=not (proj_unit and proj_output),
+    ):
         try:
             from milanon.usecases.generate_project import GenerateProjectUseCase
 
@@ -819,7 +841,11 @@ elif page == "🚀 Project Generator":
             st.download_button(
                 "⬇️ ZIP herunterladen",
                 data=zip_buffer.getvalue(),
-                file_name=f"claude_project_{proj_unit.strip().replace(' ', '_').replace('/', '_')}.zip",
+                file_name=(
+                    "claude_project_"
+                    + proj_unit.strip().replace(" ", "_").replace("/", "_")
+                    + ".zip"
+                ),
                 mime="application/zip",
             )
 
@@ -847,40 +873,44 @@ elif page == "📥 DB Import":
     )
 
     if import_format == "PISA 410 / MilOffice":
-        st.caption("PISA 410 format: row 1 = title, row 2 = headers, rows 3+ = data. Semicolon-delimited.")
+        st.caption(
+            "PISA 410 format: row 1 = title, row 2 = headers, rows 3+ = data. Semicolon-delimited."
+        )
     else:
-        st.caption("Simple format: header row `Grad;Vorname;Nachname`, one person per row. Grad is optional.")
+        st.caption(
+            "Simple format: header row `Grad;Vorname;Nachname`,"
+            " one person per row. Grad is optional."
+        )
 
     uploaded = st.file_uploader("Choose a CSV file", type=["csv"])
 
-    if uploaded is not None:
-        if st.button("Import", type="primary"):
-            with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
-                tmp.write(uploaded.read())
-                tmp_path = Path(tmp.name)
+    if uploaded is not None and st.button("Import", type="primary"):
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
+            tmp.write(uploaded.read())
+            tmp_path = Path(tmp.name)
 
-            with st.spinner("Importing…"):
-                from milanon.domain.mapping_service import MappingService
+        with st.spinner("Importing…"):
+            from milanon.domain.mapping_service import MappingService
 
-                repo = _make_repo()
-                service = MappingService(repo)
+            repo = _make_repo()
+            service = MappingService(repo)
 
-                if import_format == "Simple Name List (Grad;Vorname;Nachname)":
-                    from milanon.usecases.import_names import ImportNamesUseCase
-                    uc = ImportNamesUseCase(service)
-                else:
-                    from milanon.usecases.import_entities import ImportEntitiesUseCase
-                    uc = ImportEntitiesUseCase(service)
+            if import_format == "Simple Name List (Grad;Vorname;Nachname)":
+                from milanon.usecases.import_names import ImportNamesUseCase
+                uc = ImportNamesUseCase(service)
+            else:
+                from milanon.usecases.import_entities import ImportEntitiesUseCase
+                uc = ImportEntitiesUseCase(service)
 
-                result = uc.execute(tmp_path, source_document=uploaded.name)
+            result = uc.execute(tmp_path, source_document=uploaded.name)
 
-            tmp_path.unlink(missing_ok=True)
+        tmp_path.unlink(missing_ok=True)
 
-            st.success("Import complete.")
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Rows processed", result.rows_processed)
-            col2.metric("Rows skipped", result.rows_skipped)
-            col3.metric("Entities imported", result.entities_imported)
+        st.success("Import complete.")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Rows processed", result.rows_processed)
+        col2.metric("Rows skipped", result.rows_skipped)
+        col3.metric("Entities imported", result.entities_imported)
 
     # -----------------------------------------------------------------------
     # Quick Add — Single Person
@@ -950,7 +980,9 @@ elif page == "📊 DB Stats":
     ref_mil_count = repo.get_ref_military_unit_count()
 
     if ref_muni_count == 0 or ref_mil_count == 0:
-        st.warning("⚠️ Reference data not loaded (municipalities and/or military units missing).")
+        st.warning(
+            "⚠️ Reference data not loaded (municipalities and/or military units missing)."
+        )
         if st.button("🔄 Initialize Reference Data", type="primary"):
             with st.spinner("Loading reference data…"):
                 init_result = _init_reference_data(repo)
@@ -960,7 +992,9 @@ elif page == "📊 DB Stats":
             )
             st.rerun()
     else:
-        st.caption(f"Reference data: {ref_muni_count} municipalities, {ref_mil_count} military units ✅")
+        st.caption(
+            f"Reference data: {ref_muni_count} municipalities, {ref_mil_count} military units ✅"
+        )
 
     total = repo.get_total_mapping_count()
     by_type = repo.get_mapping_count_by_type()
@@ -991,7 +1025,10 @@ elif page == "📊 DB Stats":
     col_reset, col_full = st.columns(2)
 
     with col_reset:
-        st.warning("**Reset Mappings** — deletes all entity mappings and file tracking. Reference data (municipalities, military units) is preserved.")
+        st.warning(
+            "**Reset Mappings** — deletes all entity mappings and file tracking."
+            " Reference data (municipalities, military units) is preserved."
+        )
         confirm_reset = st.checkbox("I confirm: delete all mappings", key="confirm_reset")
         if st.button("Reset Mappings", disabled=not confirm_reset, key="btn_reset"):
             counts = repo.reset_all_mappings()
@@ -1002,8 +1039,13 @@ elif page == "📊 DB Stats":
             st.rerun()
 
     with col_full:
-        st.error("**Reset Everything** — deletes ALL data including reference data. Reference data will be re-initialized automatically.")
-        confirm_full = st.checkbox("I confirm: delete everything including reference data", key="confirm_full")
+        st.error(
+            "**Reset Everything** — deletes ALL data including reference data."
+            " Reference data will be re-initialized automatically."
+        )
+        confirm_full = st.checkbox(
+            "I confirm: delete everything including reference data", key="confirm_full"
+        )
         if st.button("Reset Everything", disabled=not confirm_full, key="btn_full_reset"):
             counts = repo.reset_everything()
             total_deleted = sum(counts.values())

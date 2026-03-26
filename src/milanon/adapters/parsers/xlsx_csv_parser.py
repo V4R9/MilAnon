@@ -88,7 +88,9 @@ class XlsxCsvParser:
 
         wb.close()
 
-        text_parts = [f"{name}\n{_rows_to_text(t)}" for name, t in zip(sheet_names, tables)]
+        text_parts = [
+            f"{name}\n{_rows_to_text(t)}" for name, t in zip(sheet_names, tables, strict=False)
+        ]
         text_content = "\n\n---\n\n".join(text_parts)
 
         metadata: dict[str, str] = {

@@ -47,7 +47,10 @@ def doctrine_list() -> None:
 
 
 @doctrine.command("extract")
-@click.option("--workflow", default=None, help="Extract chapters for a specific workflow (not yet implemented).")
+@click.option(
+    "--workflow", default=None,
+    help="Extract chapters for a specific workflow (not yet implemented).",
+)
 @click.option("--all", "extract_all", is_flag=True, help="Extract all defined chapters.")
 @click.option(
     "--output", "-o", default=None, type=click.Path(),

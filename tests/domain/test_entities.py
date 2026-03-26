@@ -5,18 +5,17 @@ from datetime import datetime
 import pytest
 
 from milanon.domain.entities import (
+    DSG_ENTITY_TYPES,
+    ISG_ENTITY_TYPES,
     AnonymizationLevel,
     AnonymizedDocument,
-    DSG_ENTITY_TYPES,
     DetectedEntity,
     DocumentFormat,
     EntityMapping,
     EntityType,
     ExtractedDocument,
-    ISG_ENTITY_TYPES,
     filter_entities_by_level,
 )
-
 
 # --- EntityType ---
 

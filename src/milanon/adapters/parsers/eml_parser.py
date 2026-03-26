@@ -67,9 +67,11 @@ class EmlParser:
             decoded = self._decode_header_value(raw)
             for display_name, addr in email.utils.getaddresses([decoded]):
                 display_name = display_name.strip()
-                if display_name and display_name != addr and " " in display_name:
-                    if display_name not in names:
-                        names.append(display_name)
+                if (
+                    display_name and display_name != addr
+                    and " " in display_name and display_name not in names
+                ):
+                    names.append(display_name)
         return names
 
     def _extract_headers(self, msg: email.message.Message) -> dict:
